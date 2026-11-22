@@ -33,7 +33,6 @@ FLOAT PhHwCpuTemperature = 0.0f;
 FLOAT PhHwCpuPower = 0.0f;
 
 PH_PROVIDER_REGISTRATION PhHwProviderRegistration;
-BOOLEAN PhpHwSettingEnabled = FALSE;
 
 PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
 {
@@ -249,7 +248,7 @@ VOID PhHwProviderUpdate(
     UNREFERENCED_PARAMETER(Object);
 
     now = PhpHwQueryTime();
-    open = PhpHwSettingEnabled && PhpHwDriverReady();
+    open = PhCsEnableHardwareSensors && PhpHwDriverReady();
 
     if (open && !PhpHwGateOpen)
         PhpHwBeginSession();

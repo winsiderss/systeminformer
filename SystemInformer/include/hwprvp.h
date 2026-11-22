@@ -32,10 +32,10 @@ extern PH_QUEUED_LOCK PhpHwNamedSensorLock;
 extern PPH_HW_NAMED_SENSOR PhpHwNamedSensors;
 extern ULONG PhpHwNamedSensorCount;
 
-extern BOOLEAN PhpHwSettingEnabled;
-
-// the application's, as phsettings.h declares it
+// the application's, as phsettings.h declares them
 extern ULONG PhCsUpdateInterval;
+extern ULONG PhCsEnableHardwareSensors;
+extern ULONG PhCsTemperatureUnitFahrenheit;
 
 #define PHP_HW_SECOND 10000000ULL // in PhpHwQueryTime units
 #define PHP_HW_RETRY_BACKOFF 10 // updates between tries after two STATUS_RETRY in a row (D9)

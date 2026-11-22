@@ -47,6 +47,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_ENABLE_LAST_PROCESS_SHUTDOWN, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_HANDLE_SNAPSHOT, L"1");
+    PhpAddIntegerSetting(SETTING_ENABLE_HARDWARE_SENSORS, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_MINIDUMP_KERNEL_MINIDUMP, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_MINIDUMP_SNAPSHOT, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT, L"0");
@@ -321,6 +322,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(SETTING_SYSINFO_WINDOW_SIZE, L"@96|900,590");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_STATE, L"1");
     PhpAddIntegerSetting(SETTING_TASKMGR_WINDOW_STATE, L"0");
+    PhpAddIntegerSetting(SETTING_TEMPERATURE_UNIT_FAHRENHEIT, L"0");
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR, L"1c1c1c"); // RGB(28, 28, 28)
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR, L"2b2b2b"); // RGB(43, 43, 43)
     PhpAddIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND2_COLOR, L"414141"); // RGB(65, 65, 65)
@@ -712,6 +714,9 @@ VOID PhUpdateCachedSettings(
     PH_GET_INTEGER_CACHED_SETTING(EnableNetworkResolveDoH);
     PH_GET_INTEGER_CACHED_SETTING(EnableVersionSupport);
     PH_GET_INTEGER_CACHED_SETTING(EnableHandleSnapshot);
+
+    PH_GET_INTEGER_CACHED_SETTING(EnableHardwareSensors);
+    PH_GET_INTEGER_CACHED_SETTING(TemperatureUnitFahrenheit);
 
     PH_GET_INTEGER_CACHED_SETTING(EnableProcessMonitor);
     PH_GET_INTEGER_CACHED_SETTING(ProcessMonitorLookback);

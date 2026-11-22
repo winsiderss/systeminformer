@@ -212,6 +212,9 @@ EXT ULONG PhCsEnableGraphMaxText;
 EXT ULONG PhCsEnableAvxSupport;
 EXT ULONG PhCsEnableHandleSnapshot;
 
+EXT ULONG PhCsEnableHardwareSensors;
+EXT ULONG PhCsTemperatureUnitFahrenheit;
+
 EXT ULONG PhCsEnableProcessMonitor;
 EXT ULONG PhCsProcessMonitorLookback;
 EXT ULONG PhCsProcessMonitorCacheLimit;
@@ -248,6 +251,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_LAST_PROCESS_SHUTDOWN                        L"EnableLastProcessShutdown"
 #define SETTING_ENABLE_LINUX_SUBSYSTEM_SUPPORT                      L"EnableLinuxSubsystemSupport"
 #define SETTING_ENABLE_HANDLE_SNAPSHOT                              L"EnableHandleSnapshot"
+#define SETTING_ENABLE_HARDWARE_SENSORS                             L"EnableHardwareSensors"
 #define SETTING_ENABLE_MINIDUMP_KERNEL_MINIDUMP                     L"EnableMinidumpKernelMinidump"
 #define SETTING_ENABLE_MINIDUMP_SNAPSHOT                            L"EnableMinidumpSnapshot"
 #define SETTING_ENABLE_MONOSPACE_FONT                               L"EnableMonospaceFont"
@@ -522,6 +526,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SYSINFO_WINDOW_SIZE                                 L"SysInfoWindowSize"
 #define SETTING_SYSINFO_WINDOW_STATE                                L"SysInfoWindowState"
 #define SETTING_TASKMGR_WINDOW_STATE                                L"TaskmgrWindowState"
+#define SETTING_TEMPERATURE_UNIT_FAHRENHEIT                         L"TemperatureUnitFahrenheit"
 #define SETTING_THEME_WINDOW_FOREGROUND_COLOR                       L"ThemeWindowForegroundColor"
 #define SETTING_THEME_WINDOW_BACKGROUND_COLOR                       L"ThemeWindowBackgroundColor"
 #define SETTING_THEME_WINDOW_BACKGROUND2_COLOR                      L"ThemeWindowBackground2Color"

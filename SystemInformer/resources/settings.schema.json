@@ -336,6 +336,21 @@
         }
       ]
     },
+    "EnableHardwareSensors": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables hardware sensor monitoring (temperatures, clocks, voltages and power) through the driver and Windows performance counters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "EnableMinidumpKernelMinidump": {
       "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the generation of kernel minidumps when preforming a process minidump.",
       "anyOf": [
@@ -3313,6 +3328,21 @@
     },
     "TaskmgrWindowState": {
       "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores the state of the task manager replacement window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TemperatureUnitFahrenheit": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays temperatures in Fahrenheit instead of Celsius.",
       "anyOf": [
         {
           "type": "string",
