@@ -239,5 +239,99 @@ return function(nt)
     return found
   end
 
+  -- IOCTL_ACPI_ASYNC_EVAL_METHOD_EX.
+  local EVAL_CODE = 0x32C01C
+
+  -- The number of argument records that fill bytes exactly, each a type, a
+  -- length and at least four bytes of data; nil when they do not.
+  local function argument_count(bytes)
+    local at, count = 1, 0
+    while at <= #bytes do
+      if #bytes - at + 1 < 4 then
+        return nil
+      end
+      local size = 4 + math.max(4, (string.unpack('<I2', bytes, at + 2)))
+      if size > #bytes - at + 1 then
+        return nil
+      end
+      at = at + size
+      count = count + 1
+    end
+    return count
+  end
+
+  -- The output of an evaluation, its header and every record within the
+  -- bytes returned; nil when it is malformed.
+  local function checked_output(bytes)
+    if #bytes < 12 then
+      return nil
+    end
+    local signature, length, count = string.unpack('<c4I4I4', bytes)
+    if signature ~= 'AeoB' or length < 12 or length > #bytes then
+      return nil
+    end
+    local at = 13
+    for _ = 1, count do
+      if length - at + 1 < 4 then
+        return nil
+      end
+      local size = 4 + math.max(4, (string.unpack('<I2', bytes, at + 2)))
+      if size > length - at + 1 then
+        return nil
+      end
+      at = at + size
+    end
+    return string.sub(bytes, 1, length)
+  end
+
+  -- Evaluates an object of an ACPI device once: the output, or nil and a
+  -- status and, when the output does not fit size bytes (a page when nil), the
+  -- size it needs. args are the argument records, at most seven.
+  function M.eval(device, name, milliseconds, args, size)
+    args = args or ''
+    size = size or 0x1000
+    if type(name) ~= 'string' or #name < 1 or #name > 255 then
+      error("bad argument #2 to 'eval' (1 to 255 characters)", 2)
+    end
+    if
+      type(milliseconds) ~= 'number'
+      or milliseconds ~= milliseconds // 1
+      or milliseconds < 1
+      or milliseconds >= 0xFFFFFFFF
+    then
+      error("bad argument #3 to 'eval' (out of range)", 2)
+    end
+    local count = type(args) == 'string' and argument_count(args)
+    if not count or count > 7 then
+      error("bad argument #4 to 'eval' (not at most seven argument records)", 2)
+    end
+    if type(size) ~= 'number' or size ~= size // 1 or size < 1 or size > 0xFFFFFFFF then
+      error("bad argument #5 to 'eval' (out of range)", 2)
+    end
+    local padded = name .. string.rep('\0', 256 - #name)
+    local input
+    if count == 0 then
+      input = 'AeiA' .. padded
+    else
+      input = string.pack('<c4c256I4I4', 'AeiF', padded, #args, count) .. args
+    end
+    local bytes, failed, buffer =
+      ksi.hw.device_control(device, EVAL_CODE, input, size, milliseconds)
+    if bytes then
+      local output = checked_output(bytes)
+      if not output then
+        return nil, nt.STATUS_ACPI_INVALID_DATA
+      end
+      return output
+    end
+    if failed ~= nt.STATUS_BUFFER_OVERFLOW then
+      return nil, failed
+    end
+    if #buffer < 8 or string.sub(buffer, 1, 4) ~= 'AeoB' then
+      return nil, nt.STATUS_ACPI_INVALID_DATA
+    end
+    return nil, failed, (string.unpack('<I4', buffer, 5))
+  end
+
   return M
 end
