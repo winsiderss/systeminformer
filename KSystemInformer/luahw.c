@@ -554,12 +554,17 @@ Exit:
 }
 
 /**
- * \brief Retrieves a property of a device of variable length.
+ * \brief Retrieves a property of a device of variable length into a buffer.
  *
+ * \details May raise a Lua error. The property is read into the buffer's own
+ * space, or into script memory when it is larger; the buffer is pushed, and
+ * the collector frees it. A raise leaves nothing behind.
+ *
+ * \param[in] State The Lua state.
  * \param[in] Pdo The physical device object.
  * \param[in] Property The property.
- * \param[out] Buffer Receives the property followed by two zero characters,
- * freed with KPH_TAG_LUA_HARDWARE_PROPERTY.
+ * \param[out] Buffer Receives the buffer that holds the property.
+ * \param[out] Data Receives the property, valid while the buffer is.
  * \param[out] Length Receives the length of the property.
  *
  * \return Successful or errant status; STATUS_NOT_FOUND when the device has
@@ -568,100 +573,81 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphLuaHwQueryProperty(
+    _In_ lua_State* State,
     _In_ PDEVICE_OBJECT Pdo,
     _In_ DEVICE_REGISTRY_PROPERTY Property,
-    _Outptr_result_bytebuffer_(*Length) PVOID* Buffer,
+    _Out_ luaL_Buffer* Buffer,
+    _Outptr_result_bytebuffer_(*Length) PVOID* Data,
     _Out_ PULONG Length
     )
 {
     NTSTATUS status;
-    PVOID buffer;
+    NTSTATUS probe;
+    PVOID data;
     ULONG length;
-    ULONG allocationLength;
+    ULONG required;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    *Buffer = NULL;
+    *Data = NULL;
     *Length = 0;
 
-    buffer = NULL;
-    length = 0;
+    luaL_buffinit(State, Buffer);
+    length = LUAL_BUFFERSIZE;
+    data = luaL_prepbuffsize(Buffer, length);
+    required = 0;
 
-    status = IoGetDeviceProperty(Pdo, Property, 0, NULL, &length);
-    if ((status != STATUS_BUFFER_TOO_SMALL) || !length)
+    status = IoGetDeviceProperty(Pdo, Property, length, data, &required);
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        length = required;
+        data = luaL_prepbuffsize(Buffer, length);
+
+        status = IoGetDeviceProperty(Pdo, Property, length, data, &required);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "IoGetDeviceProperty failed: %!STATUS!",
+                          status);
+
+            return status;
+        }
+    }
+    else if (!NT_SUCCESS(status))
+    {
+        //
+        // A property the device has, that cannot be read, is not missing.
+        //
+        probe = IoGetDeviceProperty(Pdo, Property, 0, NULL, &required);
+
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "IoGetDeviceProperty failed: %!STATUS!, %!STATUS!",
+                      status,
+                      probe);
+
+        if ((probe != STATUS_BUFFER_TOO_SMALL) || !required)
+        {
+            return STATUS_NOT_FOUND;
+        }
+
+        return status;
+    }
+
+    if (!required)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "IoGetDeviceProperty returned: %!STATUS!",
-                      status);
+                      "IoGetDeviceProperty returned no bytes");
 
-        status = STATUS_NOT_FOUND;
-        goto Exit;
+        return STATUS_NOT_FOUND;
     }
 
-    status = RtlULongAdd(length, 2 * sizeof(UNICODE_NULL), &allocationLength);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "RtlULongAdd failed: %!STATUS!",
-                      status);
+    *Data = data;
+    *Length = min(required, length);
 
-        goto Exit;
-    }
-
-    buffer = KphAllocatePaged(allocationLength, KPH_TAG_LUA_HARDWARE_PROPERTY);
-    if (!buffer)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "Failed to allocate a device property");
-
-        status = STATUS_INSUFFICIENT_RESOURCES;
-        goto Exit;
-    }
-
-    status = IoGetDeviceProperty(Pdo, Property, length, buffer, &length);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "IoGetDeviceProperty failed: %!STATUS!",
-                      status);
-
-        goto Exit;
-    }
-
-    *Buffer = buffer;
-    *Length = length;
-    buffer = NULL;
-
-Exit:
-
-    if (buffer)
-    {
-        KphFree(buffer, KPH_TAG_LUA_HARDWARE_PROPERTY);
-    }
-
-    return status;
-}
-
-/**
- * \brief Frees a device property.
- *
- * \param[in] Context The property.
- */
-_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphLuaHwFreeProperty(
-    _In_opt_ PVOID Context
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    NT_ASSERT(Context);
-
-    KphFree(Context, KPH_TAG_LUA_HARDWARE_PROPERTY);
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -819,6 +805,8 @@ int KphLuaHwPushResources(
     ULONG size;
     lua_Integer index;
     int top;
+    luaL_Buffer first;
+    luaL_Buffer second;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -830,14 +818,18 @@ int KphLuaHwPushResources(
 
     top = lua_gettop(State);
 
-    status = KphLuaHwQueryProperty(Pdo,
+    //
+    // The lists stay on the stack under the results; the allocated resources
+    // and the boot configuration are never both read, so they share a buffer.
+    //
+    status = KphLuaHwQueryProperty(State,
+                                   Pdo,
                                    DevicePropertyAllocatedResources,
+                                   &first,
                                    &allocated,
                                    &allocatedLength);
     if (NT_SUCCESS(status))
     {
-        KphScriptPushCleanup(State, KphLuaHwFreeProperty, allocated);
-
         //
         // The raw list is followed by the translated list.
         //
@@ -870,8 +862,10 @@ int KphLuaHwPushResources(
         goto Exit;
     }
 
-    status = KphLuaHwQueryProperty(Pdo,
+    status = KphLuaHwQueryProperty(State,
+                                   Pdo,
                                    DevicePropertyBootConfiguration,
+                                   &first,
                                    &raw,
                                    &rawLength);
     if (status == STATUS_NOT_FOUND)
@@ -889,17 +883,13 @@ int KphLuaHwPushResources(
         goto Exit;
     }
 
-    KphScriptPushCleanup(State, KphLuaHwFreeProperty, raw);
-
-    status = KphLuaHwQueryProperty(Pdo,
+    status = KphLuaHwQueryProperty(State,
+                                   Pdo,
                                    DevicePropertyBootConfigurationTranslated,
+                                   &second,
                                    &translated,
                                    &translatedLength);
-    if (NT_SUCCESS(status))
-    {
-        KphScriptPushCleanup(State, KphLuaHwFreeProperty, translated);
-    }
-    else
+    if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
@@ -960,17 +950,6 @@ WalkResources:
         lua_rawseti(State, -2, ++index);
     }
 
-    if (lua_gettop(State) > (top + 1))
-    {
-        for (int i = top + 1; i < lua_gettop(State); i++)
-        {
-            KphScriptReleaseCleanup(State, i);
-        }
-
-        lua_replace(State, top + 1);
-        lua_settop(State, top + 1);
-    }
-
     results = 1;
     status = STATUS_SUCCESS;
 
@@ -978,11 +957,6 @@ Exit:
 
     if (!NT_SUCCESS(status))
     {
-        for (int i = top + 1; i <= lua_gettop(State); i++)
-        {
-            KphScriptReleaseCleanup(State, i);
-        }
-
         lua_settop(State, top);
 
         results = KphLuaNilErrorStatus(State, status);

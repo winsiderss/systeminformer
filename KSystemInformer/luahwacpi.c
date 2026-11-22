@@ -97,17 +97,23 @@ int KphpLuaHwAcpiRequirements(
     ULONG offset;
     ULONG next;
     lua_Integer index;
-    int cleanup;
+    int top;
+    luaL_Buffer buffer;
 
     KPH_PAGED_CODE_PASSIVE();
 
     results = 0;
-    cleanup = 0;
 
     pdo = KphpLuaHwAcpiCheckDevice(State, 1);
+    top = lua_gettop(State);
 
-    status = KphLuaHwQueryProperty(pdo,
+    //
+    // The requirements stay on the stack under the result.
+    //
+    status = KphLuaHwQueryProperty(State,
+                                   pdo,
                                    DevicePropertyResourceRequirements,
+                                   &buffer,
                                    &requirements,
                                    &length);
     if (!NT_SUCCESS(status))
@@ -119,9 +125,6 @@ int KphpLuaHwAcpiRequirements(
 
         goto Exit;
     }
-
-    KphScriptPushCleanup(State, KphLuaHwFreeProperty, requirements);
-    cleanup = lua_gettop(State);
 
     if (length < UFIELD_OFFSET(IO_RESOURCE_REQUIREMENTS_LIST, List))
     {
@@ -228,9 +231,6 @@ int KphpLuaHwAcpiRequirements(
         offset = next;
     }
 
-    KphScriptReleaseCleanup(State, cleanup);
-    lua_remove(State, cleanup);
-
     results = 1;
     status = STATUS_SUCCESS;
 
@@ -238,11 +238,7 @@ Exit:
 
     if (!NT_SUCCESS(status))
     {
-        if (cleanup)
-        {
-            KphScriptReleaseCleanup(State, cleanup);
-            lua_settop(State, cleanup - 1);
-        }
+        lua_settop(State, top);
 
         results = KphLuaNilErrorStatus(State, status);
     }
