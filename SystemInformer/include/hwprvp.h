@@ -77,6 +77,7 @@ typedef struct _PHP_HW_FAMILY
 
     // the core's, for the session
     BOOLEAN Absent;
+    BOOLEAN NotShipped; // absent because the script is not shipped with this build
     BOOLEAN Ran;
     ULONG64 LastRun;
     ULONG RetryStreak;
@@ -84,6 +85,14 @@ typedef struct _PHP_HW_FAMILY
 } PHP_HW_FAMILY, *PPHP_HW_FAMILY;
 
 extern PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum];
+
+// TRUE during an update that serves a report request (D11): each pass ends with its report-only reads.
+extern BOOLEAN PhpHwReportReads;
+extern ULONG PhpHwReportWaitMilliseconds; // how long a report waits for the update that serves it
+
+BOOLEAN PhpHwFamiliesNotShipped(
+    VOID
+    );
 
 BOOLEAN PhpHwStatusNotShipped(
     _In_ NTSTATUS Status

@@ -121,6 +121,7 @@ EXPORTS
     PhHandleTreeNewColumnMenu
     PhHwCopySensorHistory
     PhHwCounterSensorsPresent
+    PhHwCreateReport
     PhHwEnumerateSensorHistories
     PhHwEnumerateSensors
     PhHwFormatTemperature
@@ -132,6 +133,7 @@ EXPORTS
     PhHwGetPackageCount
     PhHwGetPackageSensor
     PhHwGetSensorHistorySlots
+    PhHwGetSensorsUnavailableReason
     PhHwSensorsAvailable
     PhHwSensorsEnabled
     PhHwSourceSensorsPresent

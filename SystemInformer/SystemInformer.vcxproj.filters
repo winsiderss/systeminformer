@@ -78,6 +78,12 @@
     <ClCompile Include="hwprvdev.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwprvpci.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
+    <ClCompile Include="hwreport.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="hwsensor.c">
       <Filter>System Informer</Filter>
     </ClCompile>

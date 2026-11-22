@@ -27,6 +27,13 @@ typedef struct _PHP_HW_SOURCE_SENSOR
     ULONG UpdateId; // PhpHwSourceUpdateId of the last report
 } PHP_HW_SOURCE_SENSOR, *PPHP_HW_SOURCE_SENSOR;
 
+typedef struct _PHP_HW_REPORT_REQUEST
+{
+    LIST_ENTRY ListEntry;
+    PH_EVENT ServedEvent;
+    BOOLEAN Served;
+} PHP_HW_REPORT_REQUEST, *PPHP_HW_REPORT_REQUEST;
+
 typedef struct _PH_HW_SENSOR_SOURCE_REGISTRATION
 {
     LIST_ENTRY ListEntry;
@@ -77,6 +84,9 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
     { L"acpi", 2 * PHP_HW_SECOND },
 };
 
+BOOLEAN PhpHwReportReads = FALSE;
+ULONG PhpHwReportWaitMilliseconds = 5000;
+
 static ULONG PhpHwRunCount = 0;
 static BOOLEAN PhpHwTopologyQueried = FALSE;
 static BOOLEAN PhpHwHistoryInitialized = FALSE;
@@ -90,6 +100,10 @@ static ULONG PhpHwSourceNextId = 1;
 static ULONG PhpHwSourceUpdateId = 0;
 static ULONG PhpHwSourceCompletedUpdateId = 0; // the last update whose source loop finished
 static HANDLE PhpHwSourceUpdateThread = NULL; // the thread in the source loop, for assertions
+
+// Report requests waiting for an update to make the report-only reads (D11).
+static PH_QUEUED_LOCK PhpHwReportLock = PH_QUEUED_LOCK_INIT;
+static LIST_ENTRY PhpHwReportRequests = { &PhpHwReportRequests, &PhpHwReportRequests };
 
 /**
  * Determines whether a status says the family's script is not shipped with this build.
@@ -114,6 +128,7 @@ VOID PhHwProviderInitialization(
     for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
     {
         PhpHwFamilies[i].Absent = FALSE;
+        PhpHwFamilies[i].NotShipped = FALSE;
         PhpHwFamilies[i].Ran = FALSE;
         PhpHwFamilies[i].RetryStreak = 0;
         PhpHwFamilies[i].BackoffUpdates = 0;
@@ -174,12 +189,25 @@ static VOID PhpHwBeginSession(
         PPHP_HW_FAMILY family = &PhpHwFamilies[i];
 
         family->Absent = FALSE;
+        family->NotShipped = FALSE;
         family->Ran = FALSE;
         family->RetryStreak = 0;
         family->BackoffUpdates = 0;
 
-        if (family->Probe && family->Probe() == STATUS_NOT_SUPPORTED)
-            family->Absent = TRUE;
+        if (family->Probe)
+        {
+            NTSTATUS status = family->Probe();
+
+            if (status == STATUS_NOT_SUPPORTED)
+            {
+                family->Absent = TRUE;
+            }
+            else if (PhpHwStatusNotShipped(status))
+            {
+                family->Absent = TRUE;
+                family->NotShipped = TRUE;
+            }
+        }
     }
 
     PhpHwProbed = TRUE;
@@ -229,21 +257,26 @@ static VOID PhpHwEndSession(
  *
  * \param Family The family.
  * \param Now The provider's time of this update.
+ * \param Force Run the pass regardless of the interval and the back-off, for a report request.
  */
 static VOID PhpHwRunFamily(
     _Inout_ PPHP_HW_FAMILY Family,
-    _In_ ULONG64 Now
+    _In_ ULONG64 Now,
+    _In_ BOOLEAN Force
     )
 {
     NTSTATUS status;
 
     if (Family->Absent || !Family->Pass)
         return;
-    if (Family->Ran && Now - Family->LastRun < Family->Interval)
-        return;
 
-    if (Family->RetryStreak >= 2 && ++Family->BackoffUpdates < PHP_HW_RETRY_BACKOFF)
-        return;
+    if (!Force)
+    {
+        if (Family->Ran && Now - Family->LastRun < Family->Interval)
+            return;
+        if (Family->RetryStreak >= 2 && ++Family->BackoffUpdates < PHP_HW_RETRY_BACKOFF)
+            return;
+    }
 
     Family->BackoffUpdates = 0;
     Family->Ran = TRUE;
@@ -252,11 +285,133 @@ static VOID PhpHwRunFamily(
     status = Family->Pass();
 
     if (status == STATUS_RETRY)
+    {
         Family->RetryStreak++;
+    }
     else if (status == STATUS_NOT_SUPPORTED)
+    {
         Family->Absent = TRUE;
+    }
+    else if (PhpHwStatusNotShipped(status))
+    {
+        Family->Absent = TRUE;
+        Family->NotShipped = TRUE;
+    }
     else if (NT_SUCCESS(status))
+    {
         Family->RetryStreak = 0;
+    }
+}
+
+/**
+ * Takes the waiting report requests for this update to serve.
+ *
+ * \param Serving Receives the requests; empty when none waits.
+ */
+static VOID PhpHwTakeReportRequests(
+    _Out_ PLIST_ENTRY Serving
+    )
+{
+    InitializeListHead(Serving);
+
+    PhAcquireQueuedLockExclusive(&PhpHwReportLock);
+
+    if (!IsListEmpty(&PhpHwReportRequests))
+    {
+        Serving->Flink = PhpHwReportRequests.Flink;
+        Serving->Blink = PhpHwReportRequests.Blink;
+        Serving->Flink->Blink = Serving;
+        Serving->Blink->Flink = Serving;
+        InitializeListHead(&PhpHwReportRequests);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwReportLock);
+}
+
+/**
+ * Wakes the report requests this update served.
+ *
+ * \param Serving The requests from PhpHwTakeReportRequests; a request that gave up has removed itself.
+ */
+static VOID PhpHwSignalReportRequests(
+    _Inout_ PLIST_ENTRY Serving
+    )
+{
+    PhAcquireQueuedLockExclusive(&PhpHwReportLock);
+
+    while (!IsListEmpty(Serving))
+    {
+        PPHP_HW_REPORT_REQUEST request = CONTAINING_RECORD(RemoveHeadList(Serving), PHP_HW_REPORT_REQUEST, ListEntry);
+
+        InitializeListHead(&request->ListEntry);
+        request->Served = TRUE;
+        PhSetEvent(&request->ServedEvent);
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwReportLock);
+}
+
+/**
+ * Asks the next update for the report-only reads and waits for it.
+ *
+ * \return TRUE when an update made the reads, FALSE when none came within PhpHwReportWaitMilliseconds.
+ */
+static BOOLEAN PhpHwRequestReportReads(
+    VOID
+    )
+{
+    PHP_HW_REPORT_REQUEST request;
+    LARGE_INTEGER timeout;
+    BOOLEAN served;
+
+    PhInitializeEvent(&request.ServedEvent);
+    request.Served = FALSE;
+
+    PhAcquireQueuedLockExclusive(&PhpHwReportLock);
+    InsertTailList(&PhpHwReportRequests, &request.ListEntry);
+    PhReleaseQueuedLockExclusive(&PhpHwReportLock);
+
+    PhWaitForEvent(&request.ServedEvent, PhTimeoutFromMilliseconds(&timeout, PhpHwReportWaitMilliseconds));
+
+    PhAcquireQueuedLockExclusive(&PhpHwReportLock);
+
+    if (!(served = request.Served))
+        RemoveEntryList(&request.ListEntry);
+
+    PhReleaseQueuedLockExclusive(&PhpHwReportLock);
+
+    // An event that was waited on and never set still holds its wait handle.
+    if (!served)
+        PhSetEvent(&request.ServedEvent);
+
+    return served;
+}
+
+/**
+ * Determines whether the session found no script for any family it probed.
+ *
+ * \return TRUE when the session has probed and every family with a probe was not shipped with this build.
+ */
+BOOLEAN PhpHwFamiliesNotShipped(
+    VOID
+    )
+{
+    BOOLEAN probed = FALSE;
+
+    if (!PhpHwGateOpen || !PhpHwProbed)
+        return FALSE;
+
+    for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
+    {
+        if (!PhpHwFamilies[i].Probe)
+            continue;
+        if (!PhpHwFamilies[i].NotShipped)
+            return FALSE;
+
+        probed = TRUE;
+    }
+
+    return probed;
 }
 
 static BOOLEAN PhpHwSourceSensorMatches(
@@ -427,11 +582,19 @@ VOID PhHwProviderUpdate(
 
     if (PhpHwGateOpen)
     {
+        LIST_ENTRY serving;
+
+        PhpHwTakeReportRequests(&serving);
+        PhpHwReportReads = !IsListEmpty(&serving);
+
         for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
-            PhpHwRunFamily(&PhpHwFamilies[i], now);
+            PhpHwRunFamily(&PhpHwFamilies[i], now, PhpHwReportReads);
+
+        PhpHwReportReads = FALSE;
 
         PhpHwUpdateSources(TRUE);
         PhpHwUpdateCapabilities();
+        PhpHwSignalReportRequests(&serving);
     }
     else
     {
@@ -501,6 +664,126 @@ BOOLEAN NTAPI PhHwGetCpuHistory(
     *PowerHistory = &PhHwCpuPowerHistory;
 
     return TRUE;
+}
+
+static VOID PhpHwAppendFlags(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ ULONG Flags,
+    _In_reads_(Count) const PH_KEY_VALUE_PAIR* Names,
+    _In_ ULONG Count
+    )
+{
+    BOOLEAN first = TRUE;
+
+    PhAppendFormatStringBuilder(Builder, L"0x%08lx", Flags);
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (!(Flags & PtrToUlong(Names[i].Value)))
+            continue;
+
+        PhAppendStringBuilder2(Builder, first ? L" (" : L", ");
+        PhAppendStringBuilder2(Builder, (PWSTR)Names[i].Key);
+        first = FALSE;
+    }
+
+    if (!first)
+        PhAppendCharStringBuilder(Builder, L')');
+
+    PhAppendCharStringBuilder(Builder, L'\n');
+}
+
+/**
+ * Writes the state of the hardware sensors provider and each family's section for the hardware report.
+ *
+ * \details With the gate open, the next update first makes the report-only reads (D11).
+ *
+ * \param Builder The report.
+ */
+VOID PhHwWriteDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    static CONST PH_KEY_VALUE_PAIR capabilityNames[] =
+    {
+        { L"core temperature", (PVOID)PH_HW_CAP_CORE_TEMP },
+        { L"package temperature", (PVOID)PH_HW_CAP_PACKAGE_TEMP },
+        { L"CCD temperature", (PVOID)PH_HW_CAP_CCD_TEMP },
+        { L"effective clock", (PVOID)PH_HW_CAP_EFFECTIVE_CLOCK },
+        { L"multiplier", (PVOID)PH_HW_CAP_MULTIPLIER },
+        { L"voltage", (PVOID)PH_HW_CAP_VOLTAGE },
+        { L"throttle", (PVOID)PH_HW_CAP_THROTTLE },
+        { L"RAPL package", (PVOID)PH_HW_CAP_RAPL_PACKAGE },
+        { L"RAPL core", (PVOID)PH_HW_CAP_RAPL_CORE },
+        { L"RAPL DRAM", (PVOID)PH_HW_CAP_RAPL_DRAM },
+        { L"RAPL platform", (PVOID)PH_HW_CAP_RAPL_PSYS },
+        { L"active clock", (PVOID)PH_HW_CAP_ACTIVE_CLOCK },
+        { L"memory clock", (PVOID)PH_HW_CAP_MEMORY_CLOCK },
+        { L"memory bandwidth", (PVOID)PH_HW_CAP_MEMORY_BANDWIDTH },
+        { L"cores temperature", (PVOID)PH_HW_CAP_CORES_TEMP },
+        { L"graphics temperature", (PVOID)PH_HW_CAP_GRAPHICS_TEMP },
+        { L"PL1", (PVOID)PH_HW_CAP_POWER_LIMIT1 },
+        { L"PL2", (PVOID)PH_HW_CAP_POWER_LIMIT2 },
+        { L"chipset temperature", (PVOID)PH_HW_CAP_CHIPSET_TEMP },
+        { L"DIMM temperature", (PVOID)PH_HW_CAP_DIMM_TEMP },
+        { L"uncore clock", (PVOID)PH_HW_CAP_UNCORE_CLOCK },
+        { L"TPMI/PMT", (PVOID)PH_HW_CAP_TPMI_POWER },
+        { L"SMU", (PVOID)PH_HW_CAP_SMU },
+        { L"fan speed", (PVOID)PH_HW_CAP_FAN_SPEED },
+        { L"memory timings", (PVOID)PH_HW_CAP_MEMORY_TIMINGS },
+        { L"DIMM voltage", (PVOID)PH_HW_CAP_DIMM_VOLTAGE },
+        { L"DIMM PMIC", (PVOID)PH_HW_CAP_DIMM_PMIC },
+        { L"ACPI temperature", (PVOID)PH_HW_CAP_ACPI_TEMP },
+        { L"fan control", (PVOID)PH_HW_CAP_FAN_CONTROL },
+        { L"ACPI power", (PVOID)PH_HW_CAP_ACPI_POWER },
+        { L"S0ix residency", (PVOID)PH_HW_CAP_RESIDENCY },
+        { L"platform limits", (PVOID)(ULONG_PTR)PH_HW_CAP_PLATFORM_LIMITS },
+    };
+    PCWSTR reads;
+
+    if (!PhpHwGateOpen)
+        reads = L"none, hardware sensors are off; the sections show what is held";
+    else if (PhpHwRequestReportReads())
+        reads = L"made by the update";
+    else
+        reads = L"the provider did not update within the wait; the sections show what is held";
+
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"Setting: %s\nDriver ready: %s\nGate open: %s\nProbed: %s\nAvailable: %s\nCapabilities: ",
+        PhCsEnableHardwareSensors ? L"enabled" : L"disabled",
+        PhpHwDriverReady() ? L"yes" : L"no",
+        PhpHwGateOpen ? L"yes" : L"no",
+        PhpHwProbed ? L"yes" : L"no",
+        PhpHwAvailable ? L"yes" : L"no"
+        );
+    PhpHwAppendFlags(Builder, PhpHwCapabilities, capabilityNames, RTL_NUMBER_OF(capabilityNames));
+    PhAppendFormatStringBuilder(Builder, L"Report reads: %s\n", reads);
+    PhpHwHistoryWriteDiagnostics(Builder);
+
+    for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
+    {
+        PPHP_HW_FAMILY family = &PhpHwFamilies[i];
+        PCWSTR state;
+
+        if (!PhpHwProbed)
+            state = L"not probed";
+        else if (family->NotShipped)
+            state = L"not shipped with this build";
+        else if (family->Absent)
+            state = L"absent";
+        else if (family->RetryStreak >= 2)
+            state = L"backing off after retries";
+        else
+            state = L"present";
+
+        PhAppendFormatStringBuilder(Builder, L"\n%s\n  State: %s\n", family->Name, state);
+
+        if (family->Diagnostics)
+            family->Diagnostics(Builder);
+        else
+            PhAppendStringBuilder2(Builder, L"  Not collected\n");
+    }
 }
 
 /**

@@ -115,6 +115,8 @@ set(SOURCES
     "hwhist.c"
     "hwprv.c"
     "hwprvdev.c"
+    "hwprvpci.c"
+    "hwreport.c"
     "hwsensor.c"
     "infodlg.c"
     "informer.c"
