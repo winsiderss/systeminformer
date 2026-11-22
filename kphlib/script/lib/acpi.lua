@@ -281,39 +281,43 @@ return function(nt)
       end
       at = at + size
     end
+    if length == #bytes then
+      return bytes
+    end
     return string.sub(bytes, 1, length)
   end
+
+  -- The inputs without arguments, by name, packed once a state.
+  local inputs = {}
 
   -- Evaluates an object of an ACPI device once: the output, or nil and a
   -- status and, when the output does not fit size bytes (a page when nil), the
   -- size it needs. args are the argument records, at most seven.
   function M.eval(device, name, milliseconds, args, size)
-    args = args or ''
-    size = size or 0x1000
-    if type(name) ~= 'string' or #name < 1 or #name > 255 then
-      error("bad argument #2 to 'eval' (1 to 255 characters)", 2)
+    local input = not args and inputs[name]
+    if not input then
+      if type(name) ~= 'string' or #name < 1 or #name > 255 then
+        error("bad argument #2 to 'eval' (1 to 255 characters)", 2)
+      end
+      args = args or ''
+      local count = type(args) == 'string' and argument_count(args)
+      if not count or count > 7 then
+        error("bad argument #4 to 'eval' (not at most seven argument records)", 2)
+      end
+      local padded = name .. string.rep('\0', 256 - #name)
+      if count == 0 then
+        input = 'AeiA' .. padded
+      else
+        input = string.pack('<c4c256I4I4', 'AeiF', padded, #args, count) .. args
+      end
+      if args == '' then
+        inputs[name] = input
+      end
     end
-    if
-      type(milliseconds) ~= 'number'
-      or milliseconds ~= milliseconds // 1
-      or milliseconds < 1
-      or milliseconds >= 0xFFFFFFFF
-    then
-      error("bad argument #3 to 'eval' (out of range)", 2)
-    end
-    local count = type(args) == 'string' and argument_count(args)
-    if not count or count > 7 then
-      error("bad argument #4 to 'eval' (not at most seven argument records)", 2)
-    end
-    if type(size) ~= 'number' or size ~= size // 1 or size < 1 or size > 0xFFFFFFFF then
+    if size == nil then
+      size = 0x1000
+    elseif type(size) ~= 'number' or size ~= size // 1 or size < 1 or size > 0xFFFFFFFF then
       error("bad argument #5 to 'eval' (out of range)", 2)
-    end
-    local padded = name .. string.rep('\0', 256 - #name)
-    local input
-    if count == 0 then
-      input = 'AeiA' .. padded
-    else
-      input = string.pack('<c4c256I4I4', 'AeiF', padded, #args, count) .. args
     end
     local bytes, failed, buffer =
       ksi.hw.device_control(device, EVAL_CODE, input, size, milliseconds)
