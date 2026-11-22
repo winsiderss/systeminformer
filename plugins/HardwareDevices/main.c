@@ -72,6 +72,8 @@ VOID NTAPI LoadCallback(
     DiskDrivesLoadList();
     NetAdaptersLoadList();
     RaplDevicesLoadList();
+
+    MotherboardInitialize();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -80,7 +82,7 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
-    NOTHING;
+    MotherboardUninitialize();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -122,6 +124,14 @@ VOID NTAPI ShowOptionsCallback(
         RaplDeviceOptionsDlgProc,
         NULL
         );
+
+    optionsEntry->CreateSection(
+        L"Motherboard",
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_MOTHERBOARD_OPTIONS),
+        MotherboardOptionsDlgProc,
+        NULL
+        );
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -158,6 +168,7 @@ VOID NTAPI ProcessesUpdatedCallback(
     DiskDevicesUpdate(runCount);
     NetworkDevicesUpdate(runCount);
     RaplDevicesUpdate(runCount);
+    MotherboardUpdate();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -868,6 +879,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION, L"bb8" }, // 3000ms
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_CHILD_DEVICES, L"0" },
                 { IntegerSettingType, SETTING_NAME_DEVICE_SORT_ROOT_DEVICES, L"0" },
+                { IntegerSettingType, SETTING_NAME_MOTHERBOARD_ENABLED, L"1" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);
@@ -886,12 +898,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginLoadCallbackRegistration
                 );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-            //    UnloadCallback,
-            //    NULL,
-            //    &PluginUnloadCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing),
                 ShowOptionsCallback,

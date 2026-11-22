@@ -60,6 +60,7 @@
 #define SETTING_NAME_DEVICE_HIGHLIGHTING_DURATION (PLUGIN_NAME L".DeviceHighlightingDuration")
 #define SETTING_NAME_DEVICE_SORT_CHILD_DEVICES (PLUGIN_NAME L".SortChildDevices")
 #define SETTING_NAME_DEVICE_SORT_ROOT_DEVICES (PLUGIN_NAME L".SortRootDevices")
+#define SETTING_NAME_MOTHERBOARD_ENABLED (PLUGIN_NAME L".MotherboardEnabled")
 
 #include <phdk.h>
 #include <kphhw.h>
@@ -1410,6 +1411,27 @@ BOOLEAN QueryRaplDeviceInterfaceInfo(
     );
 
 INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+// motherboard.c
+
+VOID MotherboardInitialize(
+    VOID
+    );
+
+VOID MotherboardUninitialize(
+    VOID
+    );
+
+VOID MotherboardUpdate(
+    VOID
+    );
+
+INT_PTR CALLBACK MotherboardOptionsDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
