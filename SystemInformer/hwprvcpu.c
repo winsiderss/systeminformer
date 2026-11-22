@@ -145,6 +145,7 @@ static PULONG PhpHwCpuLimitIndex = NULL; // per package, PHP_HW_CPU_LIMIT_SENSOR
 static PBOOLEAN PhpHwCpuFirstOfUnit = NULL; // per processor; NULL without compute units
 static ULONG PhpHwCpuUnitSampleRatio = 0; // CPUID 8000_0007h ECX
 static ULONG64 PhpHwCpuUnitMaxAccumulator = 0; // CU_MAX_PWR_ACCUMULATOR; 0 when unread
+static PKPH_HW_CPU_IDENTITY PhpHwCpuPackageIdentity = NULL; // x86, per package: what identify gave; zero when it failed
 static PULONG PhpHwCpuArmMidr = NULL; // ARM64, per processor: the MIDR identify gave; 0 when not identified
 static PULONG PhpHwCpuArmDisabled = NULL; // ARM64, per processor: 1 << PHP_HW_REG of the registers out of its plan
 static PUCHAR PhpHwCpuArmStalls = NULL; // ARM64, per processor: updates its cycle counter stood still
@@ -853,6 +854,25 @@ NTSTATUS PhpHwCpuProbe(
 
         memset(&identity, 0, sizeof(identity));
         identity.Signature = PhpHwCpuArmMidr[0];
+    }
+    else
+    {
+        ULONG lastIdentified = 0;
+
+        // The plan follows the first package; the report names another that differs.
+        PhpHwCpuPackageIdentity = PhAllocateZero(sizeof(KPH_HW_CPU_IDENTITY) * max(PhpHwPackageCount, 1));
+        PhpHwCpuPackageIdentity[0] = identity;
+
+        for (ULONG i = 1; i < PhpHwProcessorCount; i++)
+        {
+            ULONG package = PhpHwCpuSensors[i].PackageIndex;
+
+            if (package == lastIdentified || package >= PhpHwPackageCount)
+                continue;
+
+            lastIdentified = package;
+            KphHwCpuIdentify(PhpHwCpuSensors[i].ProcessorNumber.Group, PhpHwCpuSensors[i].ProcessorNumber.Number, &PhpHwCpuPackageIdentity[package]);
+        }
     }
 
     memset(&PhpHwCpuIdentity, 0, sizeof(PH_CPU_IDENTITY));
@@ -1647,6 +1667,7 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuUncoreIndex);
     PhpHwCpuFree(&PhpHwCpuLimitIndex);
     PhpHwCpuFree(&PhpHwCpuFirstOfUnit);
+    PhpHwCpuFree(&PhpHwCpuPackageIdentity);
     PhpHwCpuFree(&PhpHwCpuArmMidr);
     PhpHwCpuFree(&PhpHwCpuArmDisabled);
     PhpHwCpuFree(&PhpHwCpuArmStalls);
@@ -1727,6 +1748,28 @@ VOID PhpHwCpuDiagnostics(
             PhpHwCpuEnergyUnit,
             PhpHwCpuVoltageSupported ? L"decoded" : L"not decoded"
             );
+
+        for (ULONG i = 1; PhpHwCpuPackageIdentity && i < PhpHwPackageCount; i++)
+        {
+            PKPH_HW_CPU_IDENTITY other = &PhpHwCpuPackageIdentity[i];
+
+            if (!memcmp(other, &PhpHwCpuPackageIdentity[0], sizeof(KPH_HW_CPU_IDENTITY)))
+                continue;
+
+            memcpy(vendor, other->Vendor, 12);
+            vendor[12] = ANSI_NULL;
+
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"  Package %lu: %hs family 0x%lx model 0x%lx stepping 0x%lx, signature 0x%08lx; the plan follows package 0\n",
+                i,
+                vendor,
+                other->Family,
+                other->Model,
+                other->Stepping,
+                other->Signature
+                );
+        }
     }
 
     for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
