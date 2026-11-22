@@ -22,6 +22,7 @@
 #include <sysinfop.h>
 
 #define WM_PH_HW_SENSORS_UPDATE (WM_APP + 1)
+#define WM_PH_HW_SENSORS_HISTORY (WM_APP + 2)
 #define PHP_HW_COLLAPSE_PROCESSOR_COUNT 16
 #define PHP_HW_SENSORS_SCROLL_TIMER_ID 1
 #define PHP_HW_SENSORS_GRAPH_STEP 2
@@ -91,6 +92,7 @@ typedef struct _PHP_HW_SENSORS_CONTEXT
     PCPH_STRINGREF EmptyText;
     PH_LAYOUT_MANAGER LayoutManager;
     PH_CALLBACK_REGISTRATION ProviderUpdatedRegistration;
+    PH_CALLBACK_REGISTRATION HistoryUpdatedRegistration;
     PPH_LIST ComponentList; // all components ordered by key
     PPH_LIST RootList; // components with sensors
     PPH_LIST SensorList; // all sensors, unordered
@@ -159,6 +161,19 @@ static VOID NTAPI PhpHwSensorsProviderUpdatedHandler(
 
     if (context)
         PostMessage(context->WindowHandle, WM_PH_HW_SENSORS_UPDATE, 0, 0);
+}
+
+// The histories are appended on the process provider thread, so the graphs scroll on its update.
+_Function_class_(PH_CALLBACK_FUNCTION)
+static VOID NTAPI PhpHwSensorsHistoryUpdatedHandler(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_HW_SENSORS_CONTEXT context = Context;
+
+    if (context)
+        PostMessage(context->WindowHandle, WM_PH_HW_SENSORS_HISTORY, 0, 0);
 }
 
 static PPHP_HW_NODE PhpHwCreateNode(
@@ -591,7 +606,6 @@ static VOID PhpHwSensorsUpdate(
             continue;
         }
 
-        sensor->Sensor.GraphBuffers.Valid = FALSE;
         PhpHwSensorUpdateText(sensor);
         i++;
     }
@@ -1271,6 +1285,12 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
                 context,
                 &context->ProviderUpdatedRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+                PhpHwSensorsHistoryUpdatedHandler,
+                context,
+                &context->HistoryUpdatedRegistration
+                );
 
             if (PhValidWindowPlacementFromSetting(SETTING_HW_SENSORS_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_HW_SENSORS_WINDOW_POSITION, SETTING_HW_SENSORS_WINDOW_SIZE, hwndDlg);
@@ -1289,6 +1309,10 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
             PhUnregisterCallback(
                 PhGetGeneralCallback(GeneralCallbackHardwareProviderUpdatedEvent),
                 &context->ProviderUpdatedRegistration
+                );
+            PhUnregisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+                &context->HistoryUpdatedRegistration
                 );
 
             PhSaveWindowPlacementToSetting(SETTING_HW_SENSORS_WINDOW_POSITION, SETTING_HW_SENSORS_WINDOW_SIZE, hwndDlg);
@@ -1322,9 +1346,15 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
         break;
     case WM_PH_HW_SENSORS_UPDATE:
         {
+            PhpHwSensorsUpdate(context);
+        }
+        break;
+    case WM_PH_HW_SENSORS_HISTORY:
+        {
             ULONG interval;
 
-            PhpHwSensorsUpdate(context);
+            PhpHwSensorsInvalidateGraphs(context);
+            PhInvalidateTreeNewColumn(context->TreeNewHandle, PhpHwSensorsColumnHistory);
 
             if (!IsIconic(hwndDlg) && (interval = PhStartGraphScroll(&context->GraphScroll)))
                 SetTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID, interval, NULL);
