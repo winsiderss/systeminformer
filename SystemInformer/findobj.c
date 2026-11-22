@@ -60,6 +60,7 @@ typedef struct _PH_HANDLE_SEARCH_CONTEXT
 
     PPH_STRING SearchTypeString;
     ULONG_PTR SearchMatchHandle;
+    PH_QUEUED_LOCK SearchMatchLock;
     PPH_LIST SearchResults;
     ULONG SearchResultsAddIndex;
     PH_QUEUED_LOCK SearchResultsLock;
@@ -862,7 +863,14 @@ static BOOLEAN MatchSearchString(
     _In_ PPH_STRINGREF Input
     )
 {
-    return PhSearchControlMatch(Context->SearchMatchHandle, Input);
+    BOOLEAN result;
+
+    // The search threads share the search control's regex match data.
+    PhAcquireQueuedLockExclusive(&Context->SearchMatchLock);
+    result = PhSearchControlMatch(Context->SearchMatchHandle, Input);
+    PhReleaseQueuedLockExclusive(&Context->SearchMatchLock);
+
+    return result;
 }
 
 static BOOLEAN MatchTypeString(
@@ -1385,6 +1393,11 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
                             break;
                         }
 
+                        // The search threads read the search control's match state.
+                        if (GetFocus() == context->SearchWindowHandle)
+                            SetFocus(context->TreeNewHandle);
+                        EnableWindow(context->SearchWindowHandle, FALSE);
+
                         PhSetDialogItemText(hwndDlg, IDOK, L"Cancel");
 
                         PhSetCursor(PhLoadCursor(NULL, IDC_APPSTARTING));
@@ -1737,6 +1750,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDOK, L"Find");
             EnableWindow(GetDlgItem(hwndDlg, IDOK), TRUE);
+            EnableWindow(context->SearchWindowHandle, TRUE);
             PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
 
             if ((NTSTATUS)wParam == STATUS_INSUFFICIENT_RESOURCES)
