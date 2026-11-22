@@ -443,6 +443,7 @@ int KphpLuaHwAcpiEval(
     ULONG information;
     ULONG length;
     int cleanup;
+    BYTE stackBuffer[sizeof(ACPI_EVAL_INPUT_BUFFER_COMPLEX_EX)];
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -506,7 +507,9 @@ int KphpLuaHwAcpiEval(
         inputLength = sizeof(ACPI_EVAL_INPUT_BUFFER_EX);
     }
 
-    input = KphAllocatePaged(inputLength, KPH_TAG_LUA_HARDWARE_ACPI_EVAL);
+    input = KphAllocatePagedA(inputLength,
+                              KPH_TAG_LUA_HARDWARE_ACPI_EVAL,
+                              stackBuffer);
     if (!input)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -576,7 +579,7 @@ int KphpLuaHwAcpiEval(
         }
     }
 
-    KphFree(input, KPH_TAG_LUA_HARDWARE_ACPI_EVAL);
+    KphFreeA(input, KPH_TAG_LUA_HARDWARE_ACPI_EVAL, stackBuffer);
     input = NULL;
 
     if (status == STATUS_SI_SCRIPT_LIMIT)
@@ -632,7 +635,7 @@ Exit:
 
     if (input)
     {
-        KphFree(input, KPH_TAG_LUA_HARDWARE_ACPI_EVAL);
+        KphFreeA(input, KPH_TAG_LUA_HARDWARE_ACPI_EVAL, stackBuffer);
     }
 
     return results;

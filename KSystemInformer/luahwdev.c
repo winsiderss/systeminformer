@@ -631,6 +631,7 @@ int KphpLuaHwDeviceOpen(
     PKPH_LUA_HW_NAMED_DEVICE device;
     PFILE_OBJECT fileObject;
     PDEVICE_OBJECT deviceObject;
+    BYTE stackBuffer[64];
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -650,7 +651,9 @@ int KphpLuaHwDeviceOpen(
 
     name.Length = (USHORT)(length * sizeof(WCHAR));
     name.MaximumLength = name.Length;
-    name.Buffer = KphAllocatePaged(name.Length, KPH_TAG_LUA_HARDWARE_NAME);
+    name.Buffer = KphAllocatePagedA(name.Length,
+                                    KPH_TAG_LUA_HARDWARE_NAME,
+                                    stackBuffer);
     if (!name.Buffer)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -699,7 +702,7 @@ int KphpLuaHwDeviceOpen(
 
     device->FileObject = fileObject;
 
-    KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
+    KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
     name.Buffer = NULL;
 
     KphScriptPushObject(State, KphpLuaHwReleaseNamedDevice, device);
@@ -716,7 +719,7 @@ Exit:
 
     if (name.Buffer)
     {
-        KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
+        KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
     }
 
     return results;
@@ -835,6 +838,7 @@ int KphpLuaHwDevices(
     lua_Integer index;
     int cleanup;
     int size;
+    BYTE stackBuffer[64];
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -850,7 +854,9 @@ int KphpLuaHwDevices(
 
     name.Length = (USHORT)(length * sizeof(WCHAR));
     name.MaximumLength = name.Length;
-    name.Buffer = KphAllocatePaged(name.Length, KPH_TAG_LUA_HARDWARE_NAME);
+    name.Buffer = KphAllocatePagedA(name.Length,
+                                    KPH_TAG_LUA_HARDWARE_NAME,
+                                    stackBuffer);
     if (!name.Buffer)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -914,7 +920,7 @@ int KphpLuaHwDevices(
         goto Exit;
     }
 
-    KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
+    KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
     name.Buffer = NULL;
 
     ObDereferenceObject(driver);
@@ -995,7 +1001,7 @@ Exit:
 
     if (name.Buffer)
     {
-        KphFree(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME);
+        KphFreeA(name.Buffer, KPH_TAG_LUA_HARDWARE_NAME, stackBuffer);
     }
 
     return results;
@@ -1231,33 +1237,12 @@ int KphpLuaHwDevicePropertyData(
     required = 0;
     type = DEVPROP_TYPE_EMPTY;
 
-    status = IoGetDevicePropertyData(pdo,
-                                     &key,
-                                     LOCALE_NEUTRAL,
-                                     0,
-                                     0,
-                                     NULL,
-                                     &required,
-                                     &type);
-    if (NT_SUCCESS(status))
-    {
-        lua_pushliteral(State, "");
-        lua_pushinteger(State, (lua_Integer)type);
-        return 2;
-    }
-
-    if (status != STATUS_BUFFER_TOO_SMALL)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "IoGetDevicePropertyData failed: %!STATUS!",
-                      status);
-
-        return KphLuaNilErrorStatus(State, status);
-    }
-
-    length = required;
-    data = luaL_buffinitsize(State, &buffer, length);
+    //
+    // The buffer's own space first; the size is asked only of a larger one.
+    //
+    luaL_buffinit(State, &buffer);
+    length = LUAL_BUFFERSIZE;
+    data = luaL_prepbuffsize(&buffer, length);
 
     status = IoGetDevicePropertyData(pdo,
                                      &key,
@@ -1267,6 +1252,21 @@ int KphpLuaHwDevicePropertyData(
                                      data,
                                      &required,
                                      &type);
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        length = required;
+        data = luaL_prepbuffsize(&buffer, length);
+
+        status = IoGetDevicePropertyData(pdo,
+                                         &key,
+                                         LOCALE_NEUTRAL,
+                                         0,
+                                         length,
+                                         data,
+                                         &required,
+                                         &type);
+    }
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1316,27 +1316,22 @@ int KphpLuaHwDeviceProperty(
     property = (DEVICE_REGISTRY_PROPERTY)(ULONG)id;
     required = 0;
 
-    status = IoGetDeviceProperty(pdo, property, 0, NULL, &required);
-    if (NT_SUCCESS(status))
-    {
-        lua_pushliteral(State, "");
-        return 1;
-    }
-
-    if (status != STATUS_BUFFER_TOO_SMALL)
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "IoGetDeviceProperty failed: %!STATUS!",
-                      status);
-
-        return KphLuaNilErrorStatus(State, status);
-    }
-
-    length = required;
-    data = luaL_buffinitsize(State, &buffer, length);
+    //
+    // The buffer's own space first; the size is asked only of a larger one.
+    //
+    luaL_buffinit(State, &buffer);
+    length = LUAL_BUFFERSIZE;
+    data = luaL_prepbuffsize(&buffer, length);
 
     status = IoGetDeviceProperty(pdo, property, length, data, &required);
+    if (status == STATUS_BUFFER_TOO_SMALL)
+    {
+        length = required;
+        data = luaL_prepbuffsize(&buffer, length);
+
+        status = IoGetDeviceProperty(pdo, property, length, data, &required);
+    }
+
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
