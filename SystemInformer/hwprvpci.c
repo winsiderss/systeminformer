@@ -827,10 +827,7 @@ VOID PhHwWriteBridgeDiagnostics(
 
         if (!NT_SUCCESS(config->Status))
         {
-            PPH_STRING message = PhGetStatusMessage(config->Status, 0);
-
-            PhAppendFormatStringBuilder(Builder, L": status 0x%08lx (%s)\n", config->Status, PhGetStringOrDefault(message, L"no description"));
-            PhClearReference(&message);
+            PhAppendFormatStringBuilder(Builder, L": status 0x%08lx\n", config->Status);
             continue;
         }
 
