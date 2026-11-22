@@ -278,32 +278,6 @@ local function address_bits()
   return 36
 end
 
-local function check_range(first, last, bits)
-  if math.ult(1 << bits, last) then
-    ksi.trace('range end 0x%x beyond %d address bits', last, bits)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  local nvdimm = ksi.hw.is_nvdimm(first, last - first)
-  if nvdimm == nil then
-    ksi.trace('NVDIMM ranges unknown')
-    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
-  end
-  if nvdimm then
-    ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  local ram, ramFailed = ksi.hw.is_ram(first, last - first)
-  if ram == nil then
-    ksi.trace('memory ranges unknown: 0x%x', ramFailed)
-    return ramFailed
-  end
-  if ram then
-    ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  return nt.STATUS_SUCCESS
-end
-
 local function config_read(s, offset, width, ones)
   local value = ksi.hw.pci_read(s.device, offset, width)
   if not value or value == ones then
@@ -591,7 +565,7 @@ local function table_of(s, op, position, dwords, bars)
     ksi.trace('discovery table 0x%x ends beyond the address space', first)
     return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  local st = check_range(first & -PAGE, last, bits)
+  local st = nt.check_range(first & -PAGE, last, bits)
   if not nt.NT_SUCCESS(st) then
     return nil, st
   end
@@ -929,7 +903,7 @@ function read(input)
         return nt.STATUS_DEVICE_CONFIGURATION_ERROR
       end
       local bits, bitsFailed = address_bits()
-      local st = bits and check_range(first, last, bits) or bitsFailed
+      local st = bits and nt.check_range(first, last, bits) or bitsFailed
       if not nt.NT_SUCCESS(st) then
         if not s.kept then
           s.device:release()

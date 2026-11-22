@@ -486,32 +486,6 @@ local function address_bits()
   return 36
 end
 
-local function check_range(first, last, bits)
-  if math.ult(1 << bits, last) then
-    ksi.trace('range end 0x%x beyond %d address bits', last, bits)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  local nvdimm = ksi.hw.is_nvdimm(first, last - first)
-  if nvdimm == nil then
-    ksi.trace('NVDIMM ranges unknown')
-    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
-  end
-  if nvdimm then
-    ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  local ram, ramFailed = ksi.hw.is_ram(first, last - first)
-  if ram == nil then
-    ksi.trace('memory ranges unknown: 0x%x', ramFailed)
-    return ramFailed
-  end
-  if ram then
-    ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  return nt.STATUS_SUCCESS
-end
-
 local function poll(every, spins, sleep, timeout, body)
   local limit = ksi.time() + timeout * 10000
   local round = 0
@@ -880,7 +854,7 @@ local function map_view(s)
   if not bits then
     return nil, failed
   end
-  local st = check_range(first, last, bits)
+  local st = nt.check_range(first, last, bits)
   if not nt.NT_SUCCESS(st) then
     ksi.trace('PM view 0x%x refused: 0x%x', l.pm_base, st)
     return nil, st

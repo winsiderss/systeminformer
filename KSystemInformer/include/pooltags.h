@@ -145,13 +145,11 @@
 #define KPH_TAG_LUA_HARDWARE_DEVICES            '3LpK'
 #define KPH_TAG_LUA_HARDWARE_PCI                '4LpK'
 #define KPH_TAG_LUA_HARDWARE_MAPPING            '5LpK'
-#define KPH_TAG_LUA_HARDWARE_NVDIMM             '6LpK'
-#define KPH_TAG_LUA_HARDWARE_FIRMWARE           '7LpK'
-#define KPH_TAG_LUA_HARDWARE_REQUEST            '8LpK'
-#define KPH_TAG_LUA_HARDWARE_DEVICE             '9LpK'
-#define KPH_TAG_LUA_HARDWARE_NAME               'ALpK'
-#define KPH_TAG_LUA_HARDWARE_ACPI_EVAL          'BLpK'
-#define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        'CLpK'
+#define KPH_TAG_LUA_HARDWARE_REQUEST            '6LpK'
+#define KPH_TAG_LUA_HARDWARE_DEVICE             '7LpK'
+#define KPH_TAG_LUA_HARDWARE_NAME               '8LpK'
+#define KPH_TAG_LUA_HARDWARE_ACPI_EVAL          '9LpK'
+#define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        'ALpK'
 
 // script
 

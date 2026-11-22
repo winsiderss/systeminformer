@@ -1759,34 +1759,6 @@ local function address_bits()
   return 36
 end
 
--- The general check before a map: within the address width, no NVDIMM (an
--- unreadable NFIT refuses), no memory the operating system owns.
-local function check_range(first, last, bits)
-  if math.ult(1 << bits, last) then
-    ksi.trace('range end 0x%x beyond %d address bits', last, bits)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  local nvdimm = ksi.hw.is_nvdimm(first, last - first)
-  if nvdimm == nil then
-    ksi.trace('NVDIMM ranges unknown')
-    return nt.STATUS_DEVICE_CONFIGURATION_ERROR
-  end
-  if nvdimm then
-    ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  local ram, ramFailed = ksi.hw.is_ram(first, last - first)
-  if ram == nil then
-    ksi.trace('memory ranges unknown: 0x%x', ramFailed)
-    return ramFailed
-  end
-  if ram then
-    ksi.trace('range 0x%x-0x%x overlaps memory', first, last)
-    return nt.STATUS_CONFLICTING_ADDRESSES
-  end
-  return nt.STATUS_SUCCESS
-end
-
 -- The MSRs of the AMD address map, read on processor 0:0; a register that
 -- faults (a hypervisor hides several) is nil.
 local function address_map()
@@ -1918,7 +1890,7 @@ local function check_amd_df(df, root, first, last, bits)
     ksi.trace('data fabric bound skipped: no ECAM range for %x:%x', root.segment, root.bus)
     return nt.STATUS_SUCCESS
   end
-  local st = check_range(page, page + PAGE, bits)
+  local st = nt.check_range(page, page + PAGE, bits)
   if not nt.NT_SUCCESS(st) then
     ksi.trace('ECAM page 0x%x refused: 0x%x', page, st)
     return st
@@ -2113,7 +2085,7 @@ function table(input)
         return st
       end
     end
-    st = check_range(base, rangeEnd, bits)
+    st = nt.check_range(base, rangeEnd, bits)
     if not nt.NT_SUCCESS(st) then
       ksi.trace('table version 0x%x refused: 0x%x', version, st)
       return st
