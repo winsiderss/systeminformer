@@ -266,6 +266,7 @@
         <ClCompile Include="hwprvacpi.c" />
         <ClCompile Include="hwprvvsec.c" />
         <ClCompile Include="hwprvec.c" />
+        <ClCompile Include="syssccpuhw.c" />
         <ClCompile Include="hwprvctr.c" />
         <ClCompile Include="hwprvdev.c" />
         <ClCompile Include="hwprvpci.c" />
@@ -379,6 +380,7 @@
         <ClInclude Include="include\hndlprv.h" />
         <ClInclude Include="include\hwprv.h" />
         <ClInclude Include="include\hwprvp.h" />
+        <ClInclude Include="include\syssccpuhw.h" />
         <ClInclude Include="include\informer.h" />
         <ClInclude Include="include\ksisup.h" />
         <ClInclude Include="include\mainwnd.h" />

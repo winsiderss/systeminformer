@@ -300,6 +300,9 @@
     <ClCompile Include="syssccpu.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="syssccpuhw.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="sysscmem.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -531,6 +534,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\hwprvp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\syssccpuhw.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\memprv.h">
