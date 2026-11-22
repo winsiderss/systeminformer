@@ -342,6 +342,62 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     _In_opt_ PVOID Context
     );
 
+// Hardware sensor icons
+
+/**
+ * Update callback for the CPU temperature history notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID PhNfpCpuTemperatureHistoryIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+/**
+ * Update callback for the CPU temperature text notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID PhNfpCpuTemperatureTextIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
+/**
+ * Update callback for the CPU power text notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
+_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+VOID PhNfpCpuPowerTextIconUpdateCallback(
+    _In_ PPH_NF_ICON Icon,
+    _Out_ PVOID *NewIconOrBitmap,
+    _Out_ PULONG Flags,
+    _Out_ PPH_STRING *NewText,
+    _In_opt_ PVOID Context
+    );
+
 // plain icon
 /**
  * Update callback for the plain (static) notification icon.
@@ -364,14 +420,12 @@ VOID PhNfpPlainIconUpdateCallback(
 /**
  * Gets the show mini-information section data for an icon.
  *
- * \param IconIndex The index of the icon.
  * \param RegisteredIcon The registered icon.
  * \param Data A variable which receives the section data.
  * \return TRUE if successful, FALSE otherwise.
  */
 _Success_(return)
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
-    _In_ ULONG IconIndex,
     _In_ PPH_NF_ICON RegisteredIcon,
     _Out_ PPH_NF_MSG_SHOWMINIINFOSECTION_DATA Data
     );
