@@ -2677,6 +2677,19 @@ static Proto* CompileUnit(
 
     CheckFunction(Context, function, 1);
 
+    for (int i = 0; i < Context->RoutineCount; i++)
+    {
+        if (Context->RoutineLines[i] == 0)
+        {
+            Report(Context,
+                   0,
+                   "routine '%s' is not defined; the manifest lists it for "
+                   "script '%s'",
+                   Context->Routines[i],
+                   Context->Script);
+        }
+    }
+
     if (Context->Kind != KPHLUAC_KIND_SCRIPT)
     {
         CheckLibraryReturn(Context, function);
@@ -2821,19 +2834,6 @@ static int Build(
     {
         result = 1;
         goto Exit;
-    }
-
-    for (int i = 0; i < Context->RoutineCount; i++)
-    {
-        if (Context->RoutineLines[i] == 0)
-        {
-            Report(Context,
-                   0,
-                   "routine '%s' is not defined; the manifest lists it for "
-                   "script '%s'",
-                   Context->Routines[i],
-                   Context->Script);
-        }
     }
 
     if (Context->Errors != 0)
