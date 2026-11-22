@@ -14,7 +14,8 @@
 #include <cpusensor.h>
 #include <trace.h>
 
-// Collector pciconfig: the device 18h functions of AMD families 10h to 16h, read through pciconfig.lua.
+// Collector pciconfig: the device 18h functions of AMD families 10h to 16h, read through pciconfig.lua, and for a
+// report the configuration space of the AMD bridges the script lists.
 
 #define PHP_HW_PCI_AMD_VENDOR_ID 0x1022
 #define PHP_HW_PCI_HOST_BRIDGE_CLASS 0x0600
@@ -22,6 +23,21 @@
 #define PHP_HW_PCI_MAX_IDENTIFIED (PHP_HW_PCI_MAX_NODES * 3)
 #define PHP_HW_PCI_PACKAGE_NODES 2 // D18F3 functions of a package
 #define PHP_HW_PCI_STRIKE_LIMIT 3 // failures of a register before it ends for the session
+#define PHP_HW_PCI_MAX_BRIDGES 16
+#define PHP_HW_PCI_CONFIG_LENGTH 0x1000
+#define PHP_HW_PCI_CONFIG_HEADER 0x100
+#define PHP_HW_PCI_STATUS_CAPABILITIES 0x0010
+#define PHP_HW_PCI_CAP_EXPRESS 0x10
+#define PHP_HW_PCI_EXT_CAP_AER 0x0001
+#define PHP_HW_PCI_EXT_CAP_DPC 0x001D
+
+// A bridge's configuration space as the last report read it: the bytes and which of them were read.
+typedef struct _PHP_HW_PCI_BRIDGE_CONFIG
+{
+    NTSTATUS Status; // the header range's
+    UCHAR Bytes[PHP_HW_PCI_CONFIG_LENGTH];
+    BOOLEAN Readable[PHP_HW_PCI_CONFIG_LENGTH];
+} PHP_HW_PCI_BRIDGE_CONFIG, *PPHP_HW_PCI_BRIDGE_CONFIG;
 
 // A register read every update.
 typedef struct _PHP_HW_PCI_ITEM
@@ -59,6 +75,10 @@ static PHP_HW_PCI_IDENTIFIED PhpHwPciIdentified[PHP_HW_PCI_MAX_IDENTIFIED];
 static ULONG PhpHwPciIdentifiedCount = 0;
 static PH_CPU_IDENTITY PhpHwPciIdentity;
 static PPHP_HW_PCI_PACKAGE PhpHwPciPackages = NULL; // per package
+static BOOLEAN PhpHwPciProbed = FALSE;
+static ULONG PhpHwPciBridges[PHP_HW_PCI_MAX_BRIDGES];
+static ULONG PhpHwPciBridgeCount = 0;
+static PPHP_HW_PCI_BRIDGE_CONFIG PhpHwPciBridgeConfigs = NULL; // per bridge, once a report read them
 
 /**
  * Finds the D18F3 and D18F4 functions, once a session.
@@ -332,10 +352,24 @@ NTSTATUS PhpHwPciProbe(
     VOID
     )
 {
+    static CONST USHORT bridgeIds[] = { 0x14DB, 0x14DD };
     BOOLEAN kept = FALSE;
 
+    // The bridges are read for the report whatever the processor.
+    PhpHwPciProbed = TRUE;
+    PhpHwPciBridgeCount = PhpHwEnumeratePciFunctions(
+        PHP_HW_PCI_AMD_VENDOR_ID,
+        PHP_HW_PCI_AMD_VENDOR_ID,
+        0x0604,
+        bridgeIds,
+        RTL_NUMBER_OF(bridgeIds),
+        FALSE,
+        PhpHwPciBridges,
+        RTL_NUMBER_OF(PhpHwPciBridges)
+        );
+
     if (!PhpHwCpuQueryAmdLegacy(&PhpHwPciIdentity))
-        return STATUS_NOT_SUPPORTED;
+        return PhpHwPciBridgeCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
 
     PhpHwPciFindNodes();
     PhpHwPciPackages = PhAllocateZero(sizeof(PHP_HW_PCI_PACKAGE) * max(PhpHwPackageCount, 1));
@@ -395,7 +429,40 @@ NTSTATUS PhpHwPciProbe(
         }
     }
 
-    return kept ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+    return kept || PhpHwPciBridgeCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Reads the configuration space of each bridge over the ranges its row permits, for the report.
+ */
+static VOID PhpHwPciReadBridges(
+    VOID
+    )
+{
+    static CONST ULONG ranges[][2] = { { 0, 0xC4 }, { 0xCC, 0x34 }, { PHP_HW_PCI_CONFIG_HEADER, PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER } };
+
+    if (!PhpHwPciBridgeConfigs)
+        PhpHwPciBridgeConfigs = PhAllocate(sizeof(PHP_HW_PCI_BRIDGE_CONFIG) * PhpHwPciBridgeCount);
+
+    for (ULONG i = 0; i < PhpHwPciBridgeCount; i++)
+    {
+        PPHP_HW_PCI_BRIDGE_CONFIG config = &PhpHwPciBridgeConfigs[i];
+
+        memset(config, 0, sizeof(PHP_HW_PCI_BRIDGE_CONFIG));
+
+        for (ULONG j = 0; j < RTL_NUMBER_OF(ranges); j++)
+        {
+            NTSTATUS status = KphHwPciConfigReadBlock(PhpHwPciBridges[i], ranges[j][0], &config->Bytes[ranges[j][0]], ranges[j][1]);
+
+            if (NT_SUCCESS(status))
+                memset(&config->Readable[ranges[j][0]], TRUE, ranges[j][1]);
+            else
+                memset(&config->Bytes[ranges[j][0]], 0, ranges[j][1]);
+
+            if (j == 0)
+                config->Status = status;
+        }
+    }
 }
 
 /**
@@ -412,7 +479,10 @@ NTSTATUS PhpHwPciPass(
     static CONST ULONG averageOffset = PH_AMD_D18F5_TDP_RUNNING_AVERAGE;
     ULONG capabilities = 0;
 
-    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    if (PhpHwReportReads && PhpHwPciBridgeCount)
+        PhpHwPciReadBridges();
+
+    for (ULONG i = 0; PhpHwPciPackages && i < PhpHwPackageCount; i++)
     {
         PPHP_HW_PCI_PACKAGE package = &PhpHwPciPackages[i];
         PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
@@ -488,6 +558,14 @@ VOID PhpHwPciEnd(
         PhpHwPciPackages = NULL;
     }
 
+    if (PhpHwPciBridgeConfigs)
+    {
+        PhFree(PhpHwPciBridgeConfigs);
+        PhpHwPciBridgeConfigs = NULL;
+    }
+
+    PhpHwPciProbed = FALSE;
+    PhpHwPciBridgeCount = 0;
     PhpHwPciNodesFound = FALSE;
     PhpHwPciMiscNodeCount = 0;
     PhpHwPciLinkNodeCount = 0;
@@ -536,7 +614,165 @@ VOID PhpHwPciDiagnostics(
 }
 
 /**
- * Writes the PCI error policy of the bridges the pciconfig script lists, for the hardware report.
+ * Reads a little-endian configuration register from a report read.
+ *
+ * \return TRUE if every byte of the register was read.
+ */
+static BOOLEAN PhpHwPciConfigValue(
+    _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config,
+    _In_ ULONG Offset,
+    _In_range_(1, 4) ULONG Size,
+    _Out_ PULONG Value
+    )
+{
+    *Value = 0;
+
+    if (Offset > PHP_HW_PCI_CONFIG_LENGTH || Size > PHP_HW_PCI_CONFIG_LENGTH - Offset)
+        return FALSE;
+
+    for (ULONG i = 0; i < Size; i++)
+    {
+        if (!Config->Readable[Offset + i])
+            return FALSE;
+    }
+
+    memcpy(Value, &Config->Bytes[Offset], Size);
+    return TRUE;
+}
+
+/**
+ * Finds a capability of the standard list.
+ *
+ * \return The capability offset, zero if absent or not readable.
+ */
+static ULONG PhpHwPciFindCapability(
+    _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config,
+    _In_ UCHAR Id
+    )
+{
+    ULONG value;
+    ULONG offset;
+
+    if (!PhpHwPciConfigValue(Config, 0x06, 2, &value) || !(value & PHP_HW_PCI_STATUS_CAPABILITIES))
+        return 0;
+    if (!PhpHwPciConfigValue(Config, 0x34, 1, &offset))
+        return 0;
+
+    for (ULONG ttl = 48; ttl && (offset &= 0xFC) >= 0x40; ttl--)
+    {
+        if (!PhpHwPciConfigValue(Config, offset, 2, &value))
+            return 0;
+        if ((value & 0xFF) == Id)
+            return offset;
+
+        offset = value >> 8;
+    }
+
+    return 0;
+}
+
+/**
+ * Finds a capability of the extended list.
+ *
+ * \param Read Receives TRUE when the chain was read to its end or to the capability.
+ * \return The capability offset, zero if absent or not readable.
+ */
+static ULONG PhpHwPciFindExtendedCapability(
+    _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config,
+    _In_ USHORT Id,
+    _Out_ PBOOLEAN Read
+    )
+{
+    ULONG header;
+    ULONG offset = PHP_HW_PCI_CONFIG_HEADER;
+
+    *Read = FALSE;
+
+    for (ULONG ttl = (PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER) / sizeof(ULONG); ttl; ttl--)
+    {
+        if (!PhpHwPciConfigValue(Config, offset, 4, &header))
+            return 0;
+
+        *Read = TRUE;
+
+        if (header == 0 || header == ULONG_MAX)
+            return 0;
+        if ((header & 0xFFFF) == Id)
+            return offset;
+
+        offset = (header >> 20) & 0xFFC;
+
+        if (offset < PHP_HW_PCI_CONFIG_HEADER)
+            return 0;
+
+        *Read = FALSE;
+    }
+
+    return 0;
+}
+
+/**
+ * Appends the extended capability chain as offset:ID pairs, or what stopped the walk.
+ */
+static VOID PhpHwPciAppendExtendedList(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config
+    )
+{
+    ULONG header;
+    ULONG offset = PHP_HW_PCI_CONFIG_HEADER;
+
+    PhAppendStringBuilder2(Builder, L"\n    Extended capabilities:");
+
+    for (ULONG ttl = (PHP_HW_PCI_CONFIG_LENGTH - PHP_HW_PCI_CONFIG_HEADER) / sizeof(ULONG); ttl; ttl--)
+    {
+        if (!PhpHwPciConfigValue(Config, offset, 4, &header))
+        {
+            PhAppendFormatStringBuilder(Builder, L" 0x%03lx not read", offset);
+            return;
+        }
+
+        if (header == 0 || header == ULONG_MAX)
+        {
+            if (offset == PHP_HW_PCI_CONFIG_HEADER)
+                PhAppendFormatStringBuilder(Builder, L" none (0x100 reads 0x%08lx)", header);
+            else
+                PhAppendFormatStringBuilder(Builder, L" 0x%03lx reads 0x%08lx", offset, header);
+
+            return;
+        }
+
+        PhAppendFormatStringBuilder(Builder, L" 0x%03lx:%04lx", offset, header & 0xFFFF);
+
+        offset = (header >> 20) & 0xFFC;
+
+        if (offset < PHP_HW_PCI_CONFIG_HEADER)
+            return;
+    }
+}
+
+/**
+ * Appends one register of the error-policy census, or that it was not read.
+ */
+static VOID PhpHwPciAppendRegister(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config,
+    _In_ PCWSTR Name,
+    _In_ ULONG Offset,
+    _In_range_(1, 4) ULONG Size,
+    _Out_ PULONG Value
+    )
+{
+    if (PhpHwPciConfigValue(Config, Offset, Size, Value))
+        PhAppendFormatStringBuilder(Builder, Size == 4 ? L"\n    %s 0x%08lx" : L"\n    %s 0x%04lx", Name, *Value);
+    else
+        PhAppendFormatStringBuilder(Builder, L"\n    %s not read", Name);
+}
+
+/**
+ * Writes the error policy of the bridges the pciconfig script lists, as the last report request read them: the PCI
+ * Express error-reporting enables, Root Control, the AER handling of Unsupported Request and Advisory Non-Fatal, and
+ * DPC Control.
  *
  * \param Builder The report.
  */
@@ -544,5 +780,161 @@ VOID PhHwWriteBridgeDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
-    PhAppendStringBuilder2(Builder, L"Not collected\n");
+    static CONST PCWSTR portTypes[] =
+    {
+        L"endpoint", L"legacy endpoint", L"type 2", L"type 3", L"root port", L"upstream port", L"downstream port",
+        L"PCI Express to PCI bridge", L"PCI to PCI Express bridge", L"root complex integrated endpoint", L"root complex event collector"
+    };
+
+    if (!PhpHwPciProbed)
+    {
+        PhAppendStringBuilder2(Builder, L"Not read: hardware sensors are off\n");
+        return;
+    }
+
+    if (!PhpHwPciBridgeCount)
+    {
+        PhAppendStringBuilder2(Builder, L"None\n");
+        return;
+    }
+
+    if (!PhpHwPciBridgeConfigs)
+    {
+        PhAppendStringBuilder2(Builder, L"Not read: no update made the report reads\n");
+        return;
+    }
+
+    for (ULONG i = 0; i < PhpHwPciBridgeCount; i++)
+    {
+        PPHP_HW_PCI_BRIDGE_CONFIG config = &PhpHwPciBridgeConfigs[i];
+        ULONG locator = PhpHwPciBridges[i];
+        ULONG ids;
+        ULONG value;
+        ULONG express;
+        ULONG aer;
+        ULONG dpc;
+        BOOLEAN chainRead;
+        ULONG portType = ULONG_MAX;
+
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"%04lx:%02lx:%02lx.%lx",
+            locator >> 16,
+            (locator >> 8) & 0xFF,
+            (locator >> 3) & 0x1F,
+            locator & 0x7
+            );
+
+        if (!NT_SUCCESS(config->Status))
+        {
+            PhAppendFormatStringBuilder(Builder, L": status 0x%08lx\n", config->Status);
+            continue;
+        }
+
+        if (PhpHwPciConfigValue(config, 0x00, 4, &ids))
+            PhAppendFormatStringBuilder(Builder, L" %04lx:%04lx", ids & 0xFFFF, ids >> 16);
+
+        express = PhpHwPciFindCapability(config, PHP_HW_PCI_CAP_EXPRESS);
+
+        if (!express)
+        {
+            PhAppendStringBuilder2(Builder, L": no PCI Express capability read\n");
+            continue;
+        }
+
+        if (PhpHwPciConfigValue(config, express + 0x02, 2, &value))
+        {
+            portType = (value >> 4) & 0xF;
+            PhAppendFormatStringBuilder(Builder, L", %s", portType < RTL_NUMBER_OF(portTypes) ? portTypes[portType] : L"reserved type");
+        }
+
+        PhpHwPciAppendRegister(Builder, config, L"Device Control", express + 0x08, 2, &value);
+
+        if (PhpHwPciConfigValue(config, express + 0x08, 2, &value))
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L": reporting correctable %lu, non-fatal %lu, fatal %lu, unsupported request %lu",
+                value & 1,
+                (value >> 1) & 1,
+                (value >> 2) & 1,
+                (value >> 3) & 1
+                );
+        }
+
+        if (portType == 4 || portType == 10)
+        {
+            PhpHwPciAppendRegister(Builder, config, L"Root Control", express + 0x1C, 2, &value);
+
+            if (PhpHwPciConfigValue(config, express + 0x1C, 2, &value))
+            {
+                PhAppendFormatStringBuilder(
+                    Builder,
+                    L": system error on correctable %lu, non-fatal %lu, fatal %lu",
+                    value & 1,
+                    (value >> 1) & 1,
+                    (value >> 2) & 1
+                    );
+            }
+        }
+
+        PhpHwPciAppendExtendedList(Builder, config);
+
+        aer = PhpHwPciFindExtendedCapability(config, PHP_HW_PCI_EXT_CAP_AER, &chainRead);
+
+        if (aer)
+        {
+            ULONG mask;
+            ULONG severity;
+            ULONG correctable;
+
+            if (
+                PhpHwPciConfigValue(config, aer + 0x08, 4, &mask) &&
+                PhpHwPciConfigValue(config, aer + 0x0C, 4, &severity) &&
+                PhpHwPciConfigValue(config, aer + 0x14, 4, &correctable)
+                )
+            {
+                PhAppendFormatStringBuilder(
+                    Builder,
+                    L"\n    AER uncorrectable mask 0x%08lx, severity 0x%08lx, correctable mask 0x%08lx: "
+                    L"unsupported request %s, %s; advisory non-fatal %s",
+                    mask,
+                    severity,
+                    correctable,
+                    (mask & (1UL << 20)) ? L"masked" : L"unmasked",
+                    (severity & (1UL << 20)) ? L"fatal" : L"non-fatal",
+                    (correctable & (1UL << 13)) ? L"masked" : L"unmasked"
+                    );
+            }
+            else
+            {
+                PhAppendStringBuilder2(Builder, L"\n    AER not read");
+            }
+
+            if (portType == 4 || portType == 10)
+                PhpHwPciAppendRegister(Builder, config, L"AER Root Error Command", aer + 0x2C, 4, &value);
+        }
+        else
+        {
+            PhAppendStringBuilder2(Builder, chainRead ? L"\n    AER absent" : L"\n    AER not read");
+        }
+
+        dpc = PhpHwPciFindExtendedCapability(config, PHP_HW_PCI_EXT_CAP_DPC, &chainRead);
+
+        if (dpc)
+        {
+            static CONST PCWSTR triggers[] = { L"disabled", L"on ERR_FATAL", L"on ERR_NONFATAL or ERR_FATAL", L"reserved" };
+
+            PhpHwPciAppendRegister(Builder, config, L"DPC Control", dpc + 0x06, 2, &value);
+
+            if (PhpHwPciConfigValue(config, dpc + 0x06, 2, &value))
+                PhAppendFormatStringBuilder(Builder, L": trigger %s, interrupt %lu, ERR_COR %lu", triggers[value & 3], (value >> 3) & 1, (value >> 4) & 1);
+        }
+        else
+        {
+            PhAppendStringBuilder2(Builder, chainRead ? L"\n    DPC absent" : L"\n    DPC not read");
+        }
+
+        PhAppendCharStringBuilder(Builder, L'\n');
+    }
 }
