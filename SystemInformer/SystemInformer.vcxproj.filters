@@ -90,6 +90,9 @@
     <ClCompile Include="hwsensor.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="hwsensorwnd.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="infodlg.c">
       <Filter>System Informer</Filter>
     </ClCompile>

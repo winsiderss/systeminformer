@@ -1016,6 +1016,7 @@
 #define ID_TOOLS_RUNCONTAINER           10325
 #define ID_HACKER_ATTACHTOPROCESS       10326
 #define ID_TOOLS_ENVIRONMENT_VARIABLES  10327
+#define ID_TOOLS_HARDWARESENSORS        10338
 #define ID_SERVICE_GROUP_NONE           10328
 #define ID_SERVICE_GROUP_TYPE           10329
 #define ID_SERVICE_GROUP_LOADORDER      10330
@@ -1038,6 +1039,7 @@
 #define IDC_GRAPHSTYLEDUPLICATE         1581
 #define IDC_GRAPHSTYLERENAME            1582
 #define IDC_GRAPHSTYLEDELETE            1583
+#define IDD_HWSENSORS                   297
 #define IDD_GRAPHSTYLEEDIT              299
 #define IDC_GSE_NAME                    1584
 #define IDC_GSE_BASE                    1585

@@ -1621,6 +1621,11 @@ VOID PhMwpOnCommand(
             PhShowPagefilesDialog(WindowHandle);
         }
         break;
+    case ID_TOOLS_HARDWARESENSORS:
+        {
+            PhShowHardwareSensorsWindow(WindowHandle);
+        }
+        break;
     case ID_TOOLS_ENVIRONMENT_VARIABLES:
         {
             PhShowEnvironmentVariablesDialog(WindowHandle);
@@ -3780,6 +3785,9 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
         (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
+        PhHwSensorsWindowAvailable() ? 0 : PH_EMENU_DISABLED,
+        ID_TOOLS_HARDWARESENSORS, L"&Hardware sensors", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);

@@ -261,6 +261,7 @@
         <ClCompile Include="hwprvpci.c" />
         <ClCompile Include="hwreport.c" />
         <ClCompile Include="hwsensor.c" />
+        <ClCompile Include="hwsensorwnd.c" />
         <ClCompile Include="infodlg.c" />
         <ClCompile Include="itemtips.c" />
         <ClCompile Include="jobprp.c" />

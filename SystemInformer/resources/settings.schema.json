@@ -1467,6 +1467,36 @@
         }
       ]
     },
+    "SearchHardwareSensorsRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in the hardware sensors search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchHardwareSensorsCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in the hardware sensors search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "FindObjTreeListColumns": {
       "type": "string",
       "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the Find Handles/DLLs list."
@@ -2707,6 +2737,31 @@
     "PageFileListViewColumns": {
       "type": "string",
       "description": "Setting: Stores the column configuration for the page file list."
+    },
+    "HardwareSensorsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Hardware Sensors window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareSensorsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Hardware Sensors window."
+    },
+    "HardwareSensorsTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the Hardware Sensors tree list."
     },
     "PluginManagerTreeListColumns": {
       "type": "string",

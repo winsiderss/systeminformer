@@ -119,6 +119,7 @@ set(SOURCES
     "hwprvpci.c"
     "hwreport.c"
     "hwsensor.c"
+    "hwsensorwnd.c"
     "infodlg.c"
     "informer.c"
     "informerwnd.c"
