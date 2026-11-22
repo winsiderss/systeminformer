@@ -148,8 +148,7 @@
 #define KPH_TAG_LUA_HARDWARE_REQUEST            '6LpK'
 #define KPH_TAG_LUA_HARDWARE_DEVICE             '7LpK'
 #define KPH_TAG_LUA_HARDWARE_NAME               '8LpK'
-#define KPH_TAG_LUA_HARDWARE_ACPI_EVAL          '9LpK'
-#define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        'ALpK'
+#define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        '9LpK'
 
 // script
 

@@ -463,7 +463,7 @@ local function evaluate_on(device, record, milliseconds)
     return nt.STATUS_ACCESS_DENIED
   end
   local arguments = #values > 0 and record.arguments or nil
-  local output, failed = ksi.hw.acpi_eval(device, record.name, milliseconds, arguments)
+  local output, failed = nt.acpi.eval(device, record.name, milliseconds, arguments)
   if not output then
     ksi.trace('%s failed: 0x%08x', record.name, failed)
     return failed
@@ -549,7 +549,7 @@ local function identify_call(input)
 end
 
 local function eval_call(input)
-  if not ksi.hw.acpi_eval then
+  if not ksi.hw.device_control then
     return nt.STATUS_NOT_SUPPORTED
   end
   if #input < 4 then

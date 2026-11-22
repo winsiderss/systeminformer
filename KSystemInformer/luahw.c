@@ -586,7 +586,6 @@ VOID KphLuaOpenHardwareLibrary(
     KphLuaOpenHardwarePci(State);
     KphLuaOpenHardwareMemory(State);
     KphLuaOpenHardwareDevice(State);
-    KphLuaOpenHardwareAcpi(State);
     KphLuaOpenHardwareSysreg(State);
 
     lua_setfield(State, -2, KPH_LUA_HARDWARE_LIBRARY_NAME);

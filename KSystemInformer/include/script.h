@@ -316,11 +316,6 @@ VOID KphLuaOpenHardwareDevice(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphLuaOpenHardwareAcpi(
-    _In_ lua_State* State
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaInitializeHardwareSysreg(
     VOID
     );

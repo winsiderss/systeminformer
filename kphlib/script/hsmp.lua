@@ -999,7 +999,7 @@ local function acpi_records(data, at, last)
 end
 
 local function acpi_answer(device, name)
-  local output, failed = ksi.hw.acpi_eval(device, name, ACPI_MS)
+  local output, failed = nt.acpi.eval(device, name, ACPI_MS)
   if not output then
     ksi.trace('%s not evaluated: 0x%x', name, failed)
     return nil
