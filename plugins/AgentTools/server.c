@@ -583,6 +583,38 @@ VOID AtpResolveLauncher(
     NtClose(processHandle);
 }
 
+// Under Administrator protection an elevated System Informer runs as a system-managed account; the
+// limited token linked to its full token belongs to the user it was elevated for.
+BOOLEAN AtpIsLinkedUser(
+    _In_ PSID Sid
+    )
+{
+    BOOLEAN result = FALSE;
+    TOKEN_ELEVATION_TYPE elevationType;
+    TOKEN_LINKED_TOKEN linkedToken;
+    PH_TOKEN_USER linkedUser;
+
+    if (!NT_SUCCESS(NtQueryInformationToken(NtCurrentProcessToken(), TokenElevationType, &elevationType, sizeof(elevationType), &(ULONG){ 0 })) ||
+        elevationType != TokenElevationTypeFull)
+    {
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(NtQueryInformationToken(NtCurrentProcessToken(), TokenLinkedToken, &linkedToken, sizeof(linkedToken), &(ULONG){ 0 })))
+        return FALSE;
+
+    if (NT_SUCCESS(NtQueryInformationToken(linkedToken.LinkedToken, TokenElevationType, &elevationType, sizeof(elevationType), &(ULONG){ 0 })) &&
+        elevationType == TokenElevationTypeLimited &&
+        NT_SUCCESS(PhGetTokenUser(linkedToken.LinkedToken, &linkedUser)))
+    {
+        result = PhEqualSid(Sid, linkedUser.User.Sid);
+    }
+
+    NtClose(linkedToken.LinkedToken);
+
+    return result;
+}
+
 SIMCP_HELLO_STATUS AtpAuthenticateClient(
     _In_ PAT_CONNECTION Connection,
     _In_ PSIMCP_HELLO Hello
@@ -625,7 +657,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
         goto CleanupExit;
     }
 
-    if (!PhEqualSid(clientUser.User.Sid, ownUser.User.Sid))
+    if (!PhEqualSid(clientUser.User.Sid, ownUser.User.Sid) && !AtpIsLinkedUser(clientUser.User.Sid))
     {
         result = SimcpHelloRejectedUser;
         goto CleanupExit;
