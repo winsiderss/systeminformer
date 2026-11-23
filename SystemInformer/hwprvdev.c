@@ -944,9 +944,9 @@ BOOLEAN PhpHwQueryLpitFrequency(
 }
 
 /**
- * Reads the processor's brand string.
+ * Reads the processor's brand string, else (ARM64 has none) the processor name Windows keeps for processor 0.
  *
- * \return The brand string, trimmed, or NULL when the system has none.
+ * \return The name, trimmed, or NULL when the system has none.
  */
 _Ret_maybenull_
 PPH_STRING PhpHwQueryProcessorName(
@@ -954,14 +954,24 @@ PPH_STRING PhpHwQueryProcessorName(
     )
 {
     static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
+    static CONST PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
     SYSTEM_PROCESSOR_BRAND_STRING brandString;
-    PPH_STRING brand;
+    PPH_STRING brand = NULL;
     PH_STRINGREF trimmed;
+    HANDLE keyHandle;
 
-    if (!NT_SUCCESS(NtQuerySystemInformation(SystemProcessorBrandString, &brandString, sizeof(brandString), NULL)))
+    if (NT_SUCCESS(NtQuerySystemInformation(SystemProcessorBrandString, &brandString, sizeof(brandString), NULL)))
+        brand = PhConvertUtf8ToUtf16Ex(brandString.BrandString, strnlen(brandString.BrandString, sizeof(brandString.BrandString)));
+
+    if (PhIsNullOrEmptyString(brand) && NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
+    {
+        PhMoveReference(&brand, PhQueryRegistryStringZ(keyHandle, L"ProcessorNameString"));
+        NtClose(keyHandle);
+    }
+
+    if (!brand)
         return NULL;
 
-    brand = PhConvertUtf8ToUtf16Ex(brandString.BrandString, strnlen(brandString.BrandString, sizeof(brandString.BrandString)));
     trimmed = brand->sr;
     PhTrimStringRef(&trimmed, &whitespace, 0);
 
