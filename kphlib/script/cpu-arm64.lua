@@ -33,6 +33,9 @@ local ROWS = {
         [0x5f00] = true,
         [0x5f02] = true,
         [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+        [0x5e95] = true,
+        [0x5ea0] = true,
+        [0x5ea1] = true,
       }
     end,
   },
@@ -52,6 +55,9 @@ local ROWS = {
         [0x5f00] = true,
         [0x5f02] = true,
         [0x5ce8] = { gate = { 0x4028, 8, 4, 0x1, 0xe } },
+        [0x5e95] = true,
+        [0x5ea0] = true,
+        [0x5ea1] = true,
       }
     end,
   },
