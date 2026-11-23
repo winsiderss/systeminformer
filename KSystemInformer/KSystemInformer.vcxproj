@@ -116,7 +116,8 @@
     <ClInclude Include="include\trace.h" />
   </ItemGroup>
   <ItemGroup>
-    <KsiAsm Include="amd64\luahwsmi.asm" Condition="'$(Platform)'=='x64'" />
+    <KsiAsm Include="amd64\smi.asm" Condition="'$(Platform)'=='x64'" />
+    <KsiAsm Include="arm64\smc.asm" Condition="'$(Platform)'=='ARM64'" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

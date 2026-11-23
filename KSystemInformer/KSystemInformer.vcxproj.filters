@@ -143,7 +143,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <KsiAsm Include="amd64\luahwsmi.asm">
+    <KsiAsm Include="amd64\smi.asm">
+      <Filter>Source Files</Filter>
+    </KsiAsm>
+    <KsiAsm Include="arm64\smc.asm">
       <Filter>Source Files</Filter>
     </KsiAsm>
     <ClCompile Include="luahwpci.c">

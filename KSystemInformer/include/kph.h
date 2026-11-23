@@ -359,6 +359,28 @@ BOOLEAN KphIsValidMemoryRegion(
             (Region->End <= End));
 }
 
+#if defined(_M_X64)
+
+_IRQL_requires_(DISPATCH_LEVEL)
+VOID KphSmi(
+    _In_ USHORT Port,
+    _Inout_updates_(7) PULONG64 Registers
+    );
+
+#elif defined(_M_ARM64)
+
+_IRQL_requires_(DISPATCH_LEVEL)
+VOID KphSmc(
+    _Inout_updates_(18) PULONG64 Registers
+    );
+
+_IRQL_requires_(DISPATCH_LEVEL)
+VOID KphHvc(
+    _Inout_updates_(18) PULONG64 Registers
+    );
+
+#endif
+
 //
 // C30030 - Probably allocating executable memory via specifying a
 // MM_PAGE_PRIORITY type without a bitwise OR with MdlMappingNoExecute

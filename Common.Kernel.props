@@ -158,7 +158,7 @@
   <Target Name="KsiRunAsm"
           BeforeTargets="Link"
           Condition="'@(KsiAsm)'!=''"
-          Inputs="@(KsiAsm);$(MSBuildThisFileFullPath)"
+          Inputs="@(KsiAsm);$(MSBuildThisFileFullPath);$(KIT_SHARED_IncludePath.TrimEnd('\'))\kxarm64.h"
           Outputs="@(KsiAsm->'$(IntDir)asm\%(Filename).obj')">
       <MakeDir Directories="$(IntDir)asm" Condition="!Exists('$(IntDir)asm')" />
       <PropertyGroup>
@@ -170,8 +170,15 @@
           <KsiAsmPath Condition="!Exists('$(KsiAsmPath)')">$(KsiAsmExe)</KsiAsmPath>
           <KsiAsmCmd Condition="'$(Platform)'=='x64'">&quot;$(KsiAsmPath)&quot; /nologo /c /Zi /W3 /WX /GuardRetpoline /Fo</KsiAsmCmd>
           <KsiAsmCmd Condition="'$(Platform)'=='ARM64'">&quot;$(KsiAsmPath)&quot; -g -machine ARM64 -o</KsiAsmCmd>
+          <KsiAsmCppPath>$(VCToolsInstallDir)bin\Host$(KsiAsmHostArch)\$(Platform)\cl.exe</KsiAsmCppPath>
+          <KsiAsmCppPath Condition="!Exists('$(KsiAsmCppPath)')">cl.exe</KsiAsmCppPath>
       </PropertyGroup>
-      <Exec Command="$(KsiAsmCmd) &quot;$(IntDir)asm\%(KsiAsm.Filename).obj&quot; &quot;%(KsiAsm.FullPath)&quot;" />
+      <Exec Condition="'$(Platform)'=='ARM64'"
+            Command="&quot;$(KsiAsmCppPath)&quot; /nologo /EP /I&quot;$(KIT_SHARED_IncludePath.TrimEnd('\'))&quot; &quot;%(KsiAsm.FullPath)&quot; &gt; &quot;$(IntDir)asm\%(KsiAsm.Filename).i&quot;" />
+      <Exec Condition="'$(Platform)'=='ARM64'"
+            Command="$(KsiAsmCmd) &quot;$(IntDir)asm\%(KsiAsm.Filename).obj&quot; &quot;$(IntDir)asm\%(KsiAsm.Filename).i&quot;" />
+      <Exec Condition="'$(Platform)'!='ARM64'"
+            Command="$(KsiAsmCmd) &quot;$(IntDir)asm\%(KsiAsm.Filename).obj&quot; &quot;%(KsiAsm.FullPath)&quot;" />
   </Target>
   <Target Name="KsiAsmLinkInputs" Condition="'@(KsiAsm)'!=''">
     <ItemGroup>

@@ -331,16 +331,6 @@ VOID KphLuaOpenHardwareSysreg(
     _In_ lua_State* State
     );
 
-#if defined(_M_X64)
-
-_IRQL_requires_(DISPATCH_LEVEL)
-VOID KphpLuaHwCallSmi(
-    _In_ USHORT Port,
-    _Inout_updates_(7) PULONG64 Registers
-    );
-
-#endif
-
 #if defined(_M_ARM64)
 
 _IRQL_requires_max_(HIGH_LEVEL)

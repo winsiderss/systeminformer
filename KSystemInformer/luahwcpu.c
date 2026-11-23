@@ -29,6 +29,8 @@ typedef enum _KPH_LUA_HW_BATCH_KIND
     KphLuaHwBatchSysreg,
     KphLuaHwBatchSysregWrite,
     KphLuaHwBatchSysregSelect,
+    KphLuaHwBatchSmc,
+    KphLuaHwBatchHvc,
 #endif
 } KPH_LUA_HW_BATCH_KIND, *PKPH_LUA_HW_BATCH_KIND;
 
@@ -120,6 +122,28 @@ C_ASSERT(sizeof(KPH_LUA_HW_REG_ITEM) == 8);
 C_ASSERT(sizeof(KPH_LUA_HW_REG_RESULT) == 16);
 C_ASSERT(sizeof(KPH_LUA_HW_REG_WRITE_ITEM) == 16);
 C_ASSERT(sizeof(KPH_LUA_HW_REG_WRITE_RESULT) == 8);
+
+#if defined(_M_ARM64)
+
+typedef struct _KPH_LUA_HW_CALL_ITEM
+{
+    USHORT Group;
+    USHORT Number;
+    ULONG Reserved;
+    ULONG64 Registers[18];
+} KPH_LUA_HW_CALL_ITEM, *PKPH_LUA_HW_CALL_ITEM;
+
+typedef struct _KPH_LUA_HW_CALL_RESULT
+{
+    NTSTATUS Status;
+    ULONG Reserved;
+    ULONG64 Registers[18];
+} KPH_LUA_HW_CALL_RESULT, *PKPH_LUA_HW_CALL_RESULT;
+
+C_ASSERT(sizeof(KPH_LUA_HW_CALL_ITEM) == 152);
+C_ASSERT(sizeof(KPH_LUA_HW_CALL_RESULT) == 152);
+
+#endif
 
 typedef struct _KPH_LUA_HW_BATCH KPH_LUA_HW_BATCH, *PKPH_LUA_HW_BATCH;
 
@@ -459,6 +483,43 @@ NTSTATUS KphpLuaHwBatchSelect(
     return status;
 }
 
+/**
+ * \brief Calls into firmware or the hypervisor on the current processor.
+ *
+ * \param[in] Hvc TRUE for HVC #0, FALSE for SMC #0.
+ * \param[in,out] Registers x0 to x17 for the call, receives x0 to x17 after
+ * it, zero when the call faults.
+ *
+ * \return TRUE when the call did not fault, FALSE otherwise.
+ */
+_IRQL_requires_(DISPATCH_LEVEL)
+BOOLEAN KphpLuaHwBatchCall(
+    _In_ BOOLEAN Hvc,
+    _Inout_updates_(18) PULONG64 Registers
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH();
+
+    __try
+    {
+        if (Hvc)
+        {
+            KphHvc(Registers);
+        }
+        else
+        {
+            KphSmc(Registers);
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        RtlZeroMemory(Registers, sizeof(ULONG64) * 18);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 #endif
 
 /**
@@ -674,7 +735,7 @@ VOID KphpLuaHwBatchDpc(
                               item->Registers,
                               sizeof(item->Registers));
 
-                KphpLuaHwCallSmi((USHORT)item->Port, result->Registers);
+                KphSmi((USHORT)item->Port, result->Registers);
 
                 result->Status = STATUS_SUCCESS;
                 break;
@@ -743,6 +804,30 @@ VOID KphpLuaHwBatchDpc(
                                                       item->Value,
                                                       &value);
                 result->Value = value;
+                break;
+            }
+            case KphLuaHwBatchSmc:
+            case KphLuaHwBatchHvc:
+            {
+                PKPH_LUA_HW_CALL_ITEM item;
+                PKPH_LUA_HW_CALL_RESULT result;
+
+                item = &((PKPH_LUA_HW_CALL_ITEM)batch->Items)[index];
+                result = &((PKPH_LUA_HW_CALL_RESULT)batch->Results)[index];
+
+                RtlCopyMemory(result->Registers,
+                              item->Registers,
+                              sizeof(item->Registers));
+
+                if (KphpLuaHwBatchCall(batch->Kind == KphLuaHwBatchHvc,
+                                       result->Registers))
+                {
+                    result->Status = STATUS_SUCCESS;
+                }
+                else
+                {
+                    result->Status = STATUS_NOT_SUPPORTED;
+                }
                 break;
             }
 #endif
@@ -1389,6 +1474,54 @@ int KphpLuaHwSysregSelectRead(
                              TRUE);
 }
 
+/**
+ * \brief Calls into firmware through SMC #0, each on its own processor
+ * (ksi.hw.smc).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the string of results, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwSmc(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    return KphpLuaHwBatchRun(State,
+                             KphLuaHwBatchSmc,
+                             sizeof(KPH_LUA_HW_CALL_ITEM),
+                             sizeof(KPH_LUA_HW_CALL_RESULT),
+                             FALSE);
+}
+
+/**
+ * \brief Calls into firmware or the hypervisor through HVC #0, each on its
+ * own processor (ksi.hw.hvc).
+ *
+ * \details May raise a Lua error.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the string of results, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwHvc(
+    _In_ lua_State* State
+    )
+{
+    KPH_PAGED_CODE_PASSIVE();
+
+    return KphpLuaHwBatchRun(State,
+                             KphLuaHwBatchHvc,
+                             sizeof(KPH_LUA_HW_CALL_ITEM),
+                             sizeof(KPH_LUA_HW_CALL_RESULT),
+                             FALSE);
+}
+
 #endif
 
 /**
@@ -1484,6 +1617,8 @@ static const luaL_Reg KphpLuaHwCpuLibrary[] =
     { "smi", KphpLuaHwSmi },
     { "xcr_read", KphpLuaHwXcrRead },
 #elif defined(_M_ARM64)
+    { "hvc", KphpLuaHwHvc },
+    { "smc", KphpLuaHwSmc },
     { "sysreg_read", KphpLuaHwSysregRead },
     { "sysreg_select_read", KphpLuaHwSysregSelectRead },
     { "sysreg_write", KphpLuaHwSysregWrite },

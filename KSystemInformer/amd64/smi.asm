@@ -9,7 +9,7 @@
 ;
 
 ;
-; VOID KphpLuaHwCallSmi(_In_ USHORT Port, _Inout_updates_(7) PULONG64 Registers)
+; VOID KphSmi(_In_ USHORT Port, _Inout_updates_(7) PULONG64 Registers)
 ;
 ; Loads rax, rbx, rcx, rdx, rsi and rdi from Registers[0..5], puts Port in the
 ; low 16 bits of rdx, writes al to the port, and stores the six registers and
@@ -19,7 +19,7 @@
     .code
 
     align   16
-KphpLuaHwCallSmi PROC FRAME
+KphSmi PROC FRAME
 
     push    rbx
     .pushreg rbx
@@ -64,6 +64,6 @@ KphpLuaHwCallSmi PROC FRAME
     pop     rbx
     ret
 
-KphpLuaHwCallSmi ENDP
+KphSmi ENDP
 
     end
