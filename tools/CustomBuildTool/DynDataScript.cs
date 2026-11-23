@@ -36,6 +36,21 @@ namespace CustomBuildTool
         /// </summary>
         private const string LuaHeaderFile = "tools\\thirdparty\\lua\\src\\lua.h";
 
+        /// <summary>
+        /// The script file version. The driver loads only files of its own version.
+        /// </summary>
+        private const UInt32 Version = 1;
+
+        /// <summary>
+        /// The Lua release scripts are compiled and run with, by the script file version that began using it.
+        /// The driver cannot tell the release of a chunk, so a new release takes a new row with a new Version,
+        /// and the driver rebuilt and shipped.
+        /// </summary>
+        private static readonly (UInt32 Version, string Release)[] LuaReleases =
+        [
+            (1, "5.5.1"),
+        ];
+
         private const int RoutineSize = 8;
 
         /// <summary>
@@ -46,7 +61,7 @@ namespace CustomBuildTool
 
         // The layout of a script file. KSystemInformer\include\script.h asserts the same numbers.
         private const UInt32 FileMagic = 0x5349534B;
-        private const int FileHeaderSize = 64;
+        private const int FileHeaderSize = 72;
 
         /// <summary>
         /// The client levels a routine can require, by their names in the manifest.
@@ -60,15 +75,17 @@ namespace CustomBuildTool
         ];
 
         /// <summary>
-        /// The C header content for the script levels.
+        /// The C header content for the script file version and the script levels.
         /// </summary>
         public static readonly string HeaderC =
 $$"""
 
-#define KPH_DYN_SCRIPT_LEVEL_LOW                ((USHORT){{Levels[0].Value}})
-#define KPH_DYN_SCRIPT_LEVEL_MEDIUM             ((USHORT){{Levels[1].Value}})
-#define KPH_DYN_SCRIPT_LEVEL_HIGH               ((USHORT){{Levels[2].Value}})
-#define KPH_DYN_SCRIPT_LEVEL_MAXIMUM            ((USHORT){{Levels[3].Value}})
+#define KPH_SCRIPT_VERSION                      ((ULONG){{Version}})
+
+#define KPH_SCRIPT_LEVEL_LOW                    ((USHORT){{Levels[0].Value}})
+#define KPH_SCRIPT_LEVEL_MEDIUM                 ((USHORT){{Levels[1].Value}})
+#define KPH_SCRIPT_LEVEL_HIGH                   ((USHORT){{Levels[2].Value}})
+#define KPH_SCRIPT_LEVEL_MAXIMUM                ((USHORT){{Levels[3].Value}})
 """;
 
         /// <summary>
@@ -390,6 +407,22 @@ $$"""
 
             string release = string.Join('.', numbers);
 
+            for (int i = 1; i < LuaReleases.Length; i++)
+            {
+                if (LuaReleases[i].Version <= LuaReleases[i - 1].Version)
+                    throw new Exception("DynDataScript.LuaReleases: a row needs a higher version than the row before it");
+            }
+
+            (UInt32 pinnedVersion, string pinnedRelease) = LuaReleases[^1];
+
+            if (!release.Equals(pinnedRelease, StringComparison.Ordinal) || Version != pinnedVersion)
+            {
+                throw new Exception(
+                    $"{LuaHeaderFile} is Lua {release} and the script version is {Version}, but " +
+                    $"DynDataScript.LuaReleases pins Lua {pinnedRelease} to version {pinnedVersion}. A new Lua " +
+                    "release needs a higher DynDataScript.Version, a new row in LuaReleases, and the driver rebuilt and shipped.");
+            }
+
             List<string> arguments = ["-v"];
             int exitCode = Win32.CreateProcess(GetCompilerPath(), arguments, out string compilerRelease, false);
 
@@ -488,20 +521,21 @@ $$"""
             Span<byte> span = image;
 
             BinaryPrimitives.WriteUInt32LittleEndian(span[0..], FileMagic);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[4..], (UInt32)length);
-            BinaryPrimitives.WriteUInt64LittleEndian(span[8..], ScriptLimits.Instructions);
-            BinaryPrimitives.WriteUInt64LittleEndian(span[16..], ScriptLimits.CleanupInstructions);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[24..], ScriptLimits.Milliseconds);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[28..], ScriptLimits.CleanupMilliseconds);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[32..], ScriptLimits.Memory);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[36..], ScriptLimits.CleanupMemory);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[40..], (UInt32)namesOffset);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[44..], (UInt32)routinesOffset);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[48..], (UInt32)chunkOffset);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[52..], (UInt32)Target.Chunk.Length);
-            BinaryPrimitives.WriteUInt16LittleEndian(span[56..], (UInt16)Target.Name.Length);
-            BinaryPrimitives.WriteUInt16LittleEndian(span[58..], (UInt16)Target.Routines.Count);
-            BinaryPrimitives.WriteUInt32LittleEndian(span[60..], Target.Level);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[4..], Version);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[8..], (UInt32)length);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[12..], Target.Level);
+            BinaryPrimitives.WriteUInt64LittleEndian(span[16..], ScriptLimits.Instructions);
+            BinaryPrimitives.WriteUInt64LittleEndian(span[24..], ScriptLimits.CleanupInstructions);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[32..], ScriptLimits.Milliseconds);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[36..], ScriptLimits.CleanupMilliseconds);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[40..], ScriptLimits.Memory);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[44..], ScriptLimits.CleanupMemory);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[48..], (UInt32)namesOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[52..], (UInt32)routinesOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[56..], (UInt32)chunkOffset);
+            BinaryPrimitives.WriteUInt32LittleEndian(span[60..], (UInt32)Target.Chunk.Length);
+            BinaryPrimitives.WriteUInt16LittleEndian(span[64..], (UInt16)Target.Name.Length);
+            BinaryPrimitives.WriteUInt16LittleEndian(span[66..], (UInt16)Target.Routines.Count);
 
             int nameAt = namesOffset + Encoding.ASCII.GetBytes(Target.Name, span[namesOffset..]);
             int routineAt = routinesOffset;

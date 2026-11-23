@@ -102,7 +102,9 @@ typedef struct _KPH_DYN_CONFIG
 
 #include <poppack.h>
 
-#define KPH_DYN_SCRIPT_LEVEL_LOW                ((USHORT)0)
-#define KPH_DYN_SCRIPT_LEVEL_MEDIUM             ((USHORT)1)
-#define KPH_DYN_SCRIPT_LEVEL_HIGH               ((USHORT)2)
-#define KPH_DYN_SCRIPT_LEVEL_MAXIMUM            ((USHORT)3)
+#define KPH_SCRIPT_VERSION                      ((ULONG)1)
+
+#define KPH_SCRIPT_LEVEL_LOW                    ((USHORT)0)
+#define KPH_SCRIPT_LEVEL_MEDIUM                 ((USHORT)1)
+#define KPH_SCRIPT_LEVEL_HIGH                   ((USHORT)2)
+#define KPH_SCRIPT_LEVEL_MAXIMUM                ((USHORT)3)

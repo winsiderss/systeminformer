@@ -41,7 +41,9 @@ typedef struct _KPH_SCRIPT_ROUTINE
 typedef struct _KPH_SCRIPT_FILE
 {
     ULONG Magic;
+    ULONG Version;
     ULONG Length;
+    ULONG Level;
     KPH_SCRIPT_LIMITS Limits;
     ULONG NameOffset;
     ULONG RoutinesOffset;
@@ -49,7 +51,6 @@ typedef struct _KPH_SCRIPT_FILE
     ULONG ChunkLength;
     USHORT NameLength;
     USHORT RoutineCount;
-    ULONG Level;
     // KPH_SCRIPT_ROUTINE Routines[RoutineCount];
     // CHAR Names[];
     // BYTE Chunk[ChunkLength];
@@ -57,7 +58,7 @@ typedef struct _KPH_SCRIPT_FILE
 
 C_ASSERT(sizeof(KPH_SCRIPT_LIMITS) == 32);
 C_ASSERT(sizeof(KPH_SCRIPT_ROUTINE) == 8);
-C_ASSERT(sizeof(KPH_SCRIPT_FILE) == 64);
+C_ASSERT(sizeof(KPH_SCRIPT_FILE) == 72);
 
 // lua
 

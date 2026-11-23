@@ -2224,22 +2224,22 @@ NTSTATUS KphpScriptRequiredState(
 
     switch (Level)
     {
-        case KPH_DYN_SCRIPT_LEVEL_LOW:
+        case KPH_SCRIPT_LEVEL_LOW:
         {
             *RequiredState = KPH_PROCESS_STATE_LOW;
             break;
         }
-        case KPH_DYN_SCRIPT_LEVEL_MEDIUM:
+        case KPH_SCRIPT_LEVEL_MEDIUM:
         {
             *RequiredState = KPH_PROCESS_STATE_MEDIUM;
             break;
         }
-        case KPH_DYN_SCRIPT_LEVEL_HIGH:
+        case KPH_SCRIPT_LEVEL_HIGH:
         {
             *RequiredState = KPH_PROCESS_STATE_HIGH;
             break;
         }
-        case KPH_DYN_SCRIPT_LEVEL_MAXIMUM:
+        case KPH_SCRIPT_LEVEL_MAXIMUM:
         {
             *RequiredState = KPH_PROCESS_STATE_MAXIMUM;
             break;
@@ -2424,7 +2424,7 @@ LONG KphpScriptCompareRoutine(
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphpScriptValidateFile(
+NTSTATUS KphpScriptValidate(
     _In_reads_bytes_(Length) PKPH_SCRIPT_FILE File,
     _In_ ULONG Length
     )
@@ -2439,8 +2439,27 @@ NTSTATUS KphpScriptValidateFile(
     KPH_PAGED_CODE_PASSIVE();
 
     if ((Length < sizeof(KPH_SCRIPT_FILE)) ||
-        (File->Magic != KPH_SCRIPT_FILE_MAGIC) ||
-        (File->Length != Length))
+        (File->Magic != KPH_SCRIPT_FILE_MAGIC))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script file header is not valid");
+
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    if (File->Version != KPH_SCRIPT_VERSION)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Script file version %lu is not %lu",
+                      File->Version,
+                      KPH_SCRIPT_VERSION);
+
+        return STATUS_REVISION_MISMATCH;
+    }
+
+    if (File->Length != Length)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
@@ -2900,12 +2919,12 @@ NTSTATUS KphCreateScript(
         goto Exit;
     }
 
-    status = KphpScriptValidateFile(file, ScriptLength);
+    status = KphpScriptValidate(file, ScriptLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       SCRIPT,
-                      "KphpScriptValidateFile failed: %!STATUS!",
+                      "KphpScriptValidate failed: %!STATUS!",
                       status);
 
         goto Exit;
