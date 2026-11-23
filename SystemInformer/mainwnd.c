@@ -547,6 +547,8 @@ VOID PhMwpSetUpdateAutomatically(
 
     PhMwpUpdateAutomatically = UpdateAutomatically;
 
+    PhSetEnabledProvider(&PhHwProviderRegistration, UpdateAutomatically);
+
     PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
 
     if (PhPluginsEnabled)
@@ -1521,6 +1523,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_VIEW_REFRESH:
         {
+            PhHwProviderRefresh();
             PhBoostProvider(&PhMwpProcessProviderRegistration, NULL);
             PhBoostProvider(&PhMwpServiceProviderRegistration, NULL);
 

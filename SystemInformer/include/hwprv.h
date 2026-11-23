@@ -146,6 +146,10 @@ VOID PhHwProviderUpdateHistory(
     VOID
     );
 
+VOID PhHwProviderRefresh(
+    VOID
+    );
+
 #define PH_HW_NAMED_SENSOR_NAME_LENGTH 48
 #define PH_HW_PMIC_RAILS 3 // VDD (SWA), VDDQ (SWB), VPP (SWC)
 

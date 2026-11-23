@@ -104,6 +104,7 @@ static HANDLE PhpHwSourceUpdateThread = NULL; // the thread in the source loop, 
 // Report requests waiting for an update to make the report-only reads (D11).
 static PH_QUEUED_LOCK PhpHwReportLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpHwReportRequests = { &PhpHwReportRequests, &PhpHwReportRequests };
+static LONG PhpHwRefreshRequested = FALSE; // the next update runs every family regardless of its interval
 
 /**
  * Determines whether a status says the family's script is not shipped with this build.
@@ -372,6 +373,8 @@ static BOOLEAN PhpHwRequestReportReads(
     PhAcquireQueuedLockExclusive(&PhpHwReportLock);
     InsertTailList(&PhpHwReportRequests, &request.ListEntry);
     PhReleaseQueuedLockExclusive(&PhpHwReportLock);
+
+    PhBoostProvider(&PhHwProviderRegistration, NULL);
 
     PhWaitForEvent(&request.ServedEvent, PhTimeoutFromMilliseconds(&timeout, PhpHwReportWaitMilliseconds));
 
@@ -653,6 +656,7 @@ VOID PhHwProviderUpdate(
     PH_PROVIDER_UPDATED_EVENT updatedEvent;
     ULONG64 now;
     BOOLEAN open;
+    BOOLEAN refresh;
 
     UNREFERENCED_PARAMETER(Object);
 
@@ -664,6 +668,8 @@ VOID PhHwProviderUpdate(
     else if (!open && PhpHwGateOpen)
         PhpHwEndSession();
 
+    refresh = !!InterlockedExchange(&PhpHwRefreshRequested, FALSE);
+
     if (PhpHwGateOpen)
     {
         LIST_ENTRY serving;
@@ -672,7 +678,7 @@ VOID PhHwProviderUpdate(
         PhpHwReportReads = !IsListEmpty(&serving);
 
         for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
-            PhpHwRunFamily(&PhpHwFamilies[i], now, PhpHwReportReads);
+            PhpHwRunFamily(&PhpHwFamilies[i], now, PhpHwReportReads || refresh);
 
         PhpHwReportReads = FALSE;
 
@@ -696,6 +702,17 @@ VOID PhHwProviderUpdate(
         memset(&updatedEvent.Elapsed, 0, sizeof(PH_PROVIDER_ELAPSED));
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackHardwareProviderUpdatedEvent), &updatedEvent);
+}
+
+/**
+ * Runs an update now that reads every family regardless of its interval.
+ */
+VOID PhHwProviderRefresh(
+    VOID
+    )
+{
+    InterlockedExchange(&PhpHwRefreshRequested, TRUE);
+    PhBoostProvider(&PhHwProviderRegistration, NULL);
 }
 
 /**
