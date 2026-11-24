@@ -340,6 +340,7 @@ typedef enum _KPH_HW_BUS
     KphHwBusPci,
     KphHwBusIsa,
     KphHwBusSmbus,
+    KphHwBusIntelOcMailbox,
     KphHwBusMaximum
 } KPH_HW_BUS;
 
@@ -350,10 +351,11 @@ static CONST PH_STRINGREF KphpHwBusNames[KphHwBusMaximum] =
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_PCI"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_ISABUS.HTP.Method"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_SMBUS.HTP.Method"),
+    PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_Intel_OC_Mailbox"),
 };
-static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
-static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL };
-static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
+static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
+static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL };
+static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
 
 /**
  * Creates or opens a mutant hardware monitors share to serialize a bus.
@@ -1873,7 +1875,8 @@ NTSTATUS KphHwAsusWmiRead(
  *
  * \param Planes Receives per plane (core, GPU, cache, system agent, analog I/O) a status, the completion code
  * and the data of the read command.
- * \return Successful or errant status; STATUS_NOT_SUPPORTED on a processor the script does not list.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a processor the script does not list,
+ * STATUS_RETRY when another tool holds the mailbox.
  */
 NTSTATUS KphHwOcMailboxRead(
     _Out_writes_(MaxKphHwOcPlane) PKPH_HW_OC_PLANE Planes
@@ -1884,6 +1887,9 @@ NTSTATUS KphHwOcMailboxRead(
     KPH_HW_OC_PLANE planes[MaxKphHwOcPlane];
     ULONG returnLength = 0;
 
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIntelOcMailbox, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
     status = KphpHwScriptCall(
         &KphpHwOcMailboxScript,
         &routine,
@@ -1893,6 +1899,8 @@ NTSTATUS KphHwOcMailboxRead(
         sizeof(planes),
         &returnLength
         );
+
+    KphpHwReleaseBus(KphHwBusIntelOcMailbox);
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
