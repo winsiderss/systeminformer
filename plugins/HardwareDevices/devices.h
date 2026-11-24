@@ -1437,6 +1437,16 @@ VOID GpdFanUninitialize(
     VOID
     );
 
+// asuswmi.c
+
+VOID AsusWmiInitialize(
+    VOID
+    );
+
+VOID AsusWmiUninitialize(
+    VOID
+    );
+
 // dellsmm.c
 
 VOID DellSmmInitialize(

@@ -118,6 +118,7 @@
     <ClCompile Include="netgraph.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="battery.c" />
+    <ClCompile Include="asuswmi.c" />
     <ClCompile Include="dellsmm.c" />
     <ClCompile Include="gpdfan.c" />
     <ClCompile Include="gpusensor.c" />

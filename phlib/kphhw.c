@@ -54,6 +54,8 @@ static CONST PH_STRINGREF KphpHwLenovoWsFileName = PH_STRINGREF_INIT(L"scripts\\
 static KPH_HW_SCRIPT KphpHwLenovoWsScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwLenovoWsFileName };
 static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell.bin");
 static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
+static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\asuswmi.bin");
+static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -210,6 +212,7 @@ VOID KphHwSetScriptMode(
         &KphpHwGpdScript,
         &KphpHwLenovoWsScript,
         &KphpHwDellScript,
+        &KphpHwAsusWmiScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1759,6 +1762,102 @@ NTSTATUS KphHwDellRead(
         return STATUS_INFO_LENGTH_MISMATCH;
 
     memcpy(Values, values, sizeof(values));
+
+    return status;
+}
+
+/**
+ * Identifies the hardware monitor sensors of an ASUS board through its
+ * firmware's WMI method.
+ *
+ * \param Identity Receives the interface version, the sensor count and each
+ * sensor's name and enums.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a board the
+ * script does not list or an interface version below 2.
+ */
+NTSTATUS KphHwAsusWmiIdentify(
+    _Out_ PKPH_HW_ASUSWMI_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_ASUSWMI_IDENTITY identity;
+    ULONG returnLength = 0;
+
+    memset(&identity, 0, sizeof(KPH_HW_ASUSWMI_IDENTITY));
+
+    status = KphpHwScriptCall(
+        &KphpHwAsusWmiScript,
+        &routine,
+        NULL,
+        0,
+        &identity,
+        sizeof(KPH_HW_ASUSWMI_IDENTITY),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength < RTL_SIZEOF_THROUGH_FIELD(KPH_HW_ASUSWMI_IDENTITY, Count) ||
+        identity.Count > KPH_HW_ASUSWMI_SENSORS ||
+        returnLength != UFIELD_OFFSET(KPH_HW_ASUSWMI_IDENTITY, Sensors[identity.Count]))
+    {
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    *Identity = identity;
+
+    return status;
+}
+
+/**
+ * Reads the hardware monitor sensors of an ASUS board through its firmware's
+ * WMI method.
+ *
+ * \param Sources Each sensor's source (1 Super I/O, 2 embedded controller),
+ * sensor 0 first.
+ * \param Count The number of sensors.
+ * \param Values Receives a status and the raw value per sensor.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwAsusWmiRead(
+    _In_reads_(Count) const UCHAR* Sources,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_VALUE32 values[KPH_HW_ASUSWMI_SENSORS];
+    ULONG returnLength = 0;
+
+    if (Count == 0 || Count > KPH_HW_ASUSWMI_SENSORS)
+        return STATUS_INVALID_PARAMETER;
+
+    status = KphpHwScriptCall(
+        &KphpHwAsusWmiScript,
+        &routine,
+        (PVOID)Sources,
+        Count,
+        values,
+        Count * sizeof(KPH_HW_VALUE32),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != Count * sizeof(KPH_HW_VALUE32))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
 
     return status;
 }

@@ -80,6 +80,7 @@ VOID NTAPI LoadCallback(
     GpdFanInitialize();
     LenovoWsInitialize();
     DellSmmInitialize();
+    AsusWmiInitialize();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -88,6 +89,7 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
+    AsusWmiUninitialize();
     DellSmmUninitialize();
     LenovoWsUninitialize();
     GpdFanUninitialize();

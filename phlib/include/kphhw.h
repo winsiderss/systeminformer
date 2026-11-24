@@ -476,6 +476,48 @@ KphHwGpdReadFan(
     _Out_ PULONG Rpm
     );
 
+#define KPH_HW_ASUSWMI_SENSORS 64
+#define KPH_HW_ASUSWMI_VOLTAGE 0
+#define KPH_HW_ASUSWMI_TEMPERATURE 1
+#define KPH_HW_ASUSWMI_FAN 2
+#define KPH_HW_ASUSWMI_CURRENT 3
+#define KPH_HW_ASUSWMI_WATER_FLOW 4
+#define KPH_HW_ASUSWMI_UNSIGNED 1
+
+typedef struct _KPH_HW_ASUSWMI_SENSOR
+{
+    CHAR Name[32];
+    UCHAR DataType; // KPH_HW_ASUSWMI_*
+    UCHAR Location;
+    UCHAR Source;
+    UCHAR Type;
+} KPH_HW_ASUSWMI_SENSOR, *PKPH_HW_ASUSWMI_SENSOR;
+
+typedef struct _KPH_HW_ASUSWMI_IDENTITY
+{
+    ULONG Version;
+    ULONG Count;
+    KPH_HW_ASUSWMI_SENSOR Sensors[KPH_HW_ASUSWMI_SENSORS];
+} KPH_HW_ASUSWMI_IDENTITY, *PKPH_HW_ASUSWMI_IDENTITY;
+
+C_ASSERT(sizeof(KPH_HW_ASUSWMI_SENSOR) == 36);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwAsusWmiIdentify(
+    _Out_ PKPH_HW_ASUSWMI_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwAsusWmiRead(
+    _In_reads_(Count) const UCHAR* Sources,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
 #define KPH_HW_DELL_FANS 4
 #define KPH_HW_DELL_TEMPS 10
 
