@@ -1115,12 +1115,13 @@ NTSTATUS KphHwHsmpReadMetrics(
 /**
  * Acquires the buses an SMBus host is reached through.
  *
- * \details The host of a processor that is not Intel's is reached through an
- * index and data port pair on the ISA bus, so that bus is held as well.
+ * \details The host of a processor that is not Intel's is reached through the
+ * chipset's power management index and data port pair, which other tools
+ * serialize on the PCI bus, so the ISA and PCI buses are held as well.
  *
  * \param Dimm Whether the memory modules' devices are reached; the DIMM bus is
  * then held inside the others.
- * \param Isa Receives whether the ISA bus is held.
+ * \param Isa Receives whether the ISA and PCI buses are held.
  * \return Successful or errant status; STATUS_RETRY when another tool holds a
  * bus.
  */
@@ -1156,13 +1157,23 @@ static NTSTATUS KphpHwAcquireSmbus(
             return status;
         }
 
+        if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
+        {
+            KphpHwReleaseBus(KphHwBusIsa);
+            KphpHwReleaseBus(KphHwBusSmbus);
+            return status;
+        }
+
         *Isa = TRUE;
     }
 
     if (Dimm && !NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusDimm, KPH_HW_BUS_TIMEOUT)))
     {
         if (*Isa)
+        {
+            KphpHwReleaseBus(KphHwBusPci);
             KphpHwReleaseBus(KphHwBusIsa);
+        }
 
         KphpHwReleaseBus(KphHwBusSmbus);
         *Isa = FALSE;
@@ -1176,7 +1187,7 @@ static NTSTATUS KphpHwAcquireSmbus(
  * Releases the buses acquired with KphpHwAcquireSmbus.
  *
  * \param Dimm Whether the DIMM bus is held.
- * \param Isa Whether the ISA bus is held.
+ * \param Isa Whether the ISA and PCI buses are held.
  */
 static VOID KphpHwReleaseSmbus(
     _In_ BOOLEAN Dimm,
@@ -1187,7 +1198,10 @@ static VOID KphpHwReleaseSmbus(
         KphpHwReleaseBus(KphHwBusDimm);
 
     if (Isa)
+    {
+        KphpHwReleaseBus(KphHwBusPci);
         KphpHwReleaseBus(KphHwBusIsa);
+    }
 
     KphpHwReleaseBus(KphHwBusSmbus);
 }
