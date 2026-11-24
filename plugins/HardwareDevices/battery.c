@@ -18,7 +18,7 @@
 
 //
 // Batteries as a hardware sensor source: each battery's charge level, charge or discharge rate, voltage,
-// temperature (when it reports one) and wear level (full charged over design capacity), read every BT_INTERVAL_MS
+// temperature (when it reports one) and health (full charged over design capacity), read every BT_INTERVAL_MS
 // from the battery class driver.
 //
 
@@ -28,7 +28,7 @@
 typedef enum _BT_SENSOR
 {
     BtSensorCharge, // percent of the full charged capacity
-    BtSensorWear, // percent: full charged over design capacity
+    BtSensorHealth, // percent: full charged over design capacity
     BtSensorRate, // watts, positive charging
     BtSensorVoltage, // volts
     BtSensorTemperature, // degrees Celsius
@@ -65,7 +65,7 @@ static PPH_HW_SENSOR_SOURCE_REGISTRATION BatteryRegistration = NULL;
 static CONST struct { ULONG Type; PCWSTR Name; } BatterySensors[BtSensorMaximum] =
 {
     { PhHwSensorTypeControl, L"Charge level" },
-    { PhHwSensorTypeControl, L"Wear level" },
+    { PhHwSensorTypeControl, L"Health" },
     { PhHwSensorTypePower, L"Charge rate" },
     { PhHwSensorTypeVoltage, L"Voltage" },
     { PhHwSensorTypeTemperature, L"Temperature" },
@@ -221,8 +221,8 @@ static VOID BatteryPoll(
 
     if (Battery->DesignedCapacity && Battery->DesignedCapacity != BATTERY_UNKNOWN_CAPACITY)
     {
-        Battery->Valid[BtSensorWear] = TRUE;
-        Battery->Value[BtSensorWear] = (FLOAT)Battery->FullChargedCapacity * 100.0f / (FLOAT)Battery->DesignedCapacity;
+        Battery->Valid[BtSensorHealth] = TRUE;
+        Battery->Value[BtSensorHealth] = (FLOAT)Battery->FullChargedCapacity * 100.0f / (FLOAT)Battery->DesignedCapacity;
     }
 
     if ((ULONG)status.Rate != BATTERY_UNKNOWN_RATE)
