@@ -55,7 +55,8 @@ typedef enum _PH_HW_ACPI_KIND
     PhHwAcpiAtk,
     PhHwAcpiAtkReading,
     PhHwAcpiDytc,
-    PhHwAcpiHotkeyTemperature
+    PhHwAcpiHotkeyTemperature,
+    PhHwAcpiSystem76
 } PH_HW_ACPI_KIND;
 
 typedef struct _PH_HW_FAN_STATE

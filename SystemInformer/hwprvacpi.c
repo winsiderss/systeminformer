@@ -33,6 +33,7 @@
 #define PHP_HW_ACPI_ATK_FIELDS 5 // id, name, limit1, limit2, enable
 #define PHP_HW_ACPI_THINKPAD_SENSORS 8 // TMP0-TMP7
 #define PHP_HW_ACPI_DYTC_FC_MMC 27 // DYTC function capabilities: MMC
+#define PHP_HW_ACPI_SYSTEM76_CHANNELS 8 // NFAN and NTMP names, each
 
 typedef struct _PHP_HW_ACPI_STATE
 {
@@ -705,6 +706,116 @@ static NTSTATUS PhpHwAcpiThinkPadStatic(
 }
 
 /**
+ * Reads a System76 open EC's NFAN and NTMP: each a package of names, one a fan (GFAN) or temperature (GTMP) channel
+ * read after by its index; an element that is not a string is no channel. Without NFAN the EC is not open firmware.
+ */
+static NTSTATUS PhpHwAcpiSystem76Static(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    static CONST struct { PCSTR Reader; UCHAR Op; PH_HW_NAMED_SENSOR_KIND Kind; } lists[] =
+    {
+        { "GFAN", 0, PhHwNamedSensorFanSpeed },
+        { "GTMP", PHP_HW_ACPI_SYSTEM76_CHANNELS, PhHwNamedSensorAcpiTemperature },
+    };
+    NTSTATUS firstStatus = STATUS_SUCCESS;
+
+    for (ULONG l = 0; l < RTL_NUMBER_OF(lists); l++)
+    {
+        NTSTATUS status;
+        const UCHAR* data;
+        ULONG dataLength;
+        ULONG offset;
+        ULONG end;
+        ULONG elements;
+
+        if (!PhpHwAcpiRecord(Output, Length, l, &status, &data, &dataLength))
+            return STATUS_INFO_LENGTH_MISMATCH;
+
+        if (!NT_SUCCESS(status))
+        {
+            if (NT_SUCCESS(firstStatus))
+                firstStatus = status;
+
+            continue;
+        }
+
+        if (!PhHwAcpiGetElements(data, dataLength, &offset, &end, &elements))
+            continue;
+
+        for (ULONG e = 0; e < elements && e < PHP_HW_ACPI_SYSTEM76_CHANNELS; e++)
+        {
+            USHORT type;
+            USHORT length;
+            ULONG size;
+            PPH_STRING name;
+            PPHP_HW_ACPI_VALUE value;
+
+            if (!PhHwAcpiReadArgument(data, end, offset, &type, &length, &size))
+                break;
+
+            if (type == PH_HW_ACPI_ARGUMENT_STRING && length > 1)
+            {
+                name = PhZeroExtendToUtf16Ex((PCSTR)(data + offset + PH_HW_ACPI_ARGUMENT_HEADER), length);
+                PhTrimToNullTerminatorString(name);
+
+                if (name->Length)
+                {
+                    value = PhpHwAcpiAddValue(Device, lists[l].Reader, (UCHAR)(lists[l].Op + e), lists[l].Kind, name->Buffer);
+                    value->HasArgument = TRUE;
+                    value->Argument = e;
+                }
+
+                PhDereferenceObject(name);
+            }
+
+            offset += size;
+        }
+    }
+
+    if (Device->ValueCount)
+        return STATUS_SUCCESS;
+    if (NT_SUCCESS(firstStatus) || firstStatus == STATUS_OBJECT_NAME_NOT_FOUND)
+        return STATUS_NOT_SUPPORTED;
+
+    return firstStatus;
+}
+
+/**
+ * Decodes a System76 GFAN or GTMP reading: a fan's RPM in bits 23:8 (its duty in 7:0), a temperature in degrees C.
+ */
+_Success_(return == PhHwFanDecodeOk)
+static PH_HW_FAN_DECODE PhpHwDecodeSystem76(
+    _In_ PH_HW_NAMED_SENSOR_KIND Kind,
+    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_ ULONG Length,
+    _Out_ PFLOAT Reading
+    )
+{
+    ULONG64 value;
+    LONG celsius;
+
+    if (!PhHwAcpiReadInteger(Buffer, Length, &value))
+        return PhHwFanDecodeMalformed;
+
+    if (Kind == PhHwNamedSensorFanSpeed)
+    {
+        *Reading = (FLOAT)((value >> 8) & 0xFFFF);
+        return PhHwFanDecodeOk;
+    }
+
+    celsius = (LONG)(ULONG)value;
+
+    if (celsius <= 0 || celsius > 127)
+        return PhHwFanDecodeUnknown;
+
+    *Reading = (FLOAT)celsius;
+    return PhHwFanDecodeOk;
+}
+
+/**
  * Decodes a ThinkPad EC TMPn reading: signed degrees C; outside -127 to 127 the sensor is absent.
  */
 _Success_(return == PhHwFanDecodeOk)
@@ -746,6 +857,7 @@ static VOID PhpHwAcpiReadStatic(
     static CONST PCSTR dytc[] = { "DYTC", "DYTC", "DYTC", "DYTC" };
     static CONST ULONG dytcCommands[PH_HW_DYTC_COMMANDS] = { 0x0, 0x2, 0x3, 0x8 }; // query, get, capabilities, MMC get
     static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7" };
+    static CONST PCSTR system76[] = { "NFAN", "NTMP" };
     const PCSTR* methods;
     ULONG count;
     PH_BYTES_BUILDER evals;
@@ -778,6 +890,10 @@ static VOID PhpHwAcpiReadStatic(
     case PhHwAcpiHotkeyTemperature:
         methods = thinkPad;
         count = RTL_NUMBER_OF(thinkPad);
+        break;
+    case PhHwAcpiSystem76:
+        methods = system76;
+        count = RTL_NUMBER_OF(system76);
         break;
     default:
         methods = power;
@@ -814,6 +930,9 @@ static VOID PhpHwAcpiReadStatic(
             break;
         case PhHwAcpiHotkeyTemperature:
             status = PhpHwAcpiThinkPadStatic(Device, output, returnLength);
+            break;
+        case PhHwAcpiSystem76:
+            status = PhpHwAcpiSystem76Static(Device, output, returnLength);
             break;
         default:
             status = PhpHwAcpiPowerStatic(Device, output, returnLength);
@@ -1027,6 +1146,9 @@ NTSTATUS PhpHwAcpiProbe(
         case KPH_HW_ACPI_ROW_PNP0C09:
             kind = PhHwAcpiHotkeyTemperature;
             break;
+        case KPH_HW_ACPI_ROW_17761776:
+            kind = PhHwAcpiSystem76;
+            break;
         default:
             continue;
         }
@@ -1161,6 +1283,9 @@ static NTSTATUS PhpHwAcpiReadDevice(
                 break;
             case PhHwAcpiHotkeyTemperature:
                 decode = PhpHwDecodeThinkPadTemperature(data, dataLength, &reading);
+                break;
+            case PhHwAcpiSystem76:
+                decode = PhpHwDecodeSystem76(value->Kind, data, dataLength, &reading);
                 break;
             default:
                 decode = PhHwDecodePowerMeterReading(data, dataLength, &reading);
@@ -1349,7 +1474,7 @@ VOID PhpHwAcpiDiagnostics(
     static CONST PCWSTR kindNames[] =
     {
         L"fan", L"DPTF participant", L"power meter", L"DPTF power participant", L"ATK0110", L"ATK0110 sensor", L"DYTC",
-        L"ThinkPad EC temperature"
+        L"ThinkPad EC temperature", L"System76 EC"
     };
     static CONST PCWSTR dytcNames[PH_HW_DYTC_COMMANDS] = { L"query", L"get", L"capabilities", L"MMC" };
     static CONST PCWSTR tripNames[PH_HW_DPTF_TRIPS] = { L"_PSV", L"_CRT", L"_AC0", L"GTSH" };

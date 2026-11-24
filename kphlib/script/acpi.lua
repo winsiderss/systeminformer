@@ -224,6 +224,27 @@ local ROWS = {
       }
     end,
   },
+  {
+    ids = { '17761776' },
+    evals = function()
+      return {
+        { name = 'NFAN', results = 0x8, max = 0x200 },
+        { name = 'NTMP', results = 0x8, max = 0x200 },
+        {
+          name = 'GFAN',
+          results = 0x1,
+          max = 0x20,
+          args = { { 0x7, 0x7, 0x0 } },
+        },
+        {
+          name = 'GTMP',
+          results = 0x1,
+          max = 0x20,
+          args = { { 0x7, 0x7, 0x0 } },
+        },
+      }
+    end,
+  },
 }
 
 local MILLISECONDS_MAX = 0xfffffffe
