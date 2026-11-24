@@ -82,6 +82,9 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="prom21" file="script/prom21.lua" arch="amd64" desc="AMD Promontory 21 chipset die temperature through its USB controller">
+        <routine name="read" level="maximum"/>
+    </script>
     <script name="hpwmi" file="script/hpwmi.lua" arch="amd64" desc="HP numeric sensors through the firmware data block">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
