@@ -723,6 +723,7 @@ static COLORREF PhpHwSensorGraphColor(
     case PhHwUnitClock:
         return PhCsColorClock;
     case PhHwUnitMultiplier:
+    case PhHwUnitRatio:
         return PhCsColorMultiplier;
     case PhHwUnitVoltage:
         return PhCsColorVoltage;
@@ -749,6 +750,7 @@ static FLOAT PhpHwSensorGraphMinimumScale(
     case PhHwUnitClock:
         return 100.0f;
     case PhHwUnitMultiplier:
+    case PhHwUnitRatio:
     case PhHwUnitVoltage:
     case PhHwUnitCurrent:
         return 1.0f;

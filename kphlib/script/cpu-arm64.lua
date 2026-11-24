@@ -36,6 +36,8 @@ local ROWS = {
         [0x5e95] = true,
         [0x5ea0] = true,
         [0x5ea1] = true,
+        [0x5ea2] = true,
+        [0x5ea3] = true,
       }
     end,
   },
@@ -58,6 +60,8 @@ local ROWS = {
         [0x5e95] = true,
         [0x5ea0] = true,
         [0x5ea1] = true,
+        [0x5ea2] = true,
+        [0x5ea3] = true,
       }
     end,
   },
@@ -80,6 +84,8 @@ local ROWS = {
         [0x5e95] = true,
         [0x5ea0] = true,
         [0x5ea1] = true,
+        [0x5ea2] = true,
+        [0x5ea3] = true,
       }
     end,
   },
@@ -102,6 +108,8 @@ local ROWS = {
         [0x5e95] = true,
         [0x5ea0] = true,
         [0x5ea1] = true,
+        [0x5ea2] = true,
+        [0x5ea3] = true,
       }
     end,
   },
@@ -200,6 +208,8 @@ local ROWS = {
         [0x5e95] = true,
         [0x5ea0] = true,
         [0x5ea1] = true,
+        [0x5ea2] = true,
+        [0x5ea3] = true,
       }
     end,
   },
@@ -231,6 +241,8 @@ local AMU = {
   [0x5e96] = true,
   [0x5ea0] = true,
   [0x5ea1] = true,
+  [0x5ea2] = true,
+  [0x5ea3] = true,
   [0x5ea2] = true,
   [0x5ea3] = true,
   [0x5ee0] = true,

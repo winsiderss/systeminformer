@@ -256,6 +256,7 @@ typedef enum _PH_HW_SENSOR_GROUP
     PhHwGroupFans,
     PhHwGroupControls,
     PhHwGroupThrottling,
+    PhHwGroupActivity,
     PhHwGroupMaximum
 } PH_HW_SENSOR_GROUP;
 
@@ -273,6 +274,7 @@ typedef enum _PH_HW_SENSOR_UNIT
     PhHwUnitCurrent, // amperes
     PhHwUnitFan, // RPM
     PhHwUnitPercent,
+    PhHwUnitRatio,
     PhHwUnitMaximum
 } PH_HW_SENSOR_UNIT;
 

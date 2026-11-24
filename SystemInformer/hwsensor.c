@@ -35,6 +35,7 @@ static CONST PHP_HW_GROUP_INFO PhpHwGroupInfo[PhHwGroupMaximum] =
     { L"Fans", FALSE },
     { L"Controls", FALSE },
     { L"Throttling", FALSE },
+    { L"Activity", TRUE },
 };
 
 // Ordered as displayed within a group.
@@ -95,6 +96,9 @@ typedef enum _PHP_HW_SENSOR_KIND
     PhpHwSensorThrottle,
     PhpHwSensorZonePassiveLimit, // named
     PhpHwSensorOsPerformanceLimit, // named
+    PhpHwSensorCoreIpc, // named
+    PhpHwSensorCoreMemoryStall, // named
+    PhpHwSensorCStateResidency, // named
     PhpHwSensorMaximum // a source sensor
 } PHP_HW_SENSOR_KIND;
 
@@ -167,6 +171,9 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhHwComponentCpu, PhHwGroupThrottling, PH_HW_CAP_THROTTLE, PhHwUnitThrottle, L"Package", FALSE, FALSE },
     { PhHwComponentWindows, PhHwGroupThrottling, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
     { PhHwComponentWindows, PhHwGroupThrottling, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
+    { PhHwComponentCpu, PhHwGroupActivity, 0, PhHwUnitRatio, NULL, FALSE, TRUE },
+    { PhHwComponentCpu, PhHwGroupActivity, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
+    { PhHwComponentCpu, PhHwGroupResidency, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
 };
 
 // Group and unit of each PH_HW_SENSOR_TYPE.
@@ -222,6 +229,9 @@ static CONST PHP_HW_SENSOR_KIND PhpHwNamedSensorKinds[] =
     PhpHwSensorMeterPower,
     PhpHwSensorOsClock,
     PhpHwSensorOsPerformanceLimit,
+    PhpHwSensorCoreIpc,
+    PhpHwSensorCoreMemoryStall,
+    PhpHwSensorCStateResidency,
 };
 C_ASSERT(RTL_NUMBER_OF(PhpHwNamedSensorKinds) == PhHwNamedSensorMaximum);
 
@@ -760,6 +770,10 @@ PPH_STRING PhHwFormatSensorValue(
     case PhHwUnitPercent:
         PhInitFormatF(&format[0], Value, 1);
         PhInitFormatS(&format[1], L"%");
+        break;
+    case PhHwUnitRatio:
+        PhInitFormatF(&format[0], Value, 2);
+        PhInitFormatS(&format[1], L"");
         break;
     default:
         return NULL;

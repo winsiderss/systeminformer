@@ -49,6 +49,9 @@ typedef enum _PH_HW_NAMED_SENSOR_KIND
     PhHwNamedSensorMeterPower, // Windows counters, watts, Windows component: energy meters
     PhHwNamedSensorOsClock, // Windows counters, MHz, Windows component; Id is the flat processor index
     PhHwNamedSensorOsPerformanceLimit, // Windows counters, percent, Windows component
+    PhHwNamedSensorCoreIpc, // instructions per cycle, CPU component; Id is the flat processor index
+    PhHwNamedSensorCoreMemoryStall, // percent of cycles stalled on memory, CPU component; Id is the flat processor index
+    PhHwNamedSensorCStateResidency, // percent of time, CPU component; Id is the state, plus 0x100 + 16 * core for a core's
     PhHwNamedSensorMaximum
 } PH_HW_NAMED_SENSOR_KIND;
 
