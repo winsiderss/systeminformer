@@ -99,6 +99,7 @@ typedef enum _PHP_HW_SENSOR_KIND
     PhpHwSensorCoreIpc, // named
     PhpHwSensorCoreMemoryStall, // named
     PhpHwSensorCStateResidency, // named
+    PhpHwSensorRaplPower, // named
     PhpHwSensorMaximum // a source sensor
 } PHP_HW_SENSOR_KIND;
 
@@ -174,6 +175,7 @@ static CONST PHP_HW_SENSOR_INFO PhpHwSensorInfo[PhpHwSensorMaximum] =
     { PhHwComponentCpu, PhHwGroupActivity, 0, PhHwUnitRatio, NULL, FALSE, TRUE },
     { PhHwComponentCpu, PhHwGroupActivity, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
     { PhHwComponentCpu, PhHwGroupResidency, 0, PhHwUnitPercent, NULL, FALSE, TRUE },
+    { PhHwComponentCpu, PhHwGroupPowers, 0, PhHwUnitPower, NULL, FALSE, TRUE },
 };
 
 // Group and unit of each PH_HW_SENSOR_TYPE.
@@ -232,6 +234,7 @@ static CONST PHP_HW_SENSOR_KIND PhpHwNamedSensorKinds[] =
     PhpHwSensorCoreIpc,
     PhpHwSensorCoreMemoryStall,
     PhpHwSensorCStateResidency,
+    PhpHwSensorRaplPower,
 };
 C_ASSERT(RTL_NUMBER_OF(PhpHwNamedSensorKinds) == PhHwNamedSensorMaximum);
 

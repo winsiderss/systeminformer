@@ -82,6 +82,7 @@ typedef enum _PHP_HW_REG
     PhpHwRegPackageC8Residency,
     PhpHwRegPackageC9Residency,
     PhpHwRegPackageC10Residency,
+    PhpHwRegPp1Energy, // Intel MSR_PP1_ENERGY_STATUS, the integrated graphics
     PhpHwRegRaplUnit, // probe only from here
     PhpHwRegPStateDef0,
     PhpHwRegTemperatureTarget, // Intel MSR_TEMPERATURE_TARGET, the Centaur and Zhaoxin critical temperature
@@ -95,6 +96,13 @@ typedef enum _PHP_HW_REG
     PhpHwRegHwpRequest, // Intel IA32_HWP_REQUEST
     PhpHwRegEnergyPerfBias, // Intel IA32_ENERGY_PERF_BIAS
     PhpHwRegSmiCount, // Intel MSR_SMI_COUNT, the report only
+    PhpHwRegTurboRatioLimit, // Intel MSR_TURBO_RATIO_LIMIT
+    PhpHwRegTurboRatioCores, // Intel MSR_TURBO_RATIO_LIMIT1, the core counts of the groups where defined
+    PhpHwRegConfigTdpNominal, // Intel MSR_CONFIG_TDP_NOMINAL
+    PhpHwRegConfigTdpLevel1, // Intel MSR_CONFIG_TDP_LEVEL_1
+    PhpHwRegConfigTdpLevel2, // Intel MSR_CONFIG_TDP_LEVEL_2
+    PhpHwRegConfigTdpControl, // Intel MSR_CONFIG_TDP_CONTROL
+    PhpHwRegTurboActivationRatio, // Intel MSR_TURBO_ACTIVATION_RATIO
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 64);
@@ -179,7 +187,9 @@ static PBOOLEAN PhpHwCpuDramEnergySeen = NULL; // per package: the counter moved
 static PBOOLEAN PhpHwCpuPlatformEnergySeen = NULL;
 static PULONG PhpHwCpuUncoreIndex = NULL; // per package, the uncore clock's named sensor; ULONG_MAX when not listed
 static PULONG PhpHwCpuLimitIndex = NULL; // per package, PHP_HW_CPU_LIMIT_SENSORS named sensors; ULONG_MAX when not listed
-static ULONG64 PhpHwCpuPolicy[5] = { 0 }; // Intel, processor 0 at the probe: PM_ENABLE, HWP_CAPABILITIES, HWP_REQUEST, ENERGY_PERF_BIAS, SMI_COUNT
+static ULONG64 PhpHwCpuPolicy[12] = { 0 }; // Intel, processor 0 at the probe: PhpHwRegPmEnable to PhpHwRegTurboActivationRatio
+static ULONG PhpHwCpuTccOffset = ULONG_MAX; // Intel MSR_TEMPERATURE_TARGET 29:24; ULONG_MAX when unread
+static PULONG PhpHwCpuPp1Index = NULL; // per package, the integrated graphics power's named sensor; ULONG_MAX when not listed
 static ULONG PhpHwCpuPolicyValid = 0; // 1 << the index into PhpHwCpuPolicy
 static PULONG PhpHwCpuResidencyIndex = NULL; // the C-state named sensors, per core then per package; ULONG_MAX when not listed
 static PBOOLEAN PhpHwCpuFirstOfUnit = NULL; // per processor; NULL without compute units
@@ -319,6 +329,14 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegHwpRequest, 0x774, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegEnergyPerfBias, 0x1B0, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegSmiCount, 0x34, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegTurboRatioLimit, 0x1AD, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegTurboRatioCores, 0x1AE, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegConfigTdpNominal, 0x648, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegConfigTdpLevel1, 0x649, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegConfigTdpLevel2, 0x64A, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegConfigTdpControl, 0x64B, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegTurboActivationRatio, 0x64C, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegPp1Energy, 0x641, PhpHwScopePackage);
 
         // A model without a state faults its counter, which leaves the plan at the probe.
         for (ULONG r = 0; r < RTL_NUMBER_OF(PhpHwCpuResidencyRegs); r++)
@@ -747,6 +765,9 @@ static VOID PhpHwCpuProbeRead(
         {
             if (sample->Valid & (1ULL << PhpHwRegTemperatureTarget))
                 tjMax = PhIntelTemperatureTargetTjMax(sample->Value[PhpHwRegTemperatureTarget]);
+
+                if (i == 0)
+                    PhpHwCpuTccOffset = (ULONG)((sample->Value[PhpHwRegTemperatureTarget] >> 24) & 0x3F);
             if (!tjMax && (PhpHwCpuRegisterActive(PhpHwRegThermStatus) || PhpHwCpuRegisterActive(PhpHwRegPackageThermStatus)))
                 tjMax = PhIntelFixedTjMax(&PhpHwCpuIdentity);
             if (sample->Valid & (1ULL << PhpHwRegPlatformInfo))
@@ -1013,6 +1034,8 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuPlatformEnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
     PhpHwCpuUncoreIndex = PhAllocate(sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuLimitIndex = PhAllocate(sizeof(ULONG) * PHP_HW_CPU_LIMIT_SENSORS * max(PhpHwPackageCount, 1));
+    PhpHwCpuPp1Index = PhAllocate(sizeof(ULONG) * max(PhpHwPackageCount, 1));
+    memset(PhpHwCpuPp1Index, 0xFF, sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuResidencyIndex = PhAllocate(sizeof(ULONG) * (PhpHwCpuCoreCount * PHP_HW_CPU_CORE_STATES + PhpHwPackageCount * PHP_HW_CPU_PACKAGE_STATES + 1));
     memset(PhpHwCpuResidencyIndex, 0xFF, sizeof(ULONG) * (PhpHwCpuCoreCount * PHP_HW_CPU_CORE_STATES + PhpHwPackageCount * PHP_HW_CPU_PACKAGE_STATES + 1));
     memset(PhpHwCpuUncoreIndex, 0xFF, sizeof(ULONG) * max(PhpHwPackageCount, 1));
@@ -1550,6 +1573,24 @@ static VOID PhpHwCpuPublish(
 
     PhpHwCpuPublishResidencies(seconds);
 
+    // The integrated graphics' energy, listed once it has moved (a part with its graphics off never counts).
+    for (ULONG p = 0; p < PhpHwPackageCount; p++)
+    {
+        ULONG first = PhpHwCpuPackageFirst[p];
+        FLOAT graphicsWatts;
+        BOOLEAN graphicsValid;
+
+        if (first == ULONG_MAX || !PhpHwCpuRegisterActive(PhpHwRegPp1Energy))
+            continue;
+
+        graphicsValid = PhpHwCpuSampleWatts(&PhpHwCpuSamples[first], PhpHwRegPp1Energy, PhpHwCpuEnergyUnit, seconds, &graphicsWatts);
+
+        if (graphicsValid && graphicsWatts > 0.0f && PhpHwCpuPp1Index[p] == ULONG_MAX)
+            PhpHwCpuPp1Index[p] = PhpHwAddNamedSensor(PhHwNamedSensorRaplPower, p, 1, L"Graphics (PP1)");
+
+        PhpHwSetNamedSensor(PhpHwCpuPp1Index[p], graphicsValid, graphicsValid ? graphicsWatts : 0.0f);
+    }
+
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
     {
         PPH_HW_CPU_SENSOR sensor = &PhpHwCpuSensors[i];
@@ -1948,8 +1989,10 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuUncoreIndex);
     PhpHwCpuFree(&PhpHwCpuLimitIndex);
     PhpHwCpuFree(&PhpHwCpuResidencyIndex);
+    PhpHwCpuFree(&PhpHwCpuPp1Index);
     memset(PhpHwCpuPolicy, 0, sizeof(PhpHwCpuPolicy));
     PhpHwCpuPolicyValid = 0;
+    PhpHwCpuTccOffset = ULONG_MAX;
     PhpHwCpuFree(&PhpHwCpuFirstOfUnit);
     PhpHwCpuFree(&PhpHwCpuPackageIdentity);
     PhpHwCpuFree(&PhpHwCpuArmMidr);
@@ -2179,6 +2222,44 @@ VOID PhpHwCpuDiagnostics(
         PhAppendFormatStringBuilder(Builder, L"  Energy/performance bias: %lu\n", (ULONG)(PhpHwCpuPolicy[3] & 0xF));
     if (PhpHwCpuPolicyValid & 0x10)
         PhAppendFormatStringBuilder(Builder, L"  SMI count: %lu (processor 0, at the probe)\n", (ULONG)PhpHwCpuPolicy[4]);
+    if (PhpHwCpuTccOffset != ULONG_MAX)
+        PhAppendFormatStringBuilder(Builder, L"  TCC offset: %lu\n", PhpHwCpuTccOffset);
+
+    // Ratio limits by active core count: bytes of TURBO_RATIO_LIMIT, the counts from TURBO_RATIO_LIMIT1 where it reads.
+    if (PhpHwCpuPolicyValid & 0x20)
+    {
+        PhAppendStringBuilder2(Builder, L"  Turbo ratio limits:");
+
+        for (ULONG b = 0; b < 8; b++)
+        {
+            ULONG ratio = (ULONG)((PhpHwCpuPolicy[5] >> (b * 8)) & 0xFF);
+            ULONG cores = (PhpHwCpuPolicyValid & 0x40) ? (ULONG)((PhpHwCpuPolicy[6] >> (b * 8)) & 0xFF) : b + 1;
+
+            if (ratio)
+                PhAppendFormatStringBuilder(Builder, L" %luC %lu", cores, ratio);
+        }
+
+        PhAppendCharStringBuilder(Builder, L'\n');
+    }
+
+    // Configurable TDP: the nominal ratio, each level's TDP (power units) and ratio, the level selected.
+    if ((PhpHwCpuPolicyValid & 0x780) && PhpHwCpuPowerUnit > 0.0f)
+    {
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"  Configurable TDP: nominal ratio %lu; level 1 %.1f W ratio %lu; level 2 %.1f W ratio %lu; level %lu selected%s\n",
+            (ULONG)(PhpHwCpuPolicy[7] & 0xFF),
+            (FLOAT)(PhpHwCpuPolicy[8] & 0x7FFF) * PhpHwCpuPowerUnit,
+            (ULONG)((PhpHwCpuPolicy[8] >> 16) & 0xFF),
+            (FLOAT)(PhpHwCpuPolicy[9] & 0x7FFF) * PhpHwCpuPowerUnit,
+            (ULONG)((PhpHwCpuPolicy[9] >> 16) & 0xFF),
+            (ULONG)(PhpHwCpuPolicy[10] & 0x3),
+            (PhpHwCpuPolicy[10] & 0x80000000) ? L", locked" : L""
+            );
+    }
+
+    if (PhpHwCpuPolicyValid & 0x800)
+        PhAppendFormatStringBuilder(Builder, L"  Turbo activation ratio: %lu\n", (ULONG)(PhpHwCpuPolicy[11] & 0xFF));
 
     PhpHwCpuAppendMicrocode(Builder);
 
