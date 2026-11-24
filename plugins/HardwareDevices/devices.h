@@ -1417,6 +1417,22 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+// disktemp.c
+
+VOID DiskTemperatureInitialize(
+    VOID
+    );
+
+VOID DiskTemperatureUninitialize(
+    VOID
+    );
+
+_Success_(return)
+BOOLEAN QueryDiskDeviceInterfaceDescription(
+    _In_ PWSTR DeviceInterface,
+    _Out_ PPH_STRING *DeviceDescription
+    );
+
 // motherboard.c
 
 VOID MotherboardInitialize(

@@ -83,6 +83,9 @@
     <ClCompile Include="prpsh.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="disktemp.c">
+      <Filter>Source Files\Motherboard</Filter>
+    </ClCompile>
     <ClCompile Include="motherboard.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>

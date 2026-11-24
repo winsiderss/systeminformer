@@ -67,6 +67,7 @@ set(SOURCES_RAPL
 source_group("Source Files\\RAPL" FILES ${SOURCES_RAPL})
 
 set(SOURCES_MOTHERBOARD
+    "disktemp.c"
     "motherboard.c"
     "superio.c"
 )
