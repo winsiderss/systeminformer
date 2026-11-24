@@ -44,6 +44,7 @@ local kept = {}
 local function ite_monitor()
   return {
     ids = { { 0x58, 0x90, 0x7f } },
+    bank = { 0x06, 0xe0 },
     reads = {
       { 0x00, 0x1 },
       { 0x06, 0x1 },
@@ -1676,6 +1677,21 @@ local function rm(s, reg)
   return value
 end
 
+-- Whether a monitor with a bank register in its reads is on bank 0, as another
+-- agent may leave it elsewhere.
+local function on_bank_zero(s, monitor)
+  local bank = monitor.bank
+  if not bank then
+    return true
+  end
+  local value = rm(s, bank[1])
+  if not value or (value & bank[2]) ~= 0 then
+    ksi.trace('bank register 0x%02x is %s', bank[1], tostring(value))
+    return false
+  end
+  return true
+end
+
 local function vendor(s, monitor)
   local mask = s.row.bank_mask
   local first = 0
@@ -1837,6 +1853,9 @@ function read(input)
     kept[s.port] = nil
     return status
   end
+  if not on_bank_zero(s, monitor) then
+    return nt.STATUS_RETRY
+  end
   local output = {}
   local stopped = false
   for i = 1, count do
@@ -1857,6 +1876,9 @@ function read(input)
       ksi.trace('register 0x%x is not permitted', reg)
     end
     output[i] = string.pack('<i4I4', item, value)
+  end
+  if not stopped and not on_bank_zero(s, monitor) then
+    return nt.STATUS_RETRY
   end
   if stopped then
     kept[s.port] = nil
