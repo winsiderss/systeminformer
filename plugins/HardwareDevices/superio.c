@@ -785,6 +785,62 @@ static CONST MB_BOARD_LABEL GigabyteB650AorusEliteFans[] =
     { 4, L"System Fan #4 / Pump" }, { 5, L"CPU Optional Fan" },
 };
 
+// Gigabyte X870E boards on an IT8696E and an IT87952E (one map for the X870E AORUS PRO, PRO ICE and XTREME AI
+// TOP; the X870E AORUS MASTER is the same design, confirmed by its owner's readings).
+static CONST PH_STRINGREF GigabyteX870eAorusProducts[] =
+{
+    PH_STRINGREF_INIT(L"X870E AORUS MASTER"),
+    PH_STRINGREF_INIT(L"X870E AORUS PRO"),
+    PH_STRINGREF_INIT(L"X870E AORUS PRO ICE"),
+    PH_STRINGREF_INIT(L"X870E AORUS XTREME AI TOP"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX870eAorusVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"Vcore Misc", 0, 1, 0 },
+    { 6, L"CPU VDDIO Memory", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX870eAorusTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" }, { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"External #1" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX870eAorusFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" }, { 4, L"CPU Optional Fan" },
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX870eAorusSecondVoltages[] =
+{
+    { 0, L"VIN0", 0, 1, 0 },
+    { 2, L"PM_VCC18", 0, 1, 0 },
+    { 3, L"VIN3", 0, 1, 0 },
+    { 4, L"CPU VDD18", 0, 1, 0 },
+    { 5, L"PM_VDD1V", 0, 1, 0 },
+    { 6, L"VIN6", 0, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX870eAorusSecondTemperatures[] =
+{
+    { 0, L"PCIe x4" }, { 1, L"External #2" }, { 2, L"System #2" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX870eAorusSecondFans[] =
+{
+    { 0, L"System Fan #5 / Pump" }, { 1, L"System Fan #6 / Pump" }, { 2, L"System Fan #4" },
+};
+
 static CONST PH_STRINGREF AsusRogStrixX670eProducts[] =
 {
     PH_STRINGREF_INIT(L"ROG STRIX X670E-A GAMING WIFI"),
@@ -936,6 +992,20 @@ static CONST MB_BOARD_LABEL MsiNct6687drFans[] =
 
 static CONST MB_BOARD SuperIoBoards[] =
 {
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX870eAorusProducts, 0x8696, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX870eAorusVoltages),
+        MB_BOARD_ENTRIES(GigabyteX870eAorusTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX870eAorusFans),
+        MB_BOARD_ENTRIES(GigabyteX870eAorusFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX870eAorusProducts, 0x8695, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX870eAorusSecondVoltages),
+        MB_BOARD_ENTRIES(GigabyteX870eAorusSecondTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX870eAorusSecondFans),
+        MB_BOARD_ENTRIES(GigabyteX870eAorusSecondFans),
+    },
     {
         PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB650AorusEliteProducts, 0x8689, 0xffff,
         MB_BOARD_ENTRIES(GigabyteB650AorusEliteVoltages),
