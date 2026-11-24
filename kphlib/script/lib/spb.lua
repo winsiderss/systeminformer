@@ -69,24 +69,27 @@ return function(nt)
     return reads
   end
 
-  -- Reads and writes until unlock are one bus operation; not every controller
-  -- supports it (STATUS_NOT_SUPPORTED). Releasing the device does not unlock.
-  function M.lock(device, milliseconds)
-    local output, failed =
-      ksi.hw.device_control(device, M.IOCTL_SPB_LOCK_CONTROLLER, '', 0, milliseconds)
-    if not output then
-      return failed
-    end
-    return nt.STATUS_SUCCESS
+  -- A guard holding the lock taken with code and given back with release, or
+  -- nil and a status.
+  local function lock(device, milliseconds, code, release)
+    return ksi.hw.device_guard(
+      device,
+      { code = code, input = '' },
+      { code = release, input = '' },
+      milliseconds
+    )
   end
 
-  function M.unlock(device, milliseconds)
-    local output, failed =
-      ksi.hw.device_control(device, M.IOCTL_SPB_UNLOCK_CONTROLLER, '', 0, milliseconds)
-    if not output then
-      return failed
-    end
-    return nt.STATUS_SUCCESS
+  -- Reads and writes under the guard are one bus operation
+  -- (STATUS_NOT_SUPPORTED on some controllers). Releasing the device does not
+  -- unlock.
+  function M.lock(device, milliseconds)
+    return lock(device, milliseconds, M.IOCTL_SPB_LOCK_CONTROLLER, M.IOCTL_SPB_UNLOCK_CONTROLLER)
+  end
+
+  -- The same for the connection of the device.
+  function M.lock_connection(device, milliseconds)
+    return lock(device, milliseconds, M.IOCTL_SPB_LOCK_CONNECTION, M.IOCTL_SPB_UNLOCK_CONNECTION)
   end
 
   return M
