@@ -337,5 +337,26 @@ return function(nt)
     return nil, failed, (string.unpack('<I4', buffer, 5))
   end
 
+  local ACQUIRE_GLOBAL_LOCK = 0x32C010
+  local RELEASE_GLOBAL_LOCK = 0x32C014
+
+  -- The ACPI Global Lock through a device: a guard whose release or close gives
+  -- it back, or nil and a status. The release passes back the lock object in
+  -- acquire output bytes 8-15.
+  function M.global_lock(device, milliseconds)
+    return ksi.hw.device_guard(
+      device,
+      { code = ACQUIRE_GLOBAL_LOCK, input = 'AagL' .. string.rep('\0', 12), output = 16 },
+      {
+        code = RELEASE_GLOBAL_LOCK,
+        input = 'ArgL' .. string.rep('\0', 12),
+        from = 8,
+        to = 8,
+        length = 8,
+      },
+      milliseconds
+    )
+  end
+
   return M
 end
