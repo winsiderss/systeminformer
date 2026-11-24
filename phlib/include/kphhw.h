@@ -191,6 +191,47 @@ typedef struct _KPH_HW_VSEC_REGION
     ULONG Position;
 } KPH_HW_VSEC_REGION, *PKPH_HW_VSEC_REGION;
 
+#define KPH_HW_TSENS_CONTROLLERS 8
+#define KPH_HW_TSENS_SENSORS 16
+#define KPH_HW_TSENS_NO_PROCESSOR 0xFF
+
+typedef enum _KPH_HW_TSENS_ROLE
+{
+    KphHwTsensRoleNone,
+    KphHwTsensRoleCpuTop,
+    KphHwTsensRoleCpuBottom,
+    KphHwTsensRoleClusterTop,
+    KphHwTsensRoleClusterBottom,
+    KphHwTsensRoleAoss,
+    KphHwTsensRoleMemory,
+    KphHwTsensRoleVideo,
+    KphHwTsensRoleNpu,
+    KphHwTsensRoleGpu,
+    KphHwTsensRoleCamera,
+    KphHwTsensRoleMaximum
+} KPH_HW_TSENS_ROLE;
+
+typedef struct _KPH_HW_TSENS_SENSOR
+{
+    UCHAR Role;
+    UCHAR Index;
+    UCHAR Group;
+    UCHAR Number;
+} KPH_HW_TSENS_SENSOR, *PKPH_HW_TSENS_SENSOR;
+
+typedef struct _KPH_HW_TSENS_CONTROLLER
+{
+    ULONG Version;
+    ULONG Control;
+    KPH_HW_TSENS_SENSOR Sensors[KPH_HW_TSENS_SENSORS];
+} KPH_HW_TSENS_CONTROLLER, *PKPH_HW_TSENS_CONTROLLER;
+
+typedef struct _KPH_HW_TSENS_IDENTITY
+{
+    ULONG Count;
+    KPH_HW_TSENS_CONTROLLER Controllers[KPH_HW_TSENS_CONTROLLERS];
+} KPH_HW_TSENS_IDENTITY, *PKPH_HW_TSENS_IDENTITY;
+
 #define KPH_HW_VSEC_DISCOVERY_PMT 2
 #define KPH_HW_VSEC_DISCOVERY_TPMI 66
 
@@ -230,6 +271,9 @@ C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
 C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
+C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
+C_ASSERT(sizeof(KPH_HW_TSENS_CONTROLLER) == 72);
+C_ASSERT(sizeof(KPH_HW_TSENS_IDENTITY) == 580);
 
 PHLIBAPI
 NTSTATUS
@@ -483,6 +527,21 @@ KphHwAcpiEval(
     _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Output,
     _In_ ULONG Length,
     _Out_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwTsensIdentify(
+    _Out_ PKPH_HW_TSENS_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwTsensRead(
+    _In_ ULONG Count,
+    _Out_writes_(Count * KPH_HW_TSENS_SENSORS) PULONG Status
     );
 
 PHLIBAPI

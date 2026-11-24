@@ -57,6 +57,7 @@ typedef enum _PHP_HW_FAMILY_ID
     PhpHwFamilyHsmp,
     PhpHwFamilySmbus,
     PhpHwFamilyAcpi,
+    PhpHwFamilyTsens, // after cpu: its cores' temperatures go on the cpu collector's sensors
     PhpHwFamilyMaximum
 } PHP_HW_FAMILY_ID;
 
@@ -208,6 +209,22 @@ VOID PhpHwCrosEcEnd(
     );
 
 VOID PhpHwCrosEcDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+NTSTATUS PhpHwTsensProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwTsensPass(
+    VOID
+    );
+
+VOID PhpHwTsensEnd(
+    VOID
+    );
+
+VOID PhpHwTsensDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 

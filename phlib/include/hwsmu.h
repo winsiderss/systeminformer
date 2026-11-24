@@ -42,7 +42,7 @@ typedef enum _PH_HW_NAMED_SENSOR_KIND
     PhHwNamedSensorPlatformResidency, // PH_HW_CAP_RESIDENCY, percent, CPU component
     PhHwNamedSensorSmuBandwidth, // PH_HW_CAP_SMU, MB/s (10^6 bytes), Memory component
     PhHwNamedSensorPowerLimit, // PH_HW_CAP_PLATFORM_LIMITS, watts, CPU component
-    PhHwNamedSensorPmtTemperature, // PH_HW_CAP_TPMI_POWER, degrees Celsius, CPU component: Intel PMT SoC and core telemetry
+    PhHwNamedSensorPmtTemperature, // PH_HW_CAP_TPMI_POWER, degrees Celsius, CPU component: Intel PMT SoC and core telemetry, Qualcomm TSENS die sensors
     PhHwNamedSensorAcpiVoltage, // PH_HW_CAP_ACPI_TEMP, volts, System component (ATK0110)
     PhHwNamedSensorZoneTemperature, // Windows counters, degrees Celsius, Windows component: ACPI thermal zones
     PhHwNamedSensorZonePassiveLimit, // Windows counters, percent, Windows component

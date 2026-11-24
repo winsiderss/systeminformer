@@ -47,6 +47,8 @@ static KPH_HW_SCRIPT KphpHwPlatformScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCR
 static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciConfigFileName };
 static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCrosEcFileName };
 static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwVsecFileName };
+static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
+static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
  * Retrieves the handle of a script, loading the script on first use.
@@ -198,6 +200,7 @@ VOID KphHwSetScriptMode(
         &KphpHwPciConfigScript,
         &KphpHwCrosEcScript,
         &KphpHwVsecScript,
+        &KphpHwTsensScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1915,6 +1918,84 @@ NTSTATUS KphHwAcpiEval(
 
     PhFree(output);
     PhFree(input);
+
+    return status;
+}
+
+/**
+ * Identifies the Qualcomm TSENS controllers of the part: each controller's
+ * version and control words and the role of each of its sensors.
+ *
+ * \param Identity Receives the controllers.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED when the script
+ * has no row for the part.
+ */
+NTSTATUS KphHwTsensIdentify(
+    _Out_ PKPH_HW_TSENS_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_TSENS_IDENTITY identity;
+    ULONG returnLength;
+
+    status = KphpHwScriptCall(
+        &KphpHwTsensScript,
+        &routine,
+        NULL,
+        0,
+        &identity,
+        sizeof(identity),
+        &returnLength
+        );
+
+    if ((NT_SUCCESS(status) && returnLength != sizeof(identity)) || status == STATUS_BUFFER_TOO_SMALL)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status) && identity.Count > KPH_HW_TSENS_CONTROLLERS)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        *Identity = identity;
+
+    return status;
+}
+
+/**
+ * Reads the status registers of the Qualcomm TSENS sensors of the part.
+ *
+ * \param Count The number of controllers KphHwTsensIdentify gave.
+ * \param Status Receives KPH_HW_TSENS_SENSORS status registers per controller,
+ * 0 for a sensor not enabled.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwTsensRead(
+    _In_ ULONG Count,
+    _Out_writes_(Count * KPH_HW_TSENS_SENSORS) PULONG Status
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG length;
+    ULONG returnLength;
+
+    if (Count > KPH_HW_TSENS_CONTROLLERS)
+        return STATUS_INVALID_PARAMETER;
+
+    length = Count * KPH_HW_TSENS_SENSORS * sizeof(ULONG);
+
+    status = KphpHwScriptCall(
+        &KphpHwTsensScript,
+        &routine,
+        NULL,
+        0,
+        Status,
+        length,
+        &returnLength
+        );
+
+    if ((NT_SUCCESS(status) && returnLength != length) || status == STATUS_BUFFER_TOO_SMALL)
+        status = STATUS_INFO_LENGTH_MISMATCH;
 
     return status;
 }
