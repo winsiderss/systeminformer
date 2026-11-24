@@ -477,10 +477,6 @@ static ULONG PhpHwCounterZoneId(
 }
 
 /**
- * Orders a RAPL meter by package, then PKG, PP0, PP1, DRAM, PSYS, then RAPL_PackageP_CoreN_CORE by N; other
- * names follow, by discovery.
- */
-/**
  * Determines whether a thermal zone is an MPTF power participant (\_TZ.PSOC, \_TZ.PSYS), whose temperature counter
  * carries milliwatts.
  */
@@ -493,6 +489,10 @@ static BOOLEAN PhpHwCounterZoneIsPower(
     return length >= 5 && (_wcsicmp(Name + length - 5, L".PSOC") == 0 || _wcsicmp(Name + length - 5, L".PSYS") == 0);
 }
 
+/**
+ * Orders a RAPL meter by package, then PKG, PP0, PP1, DRAM, PSYS, then RAPL_PackageP_CoreN_CORE by N; other
+ * names follow, by discovery.
+ */
 static ULONG PhpHwCounterMeterId(
     _In_ PCWSTR Name,
     _In_ ULONG Index
