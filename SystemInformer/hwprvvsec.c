@@ -15,8 +15,8 @@
 #include <trace.h>
 
 // Collector vsec: the Intel OOBMSM functions' TPMI regions (RAPL energy where the processor's MSRs do not serve, the
-// uncore clocks) and the PMT functions' telemetry groups the sample table knows; one KphHwVsecRead a kept region or
-// group every update. TPMI SST and PLR are read only for a report.
+// uncore clocks and their limits) and the PMT functions' telemetry groups the sample table knows; one KphHwVsecRead a
+// kept region or group every update. TPMI SST and PLR are read only for a report.
 
 #define PHP_HW_VSEC_MAX_DEVICES 16
 #define PHP_HW_VSEC_LIST_REGIONS 128 // a region list's first answer; more are asked for once
@@ -26,6 +26,8 @@
 #define PHP_HW_VSEC_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
 #define PHP_HW_VSEC_UNMAPPED_ID 0x80000000 // named sensor id bit of uncore domains not mapped to a package
 #define PHP_HW_VSEC_PMT_ID_BASE 0x50000000 // named sensor ids of the PMT samples: | device << 16 | group << 8 | sample
+#define PHP_HW_VSEC_UNCORE_MIN_ID 0x01000000 // named sensor id bit of an uncore cluster's minimum
+#define PHP_HW_VSEC_UNCORE_MAX_ID 0x02000000 // named sensor id bit of an uncore cluster's maximum
 
 typedef enum _PHP_HW_VSEC_KIND
 {
@@ -34,6 +36,7 @@ typedef enum _PHP_HW_VSEC_KIND
     PhpHwVsecPlatformEnergy,
     PhpHwVsecEnergyMaximum,
     PhpHwVsecUncoreStatus = PhpHwVsecEnergyMaximum,
+    PhpHwVsecUncoreControl,
     PhpHwVsecPmtSample
 } PHP_HW_VSEC_KIND;
 
@@ -110,7 +113,8 @@ typedef struct _PHP_HW_VSEC_ENTRY
     ULONG Offset; // qword, relative to the region
     PHP_HW_VSEC_KIND Kind;
     ULONG PackageIndex; // ULONG_MAX when not mapped to a package
-    ULONG NamedIndex; // ULONG_MAX when the value feeds a package sensor
+    ULONG NamedIndex; // ULONG_MAX when the value feeds a package sensor; an uncore control's minimum
+    ULONG MaximumIndex; // an uncore control's maximum
     FLOAT EnergyUnit; // joules
     ULONG Sample; // PMT: index in PhpHwPmtSamples
     BOOLEAN Disabled;
@@ -461,6 +465,7 @@ static PPHP_HW_VSEC_ENTRY PhpHwVsecAddEntry(
     entry->Kind = Kind;
     entry->PackageIndex = PackageIndex;
     entry->NamedIndex = ULONG_MAX;
+    entry->MaximumIndex = ULONG_MAX;
 
     return entry;
 }
@@ -469,10 +474,19 @@ static ULONG PhpHwVsecEntryOrdinal(
     _In_ PPHP_HW_VSEC_REGION Region
     )
 {
-    ULONG ordinal = Region->EntryCount;
+    ULONG ordinal = 0;
 
-    for (ULONG i = 0; i < PhpHwVsecRegionCount; i++)
-        ordinal += PhpHwVsecRegions[i].EntryCount;
+    for (ULONG i = 0; i <= PhpHwVsecRegionCount; i++)
+    {
+        PPHP_HW_VSEC_REGION region = i < PhpHwVsecRegionCount ? &PhpHwVsecRegions[i] : Region;
+
+        // Uncore control entries do not count, so TPMI power ids do not depend on them.
+        for (ULONG j = 0; j < region->EntryCount; j++)
+        {
+            if (region->Entries[j].Kind != PhpHwVsecUncoreControl)
+                ordinal++;
+        }
+    }
 
     return ordinal;
 }
@@ -601,8 +615,9 @@ static VOID PhpHwVsecProbeRapl(
 }
 
 /**
- * Adds the cluster status registers of a TPMI uncore instance: header qword (version [7:0], cluster mask [15:8]),
- * cluster offsets at +08h (a byte per cluster, in qwords), ratio [6:0] in 100 MHz.
+ * Adds the cluster status and control registers of a TPMI uncore instance: header qword (version [7:0], cluster mask
+ * [15:8]), cluster offsets at +08h (a byte per cluster, in qwords); status ratio [6:0], control (+08h) maximum
+ * [14:8] and minimum [21:15], in 100 MHz.
  */
 static VOID PhpHwVsecProbeUncore(
     _In_ ULONG Device,
@@ -667,6 +682,25 @@ static VOID PhpHwVsecProbeUncore(
             region->EntryCount--;
             break;
         }
+
+        if (offset + 16 > Region->Size || !(entry = PhpHwVsecAddEntry(region, offset + 8, PhpHwVsecUncoreControl, PackageIndex)))
+            continue;
+
+        for (ULONG limit = 0; limit < 2; limit++)
+        {
+            ULONG id = (PackageIndex == ULONG_MAX ? PHP_HW_VSEC_UNMAPPED_ID : 0) | (limit ? PHP_HW_VSEC_UNCORE_MAX_ID : PHP_HW_VSEC_UNCORE_MIN_ID) | (domain << 3) | i;
+
+            if (clusterCount > 1)
+                name = PhFormatString(L"%s%lu.%lu %s", PackageIndex == ULONG_MAX ? L"Uncore (unmapped) " : L"Uncore ", domain, i, limit ? L"max" : L"min");
+            else
+                name = PhFormatString(L"%s%lu %s", PackageIndex == ULONG_MAX ? L"Uncore (unmapped) " : L"Uncore ", domain, limit ? L"max" : L"min");
+
+            *(limit ? &entry->MaximumIndex : &entry->NamedIndex) = PhpHwAddNamedSensor(PhHwNamedSensorUncoreClock, PackageIndex == ULONG_MAX ? 0 : PackageIndex, id, name->Buffer);
+            PhDereferenceObject(name);
+        }
+
+        if (entry->NamedIndex == ULONG_MAX || entry->MaximumIndex == ULONG_MAX)
+            region->EntryCount--;
     }
 
     if (region->EntryCount)
@@ -993,6 +1027,7 @@ NTSTATUS PhpHwVsecPass(
             if (region->Disabled || entry->Disabled)
             {
                 PhpHwSetNamedSensor(entry->NamedIndex, FALSE, 0.0f);
+                PhpHwSetNamedSensor(entry->MaximumIndex, FALSE, 0.0f);
                 continue;
             }
 
@@ -1069,6 +1104,14 @@ NTSTATUS PhpHwVsecPass(
                     valid = TRUE;
                 }
             }
+            else if (entry->Kind == PhpHwVsecUncoreControl)
+            {
+                FLOAT maximum = (FLOAT)((entry->Value >> 8) & 0x7F) * 100.0f;
+
+                value = (FLOAT)((entry->Value >> 15) & 0x7F) * 100.0f;
+                valid = entry->Valid && value > 0.0f;
+                PhpHwSetNamedSensor(entry->MaximumIndex, entry->Valid && maximum > 0.0f, maximum);
+            }
             else if (entry->Kind == PhpHwVsecPmtSample)
             {
                 valid = entry->Valid && PhpHwVsecDecodePmtSample(&PhpHwPmtSamples[entry->Sample], entry->Value, &value);
@@ -1143,7 +1186,7 @@ NTSTATUS PhpHwVsecPass(
             if (region->Entries[i].Disabled)
                 continue;
 
-            if (region->Entries[i].Kind == PhpHwVsecUncoreStatus)
+            if (region->Entries[i].Kind == PhpHwVsecUncoreStatus || region->Entries[i].Kind == PhpHwVsecUncoreControl)
                 capabilities |= PH_HW_CAP_UNCORE_CLOCK;
             else if (region->Entries[i].Kind == PhpHwVsecPmtSample)
                 capabilities |= PhpHwPmtSamples[region->Entries[i].Sample].Transform == PhpHwPmtTemperature ? PH_HW_CAP_TPMI_POWER : PH_HW_CAP_UNCORE_CLOCK;
