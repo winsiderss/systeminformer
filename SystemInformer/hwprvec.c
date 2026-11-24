@@ -671,3 +671,181 @@ VOID PhpHwGigabyteDiagnostics(
         PhpHwGigabyteEnded ? L", ended" : L""
         );
 }
+
+#define PHP_HW_ALIENWARE_ID_BASE 0x41570000 // named sensor ids: + kind << 8 + the firmware's id
+
+static KPH_HW_ALIENWARE_IDENTITY PhpHwAlienwareIdentity;
+static KPH_HW_ALIENWARE_SENSOR PhpHwAlienwareSensors[2 * KPH_HW_ALIENWARE_RESOURCES];
+static ULONG PhpHwAlienwareNamedIndex[2 * KPH_HW_ALIENWARE_RESOURCES];
+static NTSTATUS PhpHwAlienwareStatus = STATUS_NOT_SUPPORTED; // the last call, for the report; not probed until set
+static ULONG PhpHwAlienwareCount = 0;
+static UCHAR PhpHwAlienwareStrikes = 0;
+static BOOLEAN PhpHwAlienwareEnded = FALSE;
+
+/**
+ * The name of an Alienware temperature sensor or fan by its firmware id.
+ *
+ * \param Kind KPH_HW_ALIENWARE_TEMPERATURE or KPH_HW_ALIENWARE_FAN.
+ * \param Id The firmware's id.
+ * \param Ordinal The sensor's place among its kind, from 1, for an id without a name.
+ * \return The name.
+ */
+static PPH_STRING PhpHwAlienwareName(
+    _In_ UCHAR Kind,
+    _In_ UCHAR Id,
+    _In_ ULONG Ordinal
+    )
+{
+    static CONST PCWSTR fans[] =
+    {
+        L"CPU fan", L"GPU fan", L"PCI fan", L"Mid fan", L"Top fan", L"Side fan", L"U.2 fan", L"U.2 fan 2",
+        L"Front fan", L"CPU fan 2", L"GPU fan 2", L"Top fan 2", L"Top fan 3", L"Front fan 2", L"Bottom fan",
+        L"Bottom fan 2",
+    };
+
+    if (Kind == KPH_HW_ALIENWARE_TEMPERATURE)
+    {
+        switch (Id)
+        {
+        case 0x01:
+            return PhCreateString(L"CPU");
+        case 0x03:
+            return PhCreateString(L"Front");
+        case 0x06:
+            return PhCreateString(L"GPU");
+        }
+
+        return PhFormatString(L"Temperature %lu", Ordinal);
+    }
+
+    if (Id >= 0x32 && Id < 0x32 + RTL_NUMBER_OF(fans))
+        return PhCreateString(fans[Id - 0x32]);
+
+    return PhFormatString(L"Fan %lu", Ordinal);
+}
+
+/**
+ * Lists the Alienware firmware's temperature sensors and fans once a session.
+ *
+ * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED on a machine the script does not list or without the method, or
+ * a failed call's status.
+ */
+NTSTATUS PhpHwAlienwareProbe(
+    VOID
+    )
+{
+    NTSTATUS status;
+
+    PhpHwAlienwareCount = 0;
+    status = KphHwAlienwareIdentify(&PhpHwAlienwareIdentity);
+    PhpHwAlienwareStatus = status;
+
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_NOT_FOUND)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG i = 0; i < PhpHwAlienwareIdentity.TemperatureCount; i++)
+    {
+        PhpHwAlienwareSensors[PhpHwAlienwareCount].Kind = KPH_HW_ALIENWARE_TEMPERATURE;
+        PhpHwAlienwareSensors[PhpHwAlienwareCount].Id = PhpHwAlienwareIdentity.Temperatures[i];
+        PhpHwAlienwareCount++;
+    }
+
+    for (ULONG i = 0; i < PhpHwAlienwareIdentity.FanCount; i++)
+    {
+        PhpHwAlienwareSensors[PhpHwAlienwareCount].Kind = KPH_HW_ALIENWARE_FAN;
+        PhpHwAlienwareSensors[PhpHwAlienwareCount].Id = PhpHwAlienwareIdentity.Fans[i];
+        PhpHwAlienwareCount++;
+    }
+
+    for (ULONG i = 0; i < PhpHwAlienwareCount; i++)
+    {
+        PKPH_HW_ALIENWARE_SENSOR sensor = &PhpHwAlienwareSensors[i];
+        BOOLEAN temperature = sensor->Kind == KPH_HW_ALIENWARE_TEMPERATURE;
+        ULONG ordinal = temperature ? i + 1 : i - PhpHwAlienwareIdentity.TemperatureCount + 1;
+        PPH_STRING name = PhpHwAlienwareName(sensor->Kind, sensor->Id, ordinal);
+
+        PhpHwAlienwareNamedIndex[i] = PhpHwAddNamedSensor(
+            temperature ? PhHwNamedSensorAcpiTemperature : PhHwNamedSensorFanSpeed,
+            0,
+            PHP_HW_ALIENWARE_ID_BASE + ((ULONG)sensor->Kind << 8) + sensor->Id,
+            name->Buffer
+            );
+        PhDereferenceObject(name);
+    }
+
+    return PhpHwAlienwareCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Publishes the listed sensors from one read: a sensor the firmware refuses has no value. Three failed reads in a row
+ * end the source.
+ *
+ * \return STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwAlienwarePass(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[2 * KPH_HW_ALIENWARE_RESOURCES];
+    ULONG capabilities = 0;
+    BOOLEAN read;
+
+    if (PhpHwAlienwareEnded || !PhpHwAlienwareCount)
+        return STATUS_NOT_SUPPORTED;
+
+    PhpHwAlienwareStatus = KphHwAlienwareRead(PhpHwAlienwareSensors, PhpHwAlienwareCount, values);
+    read = NT_SUCCESS(PhpHwAlienwareStatus);
+
+    if (read)
+        PhpHwAlienwareStrikes = 0;
+    else if (++PhpHwAlienwareStrikes >= 3)
+        PhpHwAlienwareEnded = TRUE;
+
+    for (ULONG i = 0; i < PhpHwAlienwareCount; i++)
+    {
+        BOOLEAN valid = read && NT_SUCCESS(values[i].Status);
+
+        PhpHwSetNamedSensor(PhpHwAlienwareNamedIndex[i], valid, valid ? (FLOAT)values[i].Value : 0.0f);
+
+        if (valid)
+            capabilities |= PhpHwAlienwareSensors[i].Kind == KPH_HW_ALIENWARE_FAN ? PH_HW_CAP_FAN_SPEED : PH_HW_CAP_ACPI_TEMP;
+    }
+
+    PhpHwFamilies[PhpHwFamilyAlienware].Capabilities = PhpHwAlienwareEnded ? 0 : capabilities;
+
+    return PhpHwAlienwareEnded ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the sensors are listed again at the next.
+ */
+VOID PhpHwAlienwareEnd(
+    VOID
+    )
+{
+    PhpHwAlienwareStatus = STATUS_NOT_SUPPORTED;
+    PhpHwAlienwareCount = 0;
+    PhpHwAlienwareStrikes = 0;
+    PhpHwAlienwareEnded = FALSE;
+}
+
+/**
+ * Writes the Alienware source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwAlienwareDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  Firmware thermal: last call 0x%08lx, %lu listed%s\n",
+        PhpHwAlienwareStatus,
+        PhpHwAlienwareCount,
+        PhpHwAlienwareEnded ? L", ended" : L""
+        );
+}

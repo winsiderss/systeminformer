@@ -60,6 +60,8 @@ static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\a
 static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
 static CONST PH_STRINGREF KphpHwGigabyteFileName = PH_STRINGREF_INIT(L"scripts\\gigabytewmi.bin");
 static KPH_HW_SCRIPT KphpHwGigabyteScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGigabyteFileName };
+static CONST PH_STRINGREF KphpHwAlienwareFileName = PH_STRINGREF_INIT(L"scripts\\alienware.bin");
+static KPH_HW_SCRIPT KphpHwAlienwareScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAlienwareFileName };
 static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
 static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
@@ -221,6 +223,7 @@ VOID KphHwSetScriptMode(
         &KphpHwDellScript,
         &KphpHwAsusWmiScript,
         &KphpHwGigabyteScript,
+        &KphpHwAlienwareScript,
         &KphpHwOcMailboxScript,
     };
 
@@ -1827,6 +1830,105 @@ NTSTATUS KphHwEcSensors(
     }
 
     *Count = count;
+
+    return status;
+}
+
+/**
+ * Lists the fans and temperature sensors of an Alienware or Dell G machine
+ * through its firmware's WMI method.
+ *
+ * \param Identity Receives the counts and the ids.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a machine the
+ * script does not list; STATUS_NOT_FOUND when no device lists the method.
+ */
+NTSTATUS KphHwAlienwareIdentify(
+    _Out_ PKPH_HW_ALIENWARE_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    UCHAR output[2 + 2 * KPH_HW_ALIENWARE_RESOURCES];
+    KPH_HW_ALIENWARE_IDENTITY identity;
+    ULONG returnLength = 0;
+
+    status = KphpHwScriptCall(
+        &KphpHwAlienwareScript,
+        &routine,
+        NULL,
+        0,
+        output,
+        sizeof(output),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength < 2 ||
+        output[0] > KPH_HW_ALIENWARE_RESOURCES ||
+        output[1] > KPH_HW_ALIENWARE_RESOURCES ||
+        returnLength != 2UL + output[0] + output[1])
+    {
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    memset(&identity, 0, sizeof(identity));
+    identity.FanCount = output[0];
+    identity.TemperatureCount = output[1];
+    memcpy(identity.Fans, output + 2, output[0]);
+    memcpy(identity.Temperatures, output + 2 + output[0], output[1]);
+    *Identity = identity;
+
+    return status;
+}
+
+/**
+ * Reads temperatures and fan speeds of an Alienware or Dell G machine through
+ * its firmware's WMI method.
+ *
+ * \param Sensors Each sensor's kind and id.
+ * \param Count The number of sensors.
+ * \param Values Receives a status and the value (degrees C or RPM) per sensor.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwAlienwareRead(
+    _In_reads_(Count) PCKPH_HW_ALIENWARE_SENSOR Sensors,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_VALUE32 values[2 * KPH_HW_ALIENWARE_RESOURCES];
+    ULONG returnLength = 0;
+
+    if (Count == 0 || Count > RTL_NUMBER_OF(values))
+        return STATUS_INVALID_PARAMETER;
+
+    status = KphpHwScriptCall(
+        &KphpHwAlienwareScript,
+        &routine,
+        (PVOID)Sensors,
+        Count * sizeof(KPH_HW_ALIENWARE_SENSOR),
+        values,
+        Count * sizeof(KPH_HW_VALUE32),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != Count * sizeof(KPH_HW_VALUE32))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
 
     return status;
 }

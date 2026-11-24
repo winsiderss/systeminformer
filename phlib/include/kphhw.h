@@ -210,6 +210,25 @@ typedef struct _KPH_HW_EC_SENSOR
     CHAR Label[KPH_HW_EC_LABEL_LENGTH]; // null-terminated
 } KPH_HW_EC_SENSOR, *PKPH_HW_EC_SENSOR;
 
+#define KPH_HW_ALIENWARE_RESOURCES 16 // fans or temperature sensors at most
+#define KPH_HW_ALIENWARE_TEMPERATURE 1 // degrees C
+#define KPH_HW_ALIENWARE_FAN 2 // RPM
+
+typedef struct _KPH_HW_ALIENWARE_IDENTITY
+{
+    UCHAR FanCount;
+    UCHAR TemperatureCount;
+    UCHAR Fans[KPH_HW_ALIENWARE_RESOURCES]; // ids
+    UCHAR Temperatures[KPH_HW_ALIENWARE_RESOURCES]; // ids
+} KPH_HW_ALIENWARE_IDENTITY, *PKPH_HW_ALIENWARE_IDENTITY;
+
+typedef struct _KPH_HW_ALIENWARE_SENSOR
+{
+    UCHAR Kind; // KPH_HW_ALIENWARE_TEMPERATURE or KPH_HW_ALIENWARE_FAN
+    UCHAR Id;
+} KPH_HW_ALIENWARE_SENSOR, *PKPH_HW_ALIENWARE_SENSOR;
+typedef const KPH_HW_ALIENWARE_SENSOR* PCKPH_HW_ALIENWARE_SENSOR;
+
 typedef struct _KPH_HW_VSEC
 {
     USHORT Vendor;
@@ -310,6 +329,8 @@ C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
 C_ASSERT(sizeof(KPH_HW_EC_IDENTITY) == 12);
 C_ASSERT(sizeof(KPH_HW_EC_REGISTER) == 8);
 C_ASSERT(sizeof(KPH_HW_EC_SENSOR) == 36);
+C_ASSERT(sizeof(KPH_HW_ALIENWARE_IDENTITY) == 34);
+C_ASSERT(sizeof(KPH_HW_ALIENWARE_SENSOR) == 2);
 C_ASSERT(sizeof(KPH_HW_VSEC) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
@@ -533,6 +554,22 @@ KphHwEcSensors(
     _Out_writes_to_(Capacity, *Count) PKPH_HW_EC_SENSOR Sensors,
     _In_ ULONG Capacity,
     _Out_ PULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwAlienwareIdentify(
+    _Out_ PKPH_HW_ALIENWARE_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwAlienwareRead(
+    _In_reads_(Count) PCKPH_HW_ALIENWARE_SENSOR Sensors,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
 
 #define KPH_HW_GIGABYTE_SENSORS 6
