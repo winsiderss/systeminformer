@@ -275,69 +275,6 @@ Exit:
     return results;
 }
 
-/**
- * \brief Queries the HAL (ksi.hw.hal_query).
- *
- * \details May raise a Lua error. The buffer holds the input, zero filled
- * to the length, when the call is made; most classes require an exact length.
- *
- * \param[in] State The Lua state.
- *
- * \return The number of results: the bytes returned, or nil, a status and the
- * length the HAL returned.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-int KphpLuaHwHalQuery(
-    _In_ lua_State* State
-    )
-{
-    NTSTATUS status;
-    ULONG informationClass;
-    ULONG length;
-    PCSTR input;
-    size_t inputLength;
-    ULONG returned;
-    PVOID data;
-    luaL_Buffer buffer;
-
-    KPH_PAGED_CODE_PASSIVE();
-
-    informationClass = KphpLuaHwCheckUlong(State, 1);
-    length = KphpLuaHwCheckUlong(State, 2);
-    input = luaL_optlstring(State, 3, "", &inputLength);
-
-    luaL_argcheck(State, inputLength <= length, 3, "longer than the length");
-
-    data = luaL_buffinitsize(State, &buffer, length);
-
-    RtlZeroMemory(data, length);
-    RtlCopyMemory(data, input, inputLength);
-
-    returned = 0;
-
-    status = HalQuerySystemInformation((HAL_QUERY_INFORMATION_CLASS)informationClass,
-                                       length,
-                                       data,
-                                       &returned);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "HalQuerySystemInformation %lu failed: %!STATUS!",
-                      informationClass,
-                      status);
-
-        KphLuaNilErrorStatus(State, status);
-        lua_pushinteger(State, (lua_Integer)returned);
-
-        return 3;
-    }
-
-    luaL_pushresultsize(&buffer, min(returned, length));
-
-    return 1;
-}
-
 #if defined(_M_X64)
 
 /**
@@ -624,7 +561,6 @@ static const luaL_Reg KphpLuaHwLibrary[] =
     { "port_write", KphpLuaHwPortWrite },
 #endif
     { "firmware_table", KphpLuaHwFirmwareTable },
-    { "hal_query", KphpLuaHwHalQuery },
     { NULL, NULL }
 };
 KPH_PROTECTED_DATA_SECTION_RO_POP();
