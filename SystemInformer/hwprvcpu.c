@@ -2042,11 +2042,6 @@ FLOAT PhpHwCpuQueryPowerUnit(
 }
 
 /**
- * Writes the collector's section of the hardware report: the identity, the plan and each register's state.
- *
- * \param Builder The report.
- */
-/**
  * Appends the microcode revision Windows recorded for processor 0 (Update Revision: 8 bytes with the revision in the
  * high half on Intel, 4 bytes elsewhere).
  */
@@ -2074,6 +2069,11 @@ static VOID PhpHwCpuAppendMicrocode(
     NtClose(keyHandle);
 }
 
+/**
+ * Writes the collector's section of the hardware report: the identity, the plan and each register's state.
+ *
+ * \param Builder The report.
+ */
 VOID PhpHwCpuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
