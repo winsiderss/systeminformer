@@ -107,6 +107,18 @@ M.DevicePropertyRemovalPolicy = 0x13
 M.DevicePropertyResourceRequirements = 0x14
 M.DevicePropertyAllocatedResources = 0x15
 
+M.CM_RESOURCE_CONNECTION_CLASS_GPIO = 0x01
+M.CM_RESOURCE_CONNECTION_CLASS_SERIAL = 0x02
+M.CM_RESOURCE_CONNECTION_CLASS_FUNCTION_CONFIG = 0x03
+M.CM_RESOURCE_CONNECTION_TYPE_GPIO_IO = 0x02
+M.CM_RESOURCE_CONNECTION_TYPE_SERIAL_I2C = 0x01
+M.CM_RESOURCE_CONNECTION_TYPE_SERIAL_SPI = 0x02
+M.CM_RESOURCE_CONNECTION_TYPE_SERIAL_UART = 0x03
+M.CM_RESOURCE_CONNECTION_TYPE_FUNCTION_CONFIG = 0x01
+
+M.IOCTL_GPIO_READ_PINS = 0x00480000
+M.IOCTL_GPIO_WRITE_PINS = 0x00480004
+
 M.RemovalPolicyExpectNoRemoval = 1
 M.RemovalPolicyExpectOrderlyRemoval = 2
 M.RemovalPolicyExpectSurpriseRemoval = 3
@@ -140,10 +152,14 @@ local function registry_list(device, id)
   return bytes
 end
 
--- The memory and port descriptors (types 3, 7 and 1) of a CM_RESOURCE_LIST in
--- bytes first to last, in order, device-specific data (type 5) stepped over;
--- and the list's size, or 0 when it is cut short.
-local function cm_descriptors(bytes, first, last)
+local MEMORY_PORT = { [1] = true, [3] = true, [7] = true }
+local CONNECTION = { [132] = true }
+
+-- The descriptors of the wanted types (default memory and port: 3, 7 and 1)
+-- of a CM_RESOURCE_LIST in bytes first to last, in order, device-specific
+-- data (type 5) stepped over; and the list's size, or 0 when it is cut short.
+local function cm_descriptors(bytes, first, last, wanted)
+  wanted = wanted or MEMORY_PORT
   local found = {}
   if last - first + 1 < 4 then
     return found, 0
@@ -167,7 +183,7 @@ local function cm_descriptors(bytes, first, last)
         if at - 1 > last then
           return found, 0
         end
-      elseif kind == 1 or kind == 3 or kind == 7 then
+      elseif wanted[kind] then
         found[#found + 1] = descriptor
       end
     end
@@ -240,6 +256,40 @@ function M.resources(device)
     }
   end
   return list
+end
+
+-- The connection resources the PnP manager assigned a device: GPIO pins and
+-- I2C, SPI and UART targets, each { class, type, id }, the id the resource
+-- hub opens (M.connection_open); nil and a status on failure.
+function M.connections(device)
+  local allocated, failed = registry_list(device, M.DevicePropertyAllocatedResources)
+  if not allocated then
+    if failed then
+      return nil, failed
+    end
+    return {}
+  end
+  local found, size = cm_descriptors(allocated, 1, #allocated, CONNECTION)
+  if size == 0 then
+    return nil, M.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local list = {}
+  for i, at in ipairs(found) do
+    list[i] = {
+      class = string.byte(allocated, at + 4),
+      type = string.byte(allocated, at + 5),
+      id = string.unpack('<i8', allocated, at + 8),
+    }
+  end
+  return list
+end
+
+-- Opens the resource hub's file of a connection id, as the peripheral driver
+-- opens its target: requests to it reach the controller (an SPB controller
+-- takes nt.spb.sequence, a GPIO controller IOCTL_GPIO_READ_PINS). The access
+-- defaults to read and write data.
+function M.connection_open(id, access)
+  return ksi.hw.device_open(string.format('\\Device\\RESOURCE_HUB\\%016x', id), access or 3)
 end
 
 -- The memory requirements of a device, each { minimum, maximum, length,
@@ -422,5 +472,6 @@ end
 
 M.pci = require('pci')(M)
 M.acpi = require('acpi')(M)
+M.spb = require('spb')(M)
 
 return M

@@ -233,29 +233,6 @@ PDEVICE_OBJECT KphLuaHwPciTestDevice(
     _In_ int Index
     );
 
-_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KSIAPI KphLuaHwReleaseRequest(
-    _In_opt_ PVOID Context
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphLuaHwSendRequest(
-    _In_ lua_State* State,
-    _In_ PDEVICE_OBJECT Device,
-    _In_opt_ PFILE_OBJECT FileObject,
-    _In_ ULONG IoControlCode,
-    _In_ BOOLEAN Internal,
-    _In_reads_bytes_(InputLength) PCVOID Input,
-    _In_ ULONG InputLength,
-    _In_ ULONG OutputLength,
-    _In_ ULONG Milliseconds,
-    _Outptr_result_maybenull_ PVOID* Request,
-    _Outptr_result_maybenull_ PVOID* Output,
-    _Out_ PULONG Information
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaInitializeHardwareCpu(
     VOID
