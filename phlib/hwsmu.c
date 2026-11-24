@@ -929,7 +929,8 @@ C_ASSERT(RTL_NUMBER_OF(PhHwSmuHsmpCommands) <= PH_HW_HSMP_MAX_COMMANDS);
 C_ASSERT(PH_HW_HSMP_MAX_COMMANDS <= sizeof(ULONG) * 8);
 
 /**
- * Decodes an HSMP DIMM response, named by the DIMM address it echoes: UMC [3:0], bit 4, sensor [6].
+ * Decodes an HSMP DIMM response, named by the DIMM address it echoes (mode 1: sensor [6], DIMM in the channel [4],
+ * UMC [3:0]); the channel is the SP5 package channel letter of the UMC.
  *
  * \param Opcode PH_HW_HSMP_GET_DIMM_THERMAL or PH_HW_HSMP_GET_DIMM_POWER.
  * \param Response The first response word.
@@ -941,19 +942,27 @@ VOID NTAPI PhHwSmuDecodeHsmpDimm(
     _Inout_ PPH_HW_SMU_DECODE Decode
     )
 {
-    static CONST PCWSTR sensorSuffixes[4] = { L" TS0", L"b TS0", L" TS1", L"b TS1" };
-    static CONST PCWSTR dimmSuffixes[2] = { NULL, L"b" };
+    static CONST PCWSTR channels[PH_HW_HSMP_DIMM_CHANNELS] =
+    {
+        L"Channel C DIMM ", L"Channel E DIMM ", L"Channel F DIMM ", L"Channel A DIMM ", L"Channel B DIMM ", L"Channel D DIMM ",
+        L"Channel I DIMM ", L"Channel K DIMM ", L"Channel L DIMM ", L"Channel G DIMM ", L"Channel H DIMM ", L"Channel J DIMM ",
+    };
+    static CONST PCWSTR sensors[2] = { L" TS0", L" TS1" };
     ULONG address = Response & 0xFF;
+    ULONG umc = address & 0xF;
     ULONG raw;
+
+    if (!(address & 0x80) || umc >= PH_HW_HSMP_DIMM_CHANNELS)
+        return;
 
     switch (Opcode)
     {
     case PH_HW_HSMP_GET_DIMM_THERMAL: // 11-bit two's complement [31:21], quarter degrees
         raw = (Response >> 21) & 0x7FF;
-        PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuTemperature, PhpHwSmuRangeTemperature, PhHwSmuIdDimm + address, L"DIMM ", address & 0xF, sensorSuffixes[((address >> 4) & 1) | ((address >> 5) & 2)], (FLOAT)((LONG)raw - (raw > 0x3FF ? 0x800 : 0)) * 0.25f);
+        PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuTemperature, PhpHwSmuRangeTemperature, PhHwSmuIdDimm + address, channels[umc], (address >> 4) & 1, sensors[(address >> 6) & 1], (FLOAT)((LONG)raw - (raw > 0x3FF ? 0x800 : 0)) * 0.25f);
         break;
     case PH_HW_HSMP_GET_DIMM_POWER: // mW [31:17]
-        PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuPower, PhpHwSmuRangePower, PhHwSmuIdDimm + address, L"DIMM ", address & 0xF, dimmSuffixes[(address >> 4) & 1], (FLOAT)(Response >> 17) / 1000.0f);
+        PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuPower, PhpHwSmuRangePower, PhHwSmuIdDimm + address, channels[umc], (address >> 4) & 1, NULL, (FLOAT)(Response >> 17) / 1000.0f);
         break;
     }
 }

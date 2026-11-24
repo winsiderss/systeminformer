@@ -17,13 +17,13 @@
 // Collector hsmp: the AMD server firmware's HSMP mailbox of each socket, one KphHwHsmpCommand a package a second with
 // the commands of phlib's PhHwSmuHsmpCommands still accepted, decoded by phlib into named sensors. On protocol 5 and 7
 // a second call every PHP_HW_HSMP_DIMM_INTERVAL passes reads the DIMMs: its first sends GET_DIMM_THERMAL to each of
-// the PHP_HW_HSMP_DIMM_PROBES addresses 80h | sensor << 6 | bit 4 | UMC and keeps those answered with the address
-// echoed; later ones read their temperature, and the power of each sensor-0 address.
+// the PHP_HW_HSMP_DIMM_PROBES mode-1 addresses 80h | sensor << 6 | DIMM << 4 | UMC and keeps those
+// answered with the address echoed; later ones read their temperature, and the power of each sensor-0 address.
 
 #define PHP_HW_HSMP_STRIKE_LIMIT 2 // consecutive busy or timed-out mailbox failures that end a package's mailbox
 #define PHP_HW_HSMP_COMMAND_LIMIT 3 // consecutive firmware failures that drop a command
 #define PHP_HW_HSMP_DIMM_INTERVAL 5 // passes between DIMM reads
-#define PHP_HW_HSMP_DIMM_PROBES 64
+#define PHP_HW_HSMP_DIMM_PROBES (PH_HW_HSMP_DIMM_CHANNELS * 4) // two DIMMs a channel, two sensors a DIMM
 
 typedef struct _PHP_HW_HSMP_PACKAGE
 {
@@ -260,7 +260,8 @@ static VOID PhpHwHsmpReadDimms(
         for (ULONG i = 0; i < PHP_HW_HSMP_DIMM_PROBES; i++)
         {
             commands[count].Opcode = PH_HW_HSMP_GET_DIMM_THERMAL;
-            commands[count].Arguments[0] = 0x80 | ((i >> 5) << 6) | (((i >> 4) & 1) << 4) | (i & 0xF);
+            commands[count].Arguments[0] = 0x80 | ((i / (PH_HW_HSMP_DIMM_CHANNELS * 2)) << 6) |
+                (((i / PH_HW_HSMP_DIMM_CHANNELS) & 1) << 4) | (i % PH_HW_HSMP_DIMM_CHANNELS);
             entries[count++] = (UCHAR)i;
         }
     }
