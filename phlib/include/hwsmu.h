@@ -72,6 +72,8 @@ typedef enum _PH_HW_NAMED_SENSOR_KIND
 #define PH_HW_HSMP_GET_C0_PERCENT 0x11
 #define PH_HW_HSMP_GET_DDR_BANDWIDTH 0x14
 #define PH_HW_HSMP_GET_TEMP_MONITOR 0x15
+#define PH_HW_HSMP_GET_DIMM_POWER 0x17 // argument: the DIMM address
+#define PH_HW_HSMP_GET_DIMM_THERMAL 0x18 // argument: the DIMM address
 #define PH_HW_HSMP_GET_SOCKET_FREQ_LIMIT 0x19
 #define PH_HW_HSMP_GET_RAILS_SVI 0x1B
 #define PH_HW_HSMP_GET_SOCKET_FMAX_FMIN 0x1C
@@ -142,7 +144,8 @@ typedef enum _PH_HW_SMU_ID
     PhHwSmuIdMiscRailVrm,
     PhHwSmuIdCoreRail1Vrm,
     PhHwSmuIdL3 = 0x100, // + CCX
-    PhHwSmuIdCore = 0x200 // + core
+    PhHwSmuIdCore = 0x200, // + core
+    PhHwSmuIdDimm = 0x400 // + DIMM address
 } PH_HW_SMU_ID;
 
 // Sensor name is Name, then Index unless PH_HW_SMU_NO_INDEX, then Suffix.
@@ -190,6 +193,15 @@ PhHwSmuDecodePmTable(
 
 PHLIBAPI extern CONST UCHAR PhHwSmuHsmpCommands[];
 PHLIBAPI extern CONST ULONG PhHwSmuHsmpCommandCount;
+
+PHLIBAPI
+VOID
+NTAPI
+PhHwSmuDecodeHsmpDimm(
+    _In_ ULONG Opcode,
+    _In_ ULONG Response,
+    _Inout_ PPH_HW_SMU_DECODE Decode
+    );
 
 PHLIBAPI
 VOID

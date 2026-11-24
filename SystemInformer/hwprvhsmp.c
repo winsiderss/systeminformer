@@ -15,10 +15,15 @@
 #include <trace.h>
 
 // Collector hsmp: the AMD server firmware's HSMP mailbox of each socket, one KphHwHsmpCommand a package a second with
-// the commands of phlib's PhHwSmuHsmpCommands still accepted, decoded by phlib into named sensors.
+// the commands of phlib's PhHwSmuHsmpCommands still accepted, decoded by phlib into named sensors. On protocol 5 and 7
+// a second call every PHP_HW_HSMP_DIMM_INTERVAL passes reads the DIMMs: its first sends GET_DIMM_THERMAL to each of
+// the PHP_HW_HSMP_DIMM_PROBES addresses 80h | sensor << 6 | bit 4 | UMC and keeps those answered with the address
+// echoed; later ones read their temperature, and the power of each sensor-0 address.
 
 #define PHP_HW_HSMP_STRIKE_LIMIT 2 // consecutive busy or timed-out mailbox failures that end a package's mailbox
 #define PHP_HW_HSMP_COMMAND_LIMIT 3 // consecutive firmware failures that drop a command
+#define PHP_HW_HSMP_DIMM_INTERVAL 5 // passes between DIMM reads
+#define PHP_HW_HSMP_DIMM_PROBES 64
 
 typedef struct _PHP_HW_HSMP_PACKAGE
 {
@@ -35,6 +40,14 @@ typedef struct _PHP_HW_HSMP_PACKAGE
     FLOAT MemoryClock;
     UCHAR Failures[PH_HW_HSMP_MAX_COMMANDS];
     PHP_HW_SMU_SENSORS Sensors;
+    BOOLEAN DimmProbed;
+    BOOLEAN DimmPowerDropped;
+    UCHAR DimmPowerFailures;
+    UCHAR DimmCount;
+    ULONG DimmPasses;
+    UCHAR DimmAddresses[PHP_HW_HSMP_DIMM_PROBES];
+    ULONG DimmThermal[PHP_HW_HSMP_DIMM_PROBES]; // the last answer, 0 for none
+    ULONG DimmPower[PHP_HW_HSMP_DIMM_PROBES];
 } PHP_HW_HSMP_PACKAGE, *PPHP_HW_HSMP_PACKAGE;
 
 static PPHP_HW_HSMP_PACKAGE PhpHwHsmpPackages = NULL; // per package
@@ -225,6 +238,120 @@ static VOID PhpHwHsmpRead(
 }
 
 /**
+ * Sends a package's DIMM call: the probe until a probe call is answered, then each kept address's temperature and power.
+ */
+static VOID PhpHwHsmpReadDimms(
+    _Inout_ PPHP_HW_HSMP_PACKAGE Package,
+    _In_ ULONG PackageIndex
+    )
+{
+    PKPH_HW_HSMP_COMMAND commands;
+    PKPH_HW_HSMP_RESULT results;
+    UCHAR entries[PHP_HW_HSMP_DIMM_PROBES * 2];
+    NTSTATUS mailbox = STATUS_SUCCESS;
+    ULONG count = 0;
+    NTSTATUS status;
+
+    commands = PhAllocateZero(sizeof(KPH_HW_HSMP_COMMAND) * PHP_HW_HSMP_DIMM_PROBES * 2);
+    results = PhAllocateZero(sizeof(KPH_HW_HSMP_RESULT) * PHP_HW_HSMP_DIMM_PROBES * 2);
+
+    if (!Package->DimmProbed)
+    {
+        for (ULONG i = 0; i < PHP_HW_HSMP_DIMM_PROBES; i++)
+        {
+            commands[count].Opcode = PH_HW_HSMP_GET_DIMM_THERMAL;
+            commands[count].Arguments[0] = 0x80 | ((i >> 5) << 6) | (((i >> 4) & 1) << 4) | (i & 0xF);
+            entries[count++] = (UCHAR)i;
+        }
+    }
+    else
+    {
+        for (ULONG i = 0; i < Package->DimmCount; i++)
+        {
+            commands[count].Opcode = PH_HW_HSMP_GET_DIMM_THERMAL;
+            commands[count].Arguments[0] = Package->DimmAddresses[i];
+            entries[count++] = (UCHAR)i;
+
+            if (!Package->DimmPowerDropped && !(Package->DimmAddresses[i] & 0x40))
+            {
+                commands[count].Opcode = PH_HW_HSMP_GET_DIMM_POWER;
+                commands[count].Arguments[0] = Package->DimmAddresses[i];
+                entries[count++] = (UCHAR)i;
+            }
+        }
+    }
+
+    status = count ? KphHwHsmpCommand(Package->Locator, PackageIndex, commands, count, results) : STATUS_SUCCESS;
+
+    memset(Package->DimmThermal, 0, sizeof(Package->DimmThermal));
+    memset(Package->DimmPower, 0, sizeof(Package->DimmPower));
+
+    if (!NT_SUCCESS(status))
+    {
+        PhpHwHsmpApplyStatus(Package, PackageIndex, status);
+        goto CleanupExit;
+    }
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        ULONG address = commands[i].Arguments[0];
+        NTSTATUS entryStatus = results[i].Status;
+        BOOLEAN echoed = NT_SUCCESS(entryStatus) && (results[i].Results[0] & 0xFF) == address;
+
+        switch (entryStatus)
+        {
+        case STATUS_RETRY:
+        case STATUS_DEVICE_NOT_READY:
+        case STATUS_DEVICE_BUSY:
+        case STATUS_IO_TIMEOUT:
+        case STATUS_DEVICE_DATA_ERROR:
+        case STATUS_INSUFFICIENT_RESOURCES:
+        case STATUS_NO_MEMORY:
+            if (NT_SUCCESS(mailbox))
+                mailbox = entryStatus;
+            continue;
+        }
+
+        if (!Package->DimmProbed)
+        {
+            if (echoed)
+            {
+                Package->DimmAddresses[Package->DimmCount] = (UCHAR)address;
+                Package->DimmThermal[Package->DimmCount] = results[i].Results[0];
+                Package->DimmCount++;
+            }
+        }
+        else if (commands[i].Opcode == PH_HW_HSMP_GET_DIMM_THERMAL)
+        {
+            if (echoed)
+                Package->DimmThermal[entries[i]] = results[i].Results[0];
+        }
+        else if (echoed)
+        {
+            Package->DimmPowerFailures = 0;
+            Package->DimmPower[entries[i]] = results[i].Results[0];
+        }
+        else if (entryStatus != STATUS_CANCELLED && ++Package->DimmPowerFailures >= PHP_HW_HSMP_COMMAND_LIMIT)
+        {
+            Package->DimmPowerDropped = TRUE;
+            PhTraceInfo("Hardware sensors: HSMP DIMM power of package %lu unavailable: 0x%lx", PackageIndex, entryStatus);
+        }
+    }
+
+    if (!Package->DimmProbed && NT_SUCCESS(mailbox))
+    {
+        Package->DimmProbed = TRUE;
+        PhTraceInfo("Hardware sensors: HSMP package %lu answers %lu DIMM sensors", PackageIndex, Package->DimmCount);
+    }
+
+    PhpHwHsmpApplyStatus(Package, PackageIndex, mailbox);
+
+CleanupExit:
+    PhFree(results);
+    PhFree(commands);
+}
+
+/**
  * Identifies the packages whose identify met contention, then reads, decodes and publishes each package's batch.
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
@@ -262,6 +389,21 @@ NTSTATUS PhpHwHsmpPass(
                 retried = TRUE;
             else
                 answered = TRUE;
+
+            if (!package->Ended && (package->Version == 5 || package->Version == 7) &&
+                ++package->DimmPasses >= PHP_HW_HSMP_DIMM_INTERVAL)
+            {
+                package->DimmPasses = 0;
+                PhpHwHsmpReadDimms(package, i);
+            }
+
+            for (ULONG j = 0; j < package->DimmCount; j++)
+            {
+                if (package->DimmThermal[j])
+                    PhHwSmuDecodeHsmpDimm(PH_HW_HSMP_GET_DIMM_THERMAL, package->DimmThermal[j], &PhpHwHsmpDecode);
+                if (package->DimmPower[j])
+                    PhHwSmuDecodeHsmpDimm(PH_HW_HSMP_GET_DIMM_POWER, package->DimmPower[j], &PhpHwHsmpDecode);
+            }
         }
 
         PhpHwSmuPublish(&package->Sensors, i, PH_HW_SMU_ID_HSMP, &PhpHwHsmpDecode);
@@ -365,6 +507,9 @@ VOID PhpHwHsmpDiagnostics(
 
         if (package->LimitSourcesValid)
             PhAppendFormatStringBuilder(Builder, L", limit sources 0x%04lx", package->LimitSources);
+
+        if (package->DimmProbed)
+            PhAppendFormatStringBuilder(Builder, L", DIMM sensors %lu%s", package->DimmCount, package->DimmPowerDropped ? L" (no power)" : L"");
 
         PhAppendStringBuilder2(Builder, L"\n");
     }
