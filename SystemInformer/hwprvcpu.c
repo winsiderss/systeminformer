@@ -103,6 +103,9 @@ typedef enum _PHP_HW_REG
     PhpHwRegConfigTdpLevel2, // Intel MSR_CONFIG_TDP_LEVEL_2
     PhpHwRegConfigTdpControl, // Intel MSR_CONFIG_TDP_CONTROL
     PhpHwRegTurboActivationRatio, // Intel MSR_TURBO_ACTIVATION_RATIO
+    PhpHwRegCppcCapability1, // AMD CPPC_CAP1, read on every core: its highest performance ranks the preferred cores
+    PhpHwRegCppcEnable, // AMD CPPC_ENABLE
+    PhpHwRegCppcRequest, // AMD CPPC_REQ
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 64);
@@ -191,6 +194,9 @@ static ULONG64 PhpHwCpuPolicy[12] = { 0 }; // Intel, processor 0 at the probe: P
 static ULONG PhpHwCpuTccOffset = ULONG_MAX; // Intel MSR_TEMPERATURE_TARGET 29:24; ULONG_MAX when unread
 static PULONG PhpHwCpuPp1Index = NULL; // per package, the integrated graphics power's named sensor; ULONG_MAX when not listed
 static ULONG PhpHwCpuPolicyValid = 0; // 1 << the index into PhpHwCpuPolicy
+static ULONG64 PhpHwCpuCppc[3] = { 0 }; // AMD, processor 0 at the probe: PhpHwRegCppcCapability1 to PhpHwRegCppcRequest
+static ULONG PhpHwCpuCppcValid = 0; // 1 << the index into PhpHwCpuCppc
+static PUCHAR PhpHwCpuCppcHighest = NULL; // AMD, per core: CPPC_CAP1 highest performance; 0 when unread
 static PULONG PhpHwCpuResidencyIndex = NULL; // the C-state named sensors, per core then per package; ULONG_MAX when not listed
 static PBOOLEAN PhpHwCpuFirstOfUnit = NULL; // per processor; NULL without compute units
 static ULONG PhpHwCpuUnitSampleRatio = 0; // CPUID 8000_0007h ECX
@@ -260,6 +266,9 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegPackageEnergy, PH_AMD_MSR_PKG_ENERGY_STAT, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegRaplUnit, PH_AMD_MSR_RAPL_PWR_UNIT, PhpHwScopePackage);
         PhpHwCpuSetRegister(PhpHwRegPStateDef0, PH_AMD_MSR_PSTATE_DEF0, PhpHwScopePackage);
+        PhpHwCpuSetRegister(PhpHwRegCppcCapability1, 0xC00102B0, PhpHwScopeCore);
+        PhpHwCpuSetRegister(PhpHwRegCppcEnable, 0xC00102B1, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegCppcRequest, 0xC00102B3, PhpHwScopeThread);
     }
     else if (PhpHwCpuClass == PhpHwCpuAmdLegacy)
     {
@@ -692,8 +701,16 @@ static VOID PhpHwCpuProbeRead(
 
             if (!PhpHwCpuRegisters[reg].Register || PhpHwCpuItemCount >= PhpHwCpuCapacity)
                 continue;
-            if (package ? !PhpHwCpuFirstOfPackage[i] : i != 0)
+
+            if (PhpHwCpuRegisters[reg].Scope == PhpHwScopeCore && PhpHwCpuProbeOnly(reg))
+            {
+                if (!PhpHwCpuFirstOfCore[i])
+                    continue;
+            }
+            else if (package ? !PhpHwCpuFirstOfPackage[i] : i != 0)
+            {
                 continue;
+            }
 
             PhpHwCpuItems[PhpHwCpuItemCount].Group = PhpHwCpuSensors[i].ProcessorNumber.Group;
             PhpHwCpuItems[PhpHwCpuItemCount].Number = PhpHwCpuSensors[i].ProcessorNumber.Number;
@@ -719,6 +736,25 @@ static VOID PhpHwCpuProbeRead(
             PhpHwCpuPolicy[k] = first->Value[reg];
             PhpHwCpuPolicyValid |= 1UL << k;
         }
+    }
+
+    for (ULONG k = 0; k < RTL_NUMBER_OF(PhpHwCpuCppc); k++)
+    {
+        PHP_HW_REG reg = PhpHwRegCppcCapability1 + k;
+
+        if (PhpHwCpuClass == PhpHwCpuAmdZen && (first->Valid & (1ULL << reg)))
+        {
+            PhpHwCpuCppc[k] = first->Value[reg];
+            PhpHwCpuCppcValid |= 1UL << k;
+        }
+    }
+
+    for (ULONG c = 0; PhpHwCpuClass == PhpHwCpuAmdZen && c < PhpHwCpuCoreCount; c++)
+    {
+        ULONG processor = PhpHwCpuCoreFirst[c];
+
+        if (processor != ULONG_MAX && (PhpHwCpuSamples[processor].Valid & (1ULL << PhpHwRegCppcCapability1)))
+            PhpHwCpuCppcHighest[c] = (UCHAR)(PhpHwCpuSamples[processor].Value[PhpHwRegCppcCapability1] >> 24);
     }
 
     // The read-only APERF and MPERF aliases may fault or read zero under a hypervisor.
@@ -1018,6 +1054,7 @@ NTSTATUS PhpHwCpuProbe(
     }
 
     PhpHwCpuCoreFirst = PhAllocate(sizeof(ULONG) * PhpHwCpuCoreCount);
+    PhpHwCpuCppcHighest = PhAllocateZero(sizeof(UCHAR) * max(PhpHwCpuCoreCount, 1));
     PhpHwCpuPackageFirst = PhAllocate(sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuPackageCores = PhAllocateZero(sizeof(ULONG) * max(PhpHwPackageCount, 1));
     PhpHwCpuTickCorePower = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
@@ -1972,6 +2009,7 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuFirstOfCore);
     PhpHwCpuFree(&PhpHwCpuFirstOfPackage);
     PhpHwCpuFree(&PhpHwCpuCoreFirst);
+    PhpHwCpuFree(&PhpHwCpuCppcHighest);
     PhpHwCpuFree(&PhpHwCpuPackageFirst);
     PhpHwCpuFree(&PhpHwCpuPackageCores);
     PhpHwCpuFree(&PhpHwCpuTickCorePower);
@@ -1992,6 +2030,8 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuPp1Index);
     memset(PhpHwCpuPolicy, 0, sizeof(PhpHwCpuPolicy));
     PhpHwCpuPolicyValid = 0;
+    memset(PhpHwCpuCppc, 0, sizeof(PhpHwCpuCppc));
+    PhpHwCpuCppcValid = 0;
     PhpHwCpuTccOffset = ULONG_MAX;
     PhpHwCpuFree(&PhpHwCpuFirstOfUnit);
     PhpHwCpuFree(&PhpHwCpuPackageIdentity);
@@ -2082,6 +2122,89 @@ FLOAT PhpHwCpuQueryPowerUnit(
     )
 {
     return PhpHwCpuPowerUnit;
+}
+
+/**
+ * Appends AMD CPPC as processor 0 had it at the probe, and the cores by their highest performance, the preferred first.
+ */
+static VOID PhpHwCpuAppendCppc(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PULONG cores;
+    ULONG count = 0;
+    UCHAR highest = 0;
+    BOOLEAN ranked = FALSE;
+
+    if (PhpHwCpuCppcValid & 0x1)
+    {
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"  CPPC: highest %lu, nominal %lu, lowest nonlinear %lu, lowest %lu",
+            (ULONG)((PhpHwCpuCppc[0] >> 24) & 0xFF),
+            (ULONG)((PhpHwCpuCppc[0] >> 16) & 0xFF),
+            (ULONG)((PhpHwCpuCppc[0] >> 8) & 0xFF),
+            (ULONG)(PhpHwCpuCppc[0] & 0xFF)
+            );
+
+        if (PhpHwCpuCppcValid & 0x2)
+            PhAppendFormatStringBuilder(Builder, L"; enabled %lu", (ULONG)(PhpHwCpuCppc[1] & 1));
+
+        if (PhpHwCpuCppcValid & 0x4)
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"; request minimum %lu, maximum %lu, desired %lu, EPP %lu",
+                (ULONG)((PhpHwCpuCppc[2] >> 8) & 0xFF),
+                (ULONG)(PhpHwCpuCppc[2] & 0xFF),
+                (ULONG)((PhpHwCpuCppc[2] >> 16) & 0xFF),
+                (ULONG)((PhpHwCpuCppc[2] >> 24) & 0xFF)
+                );
+        }
+
+        PhAppendStringBuilder2(Builder, L"\n");
+    }
+
+    if (!PhpHwCpuCppcHighest || !PhpHwCpuCoreCount)
+        return;
+
+    cores = PhAllocate(sizeof(ULONG) * PhpHwCpuCoreCount);
+
+    // Insertion by highest performance, descending; equal cores keep their order.
+    for (ULONG c = 0; c < PhpHwCpuCoreCount; c++)
+    {
+        ULONG at;
+
+        if (!PhpHwCpuCppcHighest[c])
+            continue;
+
+        if (count && PhpHwCpuCppcHighest[c] != highest)
+            ranked = TRUE;
+
+        highest = PhpHwCpuCppcHighest[c];
+
+        for (at = count; at && PhpHwCpuCppcHighest[cores[at - 1]] < PhpHwCpuCppcHighest[c]; at--)
+            cores[at] = cores[at - 1];
+
+        cores[at] = c;
+        count++;
+    }
+
+    if (count && !ranked)
+    {
+        PhAppendFormatStringBuilder(Builder, L"  Preferred cores: not ranked (every core %lu)\n", (ULONG)highest);
+    }
+    else if (count)
+    {
+        PhAppendStringBuilder2(Builder, L"  Preferred cores (CPPC highest performance):");
+
+        for (ULONG k = 0; k < count; k++)
+            PhAppendFormatStringBuilder(Builder, L"%s %lu (%lu)", k ? L"," : L"", cores[k], (ULONG)PhpHwCpuCppcHighest[cores[k]]);
+
+        PhAppendStringBuilder2(Builder, L"\n");
+    }
+
+    PhFree(cores);
 }
 
 /**
@@ -2261,6 +2384,7 @@ VOID PhpHwCpuDiagnostics(
     if (PhpHwCpuPolicyValid & 0x800)
         PhAppendFormatStringBuilder(Builder, L"  Turbo activation ratio: %lu\n", (ULONG)(PhpHwCpuPolicy[11] & 0xFF));
 
+    PhpHwCpuAppendCppc(Builder);
     PhpHwCpuAppendMicrocode(Builder);
 
     for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
