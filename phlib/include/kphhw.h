@@ -617,6 +617,17 @@ KphHwHpRead(
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
 
+#define KPH_HW_PROM21_DIES 8
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwProm21Read(
+    _In_reads_(Count) const ULONG* Locators,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
 #define KPH_HW_GIGABYTE_SENSORS 6
 
 PHLIBAPI

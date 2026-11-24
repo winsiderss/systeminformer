@@ -938,3 +938,135 @@ VOID PhHwWriteBridgeDiagnostics(
         PhAppendCharStringBuilder(Builder, L'\n');
     }
 }
+
+#define PHP_HW_PROM21_ID_BASE 0x50320000 // named sensor ids of the second and later chipset dies: + die
+
+static CONST USHORT PhpHwProm21Devices[] = { 0x43F7, 0x43F9, 0x43FA, 0x43FC, 0x43FD };
+static ULONG PhpHwProm21Locators[KPH_HW_PROM21_DIES];
+static ULONG PhpHwProm21NamedIndex[KPH_HW_PROM21_DIES]; // the second and later dies
+static ULONG PhpHwProm21Count = 0;
+static NTSTATUS PhpHwProm21Status = STATUS_NOT_SUPPORTED; // the last read, for the report
+static UCHAR PhpHwProm21Strikes = 0;
+static BOOLEAN PhpHwProm21Ended = FALSE;
+
+/**
+ * Finds the USB controllers of AMD Promontory 21 chipset dies, sorted by location: the first die is the chipset
+ * temperature, each other a named temperature.
+ *
+ * \return STATUS_SUCCESS, or STATUS_NOT_SUPPORTED when there is none.
+ */
+NTSTATUS PhpHwProm21Probe(
+    VOID
+    )
+{
+    PhpHwProm21Count = PhpHwEnumeratePciFunctions(
+        0x1022,
+        0x1022,
+        0x0C03,
+        PhpHwProm21Devices,
+        RTL_NUMBER_OF(PhpHwProm21Devices),
+        FALSE,
+        PhpHwProm21Locators,
+        RTL_NUMBER_OF(PhpHwProm21Locators)
+        );
+
+    if (!PhpHwProm21Count)
+        return STATUS_NOT_SUPPORTED;
+
+    for (ULONG i = 1; i < PhpHwProm21Count; i++)
+    {
+        PPH_STRING name = PhFormatString(L"Chipset die %lu", i + 1);
+
+        PhpHwProm21NamedIndex[i] = PhpHwAddNamedSensor(PhHwNamedSensorAcpiTemperature, 0, PHP_HW_PROM21_ID_BASE + i, name->Buffer);
+        PhDereferenceObject(name);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Publishes one read of every die: C = raw x 0.9066 - 78.624, a raw 0 or a die that is not in D0 no value. Three failed
+ * reads in a row end the source; a bus another tool holds is a retry.
+ *
+ * \return STATUS_RETRY when another tool holds the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwProm21Pass(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[KPH_HW_PROM21_DIES];
+    ULONG capabilities = 0;
+    BOOLEAN read;
+
+    if (PhpHwProm21Ended || !PhpHwProm21Count)
+        return STATUS_NOT_SUPPORTED;
+
+    PhpHwProm21Status = KphHwProm21Read(PhpHwProm21Locators, PhpHwProm21Count, values);
+
+    if (PhpHwProm21Status == STATUS_RETRY)
+        return STATUS_RETRY;
+
+    read = NT_SUCCESS(PhpHwProm21Status);
+
+    if (read)
+        PhpHwProm21Strikes = 0;
+    else if (++PhpHwProm21Strikes >= 3)
+        PhpHwProm21Ended = TRUE;
+
+    for (ULONG i = 0; i < PhpHwProm21Count; i++)
+    {
+        BOOLEAN valid = read && NT_SUCCESS(values[i].Status) && (values[i].Value & 0xFF) != 0;
+        FLOAT celsius = valid ? (FLOAT)(values[i].Value & 0xFF) * 0.9066f - 78.624f : 0.0f;
+
+        if (i == 0)
+        {
+            PhpHwChipsetTemperature = celsius;
+            PhpHwChipsetTemperatureValid = valid;
+
+            if (valid)
+                capabilities |= PH_HW_CAP_CHIPSET_TEMP;
+        }
+        else
+        {
+            PhpHwSetNamedSensor(PhpHwProm21NamedIndex[i], valid, celsius);
+
+            if (valid)
+                capabilities |= PH_HW_CAP_ACPI_TEMP;
+        }
+    }
+
+    PhpHwFamilies[PhpHwFamilyProm21].Capabilities = PhpHwProm21Ended ? 0 : capabilities;
+
+    return PhpHwProm21Ended ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the controllers are found again at the next.
+ */
+VOID PhpHwProm21End(
+    VOID
+    )
+{
+    PhpHwProm21Status = STATUS_NOT_SUPPORTED;
+    PhpHwProm21Count = 0;
+    PhpHwProm21Strikes = 0;
+    PhpHwProm21Ended = FALSE;
+}
+
+/**
+ * Writes the Promontory 21 source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwProm21Diagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  Chipset dies: last read 0x%08lx, %lu found%s\n",
+        PhpHwProm21Status,
+        PhpHwProm21Count,
+        PhpHwProm21Ended ? L", ended" : L""
+        );
+}

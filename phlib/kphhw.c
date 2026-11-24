@@ -64,6 +64,8 @@ static CONST PH_STRINGREF KphpHwAlienwareFileName = PH_STRINGREF_INIT(L"scripts\
 static KPH_HW_SCRIPT KphpHwAlienwareScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAlienwareFileName };
 static CONST PH_STRINGREF KphpHwHpFileName = PH_STRINGREF_INIT(L"scripts\\hpwmi.bin");
 static KPH_HW_SCRIPT KphpHwHpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHpFileName };
+static CONST PH_STRINGREF KphpHwProm21FileName = PH_STRINGREF_INIT(L"scripts\\prom21.bin");
+static KPH_HW_SCRIPT KphpHwProm21Script = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwProm21FileName };
 static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
 static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
@@ -227,6 +229,7 @@ VOID KphHwSetScriptMode(
         &KphpHwGigabyteScript,
         &KphpHwAlienwareScript,
         &KphpHwHpScript,
+        &KphpHwProm21Script,
         &KphpHwOcMailboxScript,
     };
 
@@ -2026,6 +2029,61 @@ NTSTATUS KphHwHpRead(
         Count * sizeof(KPH_HW_VALUE32),
         &returnLength
         );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != Count * sizeof(KPH_HW_VALUE32))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
+
+    return status;
+}
+
+/**
+ * Reads the die temperature of AMD Promontory 21 chipsets through their USB
+ * controllers.
+ *
+ * \param Locators Each controller's location: (segment << 16) | (bus << 8) |
+ * (device << 3) | function.
+ * \param Count The number of controllers.
+ * \param Values Receives a status and the raw byte per controller; 0 is no
+ * reading.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bus.
+ */
+NTSTATUS KphHwProm21Read(
+    _In_reads_(Count) const ULONG* Locators,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_VALUE32 values[KPH_HW_PROM21_DIES];
+    ULONG returnLength = 0;
+
+    if (Count == 0 || Count > RTL_NUMBER_OF(values))
+        return STATUS_INVALID_PARAMETER;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwProm21Script,
+        &routine,
+        (PVOID)Locators,
+        Count * sizeof(ULONG),
+        values,
+        Count * sizeof(KPH_HW_VALUE32),
+        &returnLength
+        );
+
+    KphpHwReleaseBus(KphHwBusPci);
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
