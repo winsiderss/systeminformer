@@ -94,6 +94,7 @@ typedef enum _PHP_HW_REG
     PhpHwRegHwpCapabilities, // Intel IA32_HWP_CAPABILITIES
     PhpHwRegHwpRequest, // Intel IA32_HWP_REQUEST
     PhpHwRegEnergyPerfBias, // Intel IA32_ENERGY_PERF_BIAS
+    PhpHwRegSmiCount, // Intel MSR_SMI_COUNT, the report only
     PhpHwRegMaximum
 } PHP_HW_REG;
 C_ASSERT(PhpHwRegMaximum <= 64);
@@ -178,7 +179,7 @@ static PBOOLEAN PhpHwCpuDramEnergySeen = NULL; // per package: the counter moved
 static PBOOLEAN PhpHwCpuPlatformEnergySeen = NULL;
 static PULONG PhpHwCpuUncoreIndex = NULL; // per package, the uncore clock's named sensor; ULONG_MAX when not listed
 static PULONG PhpHwCpuLimitIndex = NULL; // per package, PHP_HW_CPU_LIMIT_SENSORS named sensors; ULONG_MAX when not listed
-static ULONG64 PhpHwCpuPolicy[4] = { 0 }; // Intel, processor 0 at the probe: PM_ENABLE, HWP_CAPABILITIES, HWP_REQUEST, ENERGY_PERF_BIAS
+static ULONG64 PhpHwCpuPolicy[5] = { 0 }; // Intel, processor 0 at the probe: PM_ENABLE, HWP_CAPABILITIES, HWP_REQUEST, ENERGY_PERF_BIAS, SMI_COUNT
 static ULONG PhpHwCpuPolicyValid = 0; // 1 << the index into PhpHwCpuPolicy
 static PULONG PhpHwCpuResidencyIndex = NULL; // the C-state named sensors, per core then per package; ULONG_MAX when not listed
 static PBOOLEAN PhpHwCpuFirstOfUnit = NULL; // per processor; NULL without compute units
@@ -317,6 +318,7 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegHwpCapabilities, 0x771, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegHwpRequest, 0x774, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegEnergyPerfBias, 0x1B0, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegSmiCount, 0x34, PhpHwScopeThread);
 
         // A model without a state faults its counter, which leaves the plan at the probe.
         for (ULONG r = 0; r < RTL_NUMBER_OF(PhpHwCpuResidencyRegs); r++)
@@ -2044,6 +2046,34 @@ FLOAT PhpHwCpuQueryPowerUnit(
  *
  * \param Builder The report.
  */
+/**
+ * Appends the microcode revision Windows recorded for processor 0 (Update Revision: 8 bytes with the revision in the
+ * high half on Intel, 4 bytes elsewhere).
+ */
+static VOID PhpHwCpuAppendMicrocode(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    static CONST PH_STRINGREF processorKeyName = PH_STRINGREF_INIT(L"Hardware\\Description\\System\\CentralProcessor\\0");
+    HANDLE keyHandle;
+    PKEY_VALUE_PARTIAL_INFORMATION value;
+
+    if (!NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, &processorKeyName, 0)))
+        return;
+
+    if (NT_SUCCESS(PhQueryValueKeyZ(keyHandle, L"Update Revision", KeyValuePartialInformation, &value)))
+    {
+        if (value->Type == REG_BINARY && value->DataLength == sizeof(ULONG64))
+            PhAppendFormatStringBuilder(Builder, L"  Microcode: 0x%08lx\n", (ULONG)(*(PULONG64)value->Data >> 32));
+        else if (value->Type == REG_BINARY && value->DataLength == sizeof(ULONG))
+            PhAppendFormatStringBuilder(Builder, L"  Microcode: 0x%08lx\n", *(PULONG)value->Data);
+
+        PhFree(value);
+    }
+
+    NtClose(keyHandle);
+}
+
 VOID PhpHwCpuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
@@ -2147,6 +2177,10 @@ VOID PhpHwCpuDiagnostics(
 
     if (PhpHwCpuPolicyValid & 0x8)
         PhAppendFormatStringBuilder(Builder, L"  Energy/performance bias: %lu\n", (ULONG)(PhpHwCpuPolicy[3] & 0xF));
+    if (PhpHwCpuPolicyValid & 0x10)
+        PhAppendFormatStringBuilder(Builder, L"  SMI count: %lu (processor 0, at the probe)\n", (ULONG)PhpHwCpuPolicy[4]);
+
+    PhpHwCpuAppendMicrocode(Builder);
 
     for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
     {
