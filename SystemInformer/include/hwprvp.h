@@ -53,6 +53,7 @@ typedef enum _PHP_HW_FAMILY_ID
     PhpHwFamilyPciConfig,
     PhpHwFamilyVsec,
     PhpHwFamilyCrosEc,
+    PhpHwFamilyBoardEc,
     PhpHwFamilySmu,
     PhpHwFamilyHsmp,
     PhpHwFamilySmbus,
@@ -209,6 +210,22 @@ VOID PhpHwCrosEcEnd(
     );
 
 VOID PhpHwCrosEcDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+NTSTATUS PhpHwBoardEcProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwBoardEcPass(
+    VOID
+    );
+
+VOID PhpHwBoardEcEnd(
+    VOID
+    );
+
+VOID PhpHwBoardEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 

@@ -315,3 +315,238 @@ VOID PhpHwCrosEcDiagnostics(
         PhpHwCrosEcEnded ? L", ended" : L""
         );
 }
+
+#define PHP_HW_BOARDEC_SENSORS 32
+#define PHP_HW_BOARDEC_ID_BASE 0x42454300 // named sensor ids of the board EC, apart from the Chrome EC's
+#define PHP_HW_BOARDEC_STRIKE_LIMIT 3
+
+static KPH_HW_EC_SENSOR PhpHwBoardEcSensors[PHP_HW_BOARDEC_SENSORS];
+static ULONG PhpHwBoardEcCount = 0;
+static ULONG PhpHwBoardEcNamedIndex[PHP_HW_BOARDEC_SENSORS]; // ULONG_MAX when not presented
+static KPH_HW_EC_REGISTER PhpHwBoardEcRegisters[PHP_HW_BOARDEC_SENSORS * 2]; // each presented sensor's bytes
+static ULONG PhpHwBoardEcRegisterCount = 0;
+static KPH_HW_EC_IDENTITY PhpHwBoardEcIdentity;
+static NTSTATUS PhpHwBoardEcListStatus = STATUS_NOT_SUPPORTED; // STATUS_NOT_SUPPORTED when not probed
+static NTSTATUS PhpHwBoardEcStatus = STATUS_NOT_SUPPORTED; // the last read, for the report
+static UCHAR PhpHwBoardEcStrikes = 0;
+static BOOLEAN PhpHwBoardEcEnded = FALSE;
+static BOOLEAN PhpHwBoardEcListed = FALSE;
+
+/**
+ * Lists the board EC's sensors the script has a row for and names those SI presents: temperatures, voltages, fans.
+ *
+ * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED on a board without a row or EC, or a failed call's status.
+ */
+static NTSTATUS PhpHwBoardEcList(
+    VOID
+    )
+{
+    NTSTATUS status;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwBoardEcNamedIndex); i++)
+        PhpHwBoardEcNamedIndex[i] = ULONG_MAX;
+
+    PhpHwBoardEcRegisterCount = 0;
+    status = KphHwEcSensors(PhpHwBoardEcSensors, RTL_NUMBER_OF(PhpHwBoardEcSensors), &PhpHwBoardEcCount);
+
+    if (NT_SUCCESS(status))
+        status = KphHwEcIdentify(0, &PhpHwBoardEcIdentity);
+
+    PhpHwBoardEcListStatus = status;
+
+    if (!NT_SUCCESS(status))
+    {
+        PhTraceInfo("Hardware sensors: board EC not listed: 0x%lx", status);
+
+        if (status == STATUS_NOT_FOUND)
+            return STATUS_NOT_SUPPORTED;
+
+        return status;
+    }
+
+    for (ULONG i = 0; i < PhpHwBoardEcCount; i++)
+    {
+        PKPH_HW_EC_SENSOR sensor = &PhpHwBoardEcSensors[i];
+        PH_HW_NAMED_SENSOR_KIND kind;
+        PPH_STRING name;
+
+        if (sensor->Kind == KphHwEcTemperature && sensor->Size == 1)
+            kind = PhHwNamedSensorAcpiTemperature;
+        else if (sensor->Kind == KphHwEcVoltage && sensor->Size == 2)
+            kind = PhHwNamedSensorAcpiVoltage;
+        else if (sensor->Kind == KphHwEcFan && sensor->Size == 2)
+            kind = PhHwNamedSensorFanSpeed;
+        else
+            continue;
+
+        name = PhConvertUtf8ToUtf16(sensor->Label);
+        PhpHwBoardEcNamedIndex[i] = PhpHwAddNamedSensor(kind, 0, PHP_HW_BOARDEC_ID_BASE + i, name->Buffer);
+        PhDereferenceObject(name);
+
+        for (UCHAR b = 0; b < sensor->Size; b++)
+        {
+            PhpHwBoardEcRegisters[PhpHwBoardEcRegisterCount].Bank = sensor->Bank;
+            PhpHwBoardEcRegisters[PhpHwBoardEcRegisterCount].Register = sensor->Register + b;
+            PhpHwBoardEcRegisterCount++;
+        }
+    }
+
+    PhpHwBoardEcListed = TRUE;
+
+    return PhpHwBoardEcRegisterCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Lists the board EC's sensors once a session.
+ *
+ * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a row, or the failed call's status.
+ */
+NTSTATUS PhpHwBoardEcProbe(
+    VOID
+    )
+{
+    NTSTATUS status = PhpHwBoardEcList();
+
+    return status == STATUS_NOT_SUPPORTED || PhpHwStatusNotShipped(status) ? status : STATUS_SUCCESS;
+}
+
+/**
+ * Publishes the board EC's sensors from one read of their bytes: a temperature is a signed byte of degrees C (-62,
+ * -60 and -40 mark an unconnected probe), a voltage big-endian mV, a fan big-endian RPM. Contention is no value; three
+ * failed reads in a row end the EC.
+ *
+ * \return STATUS_RETRY when the read met contention, STATUS_NOT_SUPPORTED once the EC ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwBoardEcPass(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[RTL_NUMBER_OF(PhpHwBoardEcRegisters)];
+    ULONG capabilities = 0;
+    ULONG at = 0;
+    BOOLEAN read;
+
+    if (PhpHwBoardEcEnded)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!PhpHwBoardEcListed)
+    {
+        NTSTATUS status = PhpHwBoardEcList();
+
+        if (status == STATUS_NOT_SUPPORTED)
+            return STATUS_NOT_SUPPORTED;
+        if (!PhpHwBoardEcListed)
+            return ++PhpHwBoardEcStrikes >= PHP_HW_BOARDEC_STRIKE_LIMIT ? STATUS_NOT_SUPPORTED : STATUS_RETRY;
+    }
+
+    PhpHwBoardEcStatus = KphHwEcRead(0, PhpHwBoardEcRegisters, PhpHwBoardEcRegisterCount, values);
+    read = NT_SUCCESS(PhpHwBoardEcStatus);
+
+    if (read)
+    {
+        PhpHwBoardEcStrikes = 0;
+    }
+    else if (PhpHwBoardEcStatus != STATUS_RETRY && PhpHwBoardEcStatus != STATUS_DEVICE_BUSY &&
+        ++PhpHwBoardEcStrikes >= PHP_HW_BOARDEC_STRIKE_LIMIT)
+    {
+        PhTraceInfo("Hardware sensors: board EC unavailable: 0x%lx", PhpHwBoardEcStatus);
+        PhpHwBoardEcEnded = TRUE;
+    }
+
+    for (ULONG i = 0; i < PhpHwBoardEcCount; i++)
+    {
+        PKPH_HW_EC_SENSOR sensor = &PhpHwBoardEcSensors[i];
+        BOOLEAN valid = read;
+        ULONG raw = 0;
+        FLOAT value = 0.0f;
+
+        if (PhpHwBoardEcNamedIndex[i] == ULONG_MAX)
+            continue;
+
+        for (UCHAR b = 0; b < sensor->Size; b++, at++)
+        {
+            if (read && !NT_SUCCESS(values[at].Status))
+                valid = FALSE;
+
+            raw = (raw << 8) | (read ? (values[at].Value & 0xFF) : 0);
+        }
+
+        if (sensor->Kind == KphHwEcTemperature)
+        {
+            SCHAR degrees = (SCHAR)raw;
+
+            valid = valid && degrees != -62 && degrees != -60 && degrees != -40;
+            value = (FLOAT)degrees;
+            capabilities |= PH_HW_CAP_ACPI_TEMP;
+        }
+        else if (sensor->Kind == KphHwEcVoltage)
+        {
+            value = (FLOAT)raw / 1000.0f;
+            capabilities |= PH_HW_CAP_ACPI_TEMP;
+        }
+        else
+        {
+            value = (FLOAT)raw;
+            capabilities |= PH_HW_CAP_FAN_SPEED;
+        }
+
+        PhpHwSetNamedSensor(PhpHwBoardEcNamedIndex[i], valid, value);
+    }
+
+    PhpHwFamilies[PhpHwFamilyBoardEc].Capabilities = PhpHwBoardEcEnded ? 0 : capabilities;
+
+    if (PhpHwBoardEcEnded)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!read && (PhpHwBoardEcStatus == STATUS_RETRY || PhpHwBoardEcStatus == STATUS_DEVICE_BUSY))
+        return STATUS_RETRY;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the board EC is listed again at the next.
+ */
+VOID PhpHwBoardEcEnd(
+    VOID
+    )
+{
+    PhpHwBoardEcListStatus = STATUS_NOT_SUPPORTED;
+    PhpHwBoardEcStatus = STATUS_NOT_SUPPORTED;
+    PhpHwBoardEcCount = 0;
+    PhpHwBoardEcRegisterCount = 0;
+    PhpHwBoardEcStrikes = 0;
+    PhpHwBoardEcEnded = FALSE;
+    PhpHwBoardEcListed = FALSE;
+    memset(&PhpHwBoardEcIdentity, 0, sizeof(PhpHwBoardEcIdentity));
+}
+
+/**
+ * Writes the board EC's section of the hardware report: the list, the controller and the last read.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwBoardEcDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    if (PhpHwBoardEcListStatus == STATUS_NOT_SUPPORTED)
+    {
+        PhAppendStringBuilder2(Builder, L"  Board EC: not listed\n");
+        return;
+    }
+
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  Board EC: list 0x%08lx, %lu sensors, ports %02lx/%02lx%s%s; last read 0x%08lx; %lu bytes an update%s\n",
+        PhpHwBoardEcListStatus,
+        PhpHwBoardEcCount,
+        PhpHwBoardEcIdentity.DataPort,
+        PhpHwBoardEcIdentity.CommandPort,
+        (PhpHwBoardEcIdentity.Flags & KPH_HW_EC_GLOBAL_LOCK) ? L", Global Lock" : L"",
+        (PhpHwBoardEcIdentity.Flags & KPH_HW_EC_BANKED) ? L", banked" : L"",
+        PhpHwBoardEcStatus,
+        PhpHwBoardEcRegisterCount,
+        PhpHwBoardEcEnded ? L", ended" : L""
+        );
+}
