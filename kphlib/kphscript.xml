@@ -72,6 +72,10 @@ This file is part of System Informer.
     <script name="lenovows" file="script/lenovows.lua" arch="amd64" desc="Lenovo ThinkStation embedded controller">
         <routine name="read" level="maximum"/>
     </script>
+    <script name="dell" file="script/dell.lua" arch="amd64" desc="Dell SMM fans and temperatures">
+        <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
+    </script>
     <script name="tsens" file="script/tsens.lua" arch="arm64" desc="Qualcomm TSENS temperature sensors">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>

@@ -1437,6 +1437,16 @@ VOID GpdFanUninitialize(
     VOID
     );
 
+// dellsmm.c
+
+VOID DellSmmInitialize(
+    VOID
+    );
+
+VOID DellSmmUninitialize(
+    VOID
+    );
+
 // lenovows.c
 
 VOID LenovoWsInitialize(

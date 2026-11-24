@@ -476,6 +476,35 @@ KphHwGpdReadFan(
     _Out_ PULONG Rpm
     );
 
+#define KPH_HW_DELL_FANS 4
+#define KPH_HW_DELL_TEMPS 10
+
+typedef struct _KPH_HW_DELL_IDENTITY
+{
+    ULONG Multiplier; // RPM per unit of a fan speed
+    UCHAR FanTypes[KPH_HW_DELL_FANS]; // FFh none, FEh present of no known type
+    UCHAR TempTypes[KPH_HW_DELL_TEMPS]; // FFh none
+    UCHAR Reserved[2];
+} KPH_HW_DELL_IDENTITY, *PKPH_HW_DELL_IDENTITY;
+
+C_ASSERT(sizeof(KPH_HW_DELL_IDENTITY) == 20);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwDellIdentify(
+    _Out_ PKPH_HW_DELL_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwDellRead(
+    _In_ ULONG FanMask,
+    _In_ ULONG TempMask,
+    _Out_writes_(KPH_HW_DELL_FANS + KPH_HW_DELL_TEMPS) PLONG Values
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI

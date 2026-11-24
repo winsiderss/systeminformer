@@ -86,6 +86,9 @@
     <ClCompile Include="battery.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>
+    <ClCompile Include="dellsmm.c">
+      <Filter>Source Files\Motherboard</Filter>
+    </ClCompile>
     <ClCompile Include="gpdfan.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>

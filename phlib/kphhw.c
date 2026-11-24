@@ -52,6 +52,8 @@ static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.b
 static KPH_HW_SCRIPT KphpHwGpdScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGpdFileName };
 static CONST PH_STRINGREF KphpHwLenovoWsFileName = PH_STRINGREF_INIT(L"scripts\\lenovows.bin");
 static KPH_HW_SCRIPT KphpHwLenovoWsScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwLenovoWsFileName };
+static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell.bin");
+static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -207,6 +209,7 @@ VOID KphHwSetScriptMode(
         &KphpHwTsensScript,
         &KphpHwGpdScript,
         &KphpHwLenovoWsScript,
+        &KphpHwDellScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1659,6 +1662,103 @@ NTSTATUS KphHwLenovoWsRead(
 
     if (NT_SUCCESS(status))
         *ReturnLength = returnLength;
+
+    return status;
+}
+
+/**
+ * Identifies the fans and temperature sensors of a Dell machine through its
+ * firmware's SMM interface.
+ *
+ * \param Identity Receives the fan speed multiplier, each fan's type and each
+ * sensor's type (FFh for none).
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a machine the
+ * script does not list; STATUS_IO_TIMEOUT once a command was too slow.
+ */
+NTSTATUS KphHwDellIdentify(
+    _Out_ PKPH_HW_DELL_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_DELL_IDENTITY identity;
+    ULONG returnLength;
+
+    memset(Identity, 0, sizeof(KPH_HW_DELL_IDENTITY));
+
+    status = KphpHwScriptCall(
+        &KphpHwDellScript,
+        &routine,
+        NULL,
+        0,
+        &identity,
+        sizeof(identity),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(identity))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Identity = identity;
+
+    return status;
+}
+
+/**
+ * Reads fans and temperature sensors of a Dell machine through its firmware's
+ * SMM interface.
+ *
+ * \param FanMask The fans to read, a bit each.
+ * \param TempMask The temperature sensors to read, a bit each.
+ * \param Values Receives each fan's speed before the multiplier, then each
+ * sensor's degrees C; -1 for one not read or without a reading.
+ * \return Successful or errant status; STATUS_IO_TIMEOUT once a command was too
+ * slow.
+ */
+NTSTATUS KphHwDellRead(
+    _In_ ULONG FanMask,
+    _In_ ULONG TempMask,
+    _Out_writes_(KPH_HW_DELL_FANS + KPH_HW_DELL_TEMPS) PLONG Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG input[2];
+    LONG values[KPH_HW_DELL_FANS + KPH_HW_DELL_TEMPS];
+    ULONG returnLength;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(values); i++)
+        Values[i] = -1;
+
+    input[0] = FanMask;
+    input[1] = TempMask;
+
+    status = KphpHwScriptCall(
+        &KphpHwDellScript,
+        &routine,
+        input,
+        sizeof(input),
+        values,
+        sizeof(values),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(values))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, sizeof(values));
 
     return status;
 }
