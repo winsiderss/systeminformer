@@ -1814,6 +1814,851 @@ static CONST MB_BOARD_LABEL GigabyteX870AorusEliteSecondFans[] =
     { 0, L"System Fan #5 / Pump" }, { 1, L"System Fan #6 / Pump" }, { 2, L"System Fan #4" },
 };
 
+static CONST PH_STRINGREF AsusPrimeX870PProducts[] =
+{
+    PH_STRINGREF_INIT(L"PRIME X870-P"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusPrimeX870PVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusPrimeX870PTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 7, L"VRM" },
+};
+
+static CONST MB_BOARD_LABEL AsusPrimeX870PFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"CPU_OPT" }, { 5, L"Chassis Fan #4" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusProartB760CreatorD4Products[] =
+{
+    PH_STRINGREF_INIT(L"PROART B760-CREATOR D4"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusProartB760CreatorD4Voltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"IVR Atom L2 Cluster #1", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 11, L"IVR Atom L2 Cluster #0", 1, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusProartB760CreatorD4Temperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" }, { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusProartB760CreatorD4Fans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"CPU Optional Fan" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusProartX670eCreatorWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"PROART X670E-CREATOR WIFI"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusProartX670eCreatorWifiVoltages[] =
+{
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusProartX670eCreatorWifiTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST PH_STRINGREF AsusProartX870eCreatorWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"PROART X870E-CREATOR WIFI"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusProartX870eCreatorWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusProartX870eCreatorWifiTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST PH_STRINGREF AsusRogCrosshairViiiHeroProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR VIII HERO"),
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR VIII HERO (WI-FI)"),
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR VIII DARK HERO"),
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR VIII FORMULA"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogCrosshairViiiHeroVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 6, L"CPU SoC", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+    { 13, L"DIMM", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairViiiHeroTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" }, { 3, L"AUX 0" },
+    { 4, L"AUX 1" }, { 5, L"AUX 2" }, { 6, L"AUX 3" },
+    { 7, L"AUX 4" }, { 16, L"PECI 0" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairViiiHeroFans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan 2" }, { 3, L"Chassis Fan 3" },
+    { 4, L"High Amp Fan" }, { 5, L"Waterpump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogCrosshairX670eGeneProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR X670E GENE"),
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR X670E HERO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogCrosshairX670eGeneVoltages[] =
+{
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairX670eGeneTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 16, L"CPU Core" },
+};
+
+static CONST PH_STRINGREF AsusRogCrosshairX870eApexProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR X870E APEX"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogCrosshairX870eApexVoltages[] =
+{
+    { 0, L"Vcore", 15, 136, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"VMISC", 9, 82, 0 },
+    { 6, L"CPU SOC", 9, 82, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"VTT", 34, 34, 0 },
+    { 10, L"Chipset 0 VDD", 1, 1, 0 },
+    { 11, L"Chipset 1 VDD", 1, 1, 0 },
+    { 12, L"Chipset Standby", 0, 1, 0 },
+    { 13, L"CPU VDDIO Memory", 9, 82, 0 },
+    { 14, L"1.8V PLL", 17, 36, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairX870eApexTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU Socket" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairX870eApexFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Extra Flow Fan" },
+    { 4, L"Unused" }, { 5, L"Water Pump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogCrosshairX870eHeroProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG CROSSHAIR X870E HERO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogCrosshairX870eHeroVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairX870eHeroTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogCrosshairX870eHeroFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"Water Pump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusXiiZ490FormulaProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS XII FORMULA"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogMaximusXiiZ490FormulaVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"IVR Atom L2 Cluster #1", 0, 1, 0 },
+    { 7, L"3VSB", 34, 34, 0 },
+    { 8, L"VBat", 34, 34, 0 },
+    { 9, L"VTT", 1, 1, 0 },
+    { 11, L"IVR Atom L2 Cluster #0", 1, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusXiiZ490FormulaTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusXiiZ490FormulaFans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan 2" }, { 3, L"Chassis Fan 3" },
+    { 4, L"Chassis Fan 4" }, { 5, L"Waterpump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusXiFormulaProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS XI FORMULA"),
+    PH_STRINGREF_INIT(L"ROG MAXIMUS XI HERO (WI-FI)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogMaximusXiFormulaVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"VIN8", 0, 1, 0 },
+    { 6, L"CPU Graphics", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 10, L"DIMM", 0, 1, 0 },
+    { 11, L"CPU VCCIO", 1, 1, 0 },
+    { 12, L"PCH Core", 0, 1, 0 },
+    { 13, L"Phase Locked Loop", 0, 1, 0 },
+    { 14, L"CPU System Agent", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusXiFormulaTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" }, { 6, L"CPU (Weighted)" },
+    { 7, L"CPU (PECI)" }, { 16, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusXiFormulaFans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan 2" }, { 3, L"Chassis Fan 3" },
+    { 4, L"High Amp Fan" }, { 5, L"Water Pump+" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusZ690ExtremeGlacialProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS Z690 EXTREME GLACIAL"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogMaximusZ690ExtremeGlacialVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"IVR Atom L2 Cluster #1", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 11, L"IVR Atom L2 Cluster #0", 1, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ690ExtremeGlacialTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ690ExtremeGlacialFans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"Radiator Fan 1" }, { 3, L"Radiator Fan 2" },
+    { 4, L"Chassis Fan 2" }, { 5, L"Water Pump 1" }, { 6, L"Water Pump 2" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusZ690FormulaProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS Z690 FORMULA"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogMaximusZ690FormulaVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"IVR Atom L2 Cluster #1", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 11, L"IVR Atom L2 Cluster #0", 1, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ690FormulaTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ690FormulaFans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan 2" }, { 3, L"Chassis Fan 3" },
+    { 4, L"Chassis Fan 4" }, { 5, L"Waterpump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusZ690HeroProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS Z690 HERO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogMaximusZ690HeroVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"IVR Atom L2 Cluster #1", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 11, L"IVR Atom L2 Cluster #0", 1, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ690HeroTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU (Weighted)" }, { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ690HeroFans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan 2" }, { 3, L"Chassis Fan 3" },
+    { 4, L"Chassis Fan 4" }, { 5, L"Waterpump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusZ790DarkHeroProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS Z790 DARK HERO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogMaximusZ790DarkHeroVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"IVR Atom L2 Cluster #1", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 11, L"IVR Atom L2 Cluster #0", 1, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+    { 13, L"CPU System Agent", 1, 1, 0 },
+    { 14, L"CPU Input Auxiliary", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ790DarkHeroTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ790DarkHeroFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"Water Pump" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogMaximusZ790HeroProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG MAXIMUS Z790 HERO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_LABEL AsusRogMaximusZ790HeroTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" }, { 16, L"CPU Package" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixB550FGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX B550-F GAMING (WI-FI)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixB550FGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 2, 2, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB550FGamingWifiTemperatures[] =
+{
+    { 16, L"CPU Core" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixB550IGamingProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX B550-I GAMING"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixB550IGamingVoltages[] =
+{
+    { 0, L"Vcore", 10, 10, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 10, 10, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB550IGamingTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixB760IGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX B760-I GAMING WIFI"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixB760IGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"3VCC", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 10, L"IMC VDD", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB760IGamingWifiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" }, { 3, L"VRM" },
+    { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB760IGamingWifiFans[] =
+{
+    { 0, L"Chassis Fan" }, { 1, L"CPU Fan" }, { 5, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixB850AGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX B850-A GAMING WIFI"),
+    PH_STRINGREF_INIT(L"TUF GAMING B850-BTF WIFI W"),
+    PH_STRINGREF_INIT(L"TUF GAMING X870-PRO WIFI7 W NEO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixB850AGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4.02f, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 10.98f, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 34, 34, 0 },
+    { 11, L"VMisc", 34, 34, 0 },
+    { 12, L"1.8V Standby", 7.66f, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB850AGamingWifiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"VRM" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixB850EGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX B850-E GAMING WIFI"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixB850EGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4.02f, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 10.98f, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"VTT", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 34, 34, 0 },
+    { 11, L"VMisc", 34, 34, 0 },
+    { 12, L"1.8V Standby", 7.66f, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB850EGamingWifiTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB850EGamingWifiFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"Chassis Fan #5" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixB850IGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX B850-I GAMING WIFI"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixB850IGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4.02f, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 10.98f, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"VTT", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 34, 34, 0 },
+    { 11, L"VMISC", 34, 34, 0 },
+    { 12, L"1,8V Standby", 7.66f, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB850IGamingWifiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 6, L"T-Sensor" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixB850IGamingWifiFans[] =
+{
+    { 0, L"Chassis Fan" }, { 1, L"CPU Fan" }, { 5, L"Extra Flow Fan" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixX570IGamingProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX X570-I GAMING"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixX570IGamingVoltages[] =
+{
+    { 0, L"Vcore", 10, 10, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 10, 10, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixX570IGamingTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixX870eEGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX X870E-E GAMING WIFI"),
+    PH_STRINGREF_INIT(L"ROG STRIX X870E-E GAMING WIFI7 R2"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixX870eEGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixX870eEGamingWifiTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixX870eEGamingWifiFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"Chassis Fan #5" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixX870IGamingWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX X870-I GAMING WIFI"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogStrixX870IGamingWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4.02f, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 10.98f, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"VTT", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 34, 34, 0 },
+    { 11, L"VMISC", 34, 34, 0 },
+    { 12, L"1.8V Standby", 7.66f, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixX870IGamingWifiTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixX870IGamingWifiFans[] =
+{
+    { 0, L"Chassis" }, { 1, L"CPU" }, { 5, L"Chipset / Disk" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogStrixZ790EGamingWifiIiProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG STRIX Z790-E GAMING WIFI II"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixZ790EGamingWifiIiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixZ790EGamingWifiIiFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"Chassis FAN #5" }, { 6, L"AIO Pump" },
+};
+
+static CONST MB_BOARD_LABEL AsusRogStrixZ790EGamingWifiIiControls[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"Chassis Fan #4" }, { 5, L"Chassis Fan #5" }, { 6, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusRogZenithIiExtremeProducts[] =
+{
+    PH_STRINGREF_INIT(L"ROG ZENITH II EXTREME"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusRogZenithIiExtremeVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 6, 1, 0 },
+    { 11, L"DIMM C/D", 10, 10, 0 },
+    { 13, L"DIMM A/B", 0, 1, 0 },
+    { 14, L"Phase Locked Loop", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusRogZenithIiExtremeTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" },
+};
+
+static CONST PH_STRINGREF AsusTufGamingB550mPlusWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"TUF GAMING B550M-PLUS (WI-FI)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusTufGamingB550mPlusWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingB550mPlusWifiTemperatures[] =
+{
+    { 1, L"System" }, { 2, L"CPU" }, { 3, L"AUX 0" },
+    { 4, L"AUX 1" }, { 5, L"AUX 2" }, { 6, L"AUX 3" },
+    { 7, L"AUX 4" }, { 16, L"PECI 0" },
+};
+
+static CONST PH_STRINGREF AsusTufGamingB760mPlusWifiD4Products[] =
+{
+    PH_STRINGREF_INIT(L"TUF GAMING B760M-PLUS WIFI D4"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusTufGamingB760mPlusWifiD4Voltages[] =
+{
+    { 0, L"Vcore", 15, 136, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"VTT", 1, 1, 0 },
+    { 10, L"DRAM", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingB760mPlusWifiD4Temperatures[] =
+{
+    { 1, L"Motherboard" }, { 16, L"CPU Package" },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingB760mPlusWifiD4Fans[] =
+{
+    { 0, L"Chassis Fan 1" }, { 1, L"CPU Fan" }, { 2, L"CPU Optional Fan" }, { 3, L"Chassis Fan 2" },
+    { 4, L"Chassis Fan 3" }, { 5, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusTufGamingB850mPlusIiProducts[] =
+{
+    PH_STRINGREF_INIT(L"TUF GAMING B850M-PLUS II"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusTufGamingB850mPlusIiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4.02f, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 10.98f, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"VTT", 34, 34, 0 },
+    { 10, L"CPU VDDIO Memory", 34, 34, 0 },
+    { 11, L"VMISC", 34, 34, 0 },
+    { 12, L"1,8V Standby", 7.66f, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingB850mPlusIiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 6, L"T-Sensor" },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingB850mPlusIiFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #3" },
+    { 4, L"CPU Optional Fan" }, { 5, L"AIO Pump" },
+};
+
+static CONST PH_STRINGREF AsusTufGamingX570PlusWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"TUF GAMING X570-PLUS (WI-FI)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusTufGamingX570PlusWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVSB", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingX570PlusWifiTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsusTufGamingX570PlusWifiFans[] =
+{
+    { 1, L"CPU Fan" }, { 6, L"CPU Optional Fan" }, { 0, L"Chassis Fan #1" }, { 2, L"Chassis Fan #2" },
+    { 3, L"Chassis Fan #3" }, { 4, L"Chipset Fan" }, { 5, L"AIO Pump" },
+};
+
 #define MB_BOARD_ENTRIES(Array) (Array), RTL_NUMBER_OF(Array)
 
 static CONST MB_BOARD SuperIoBoards[] =
@@ -2081,6 +2926,216 @@ static CONST MB_BOARD SuperIoBoards[] =
         MB_BOARD_ENTRIES(GigabyteX870AorusEliteSecondTemperatures),
         MB_BOARD_ENTRIES(GigabyteX870AorusEliteSecondFans),
         MB_BOARD_ENTRIES(GigabyteX870AorusEliteSecondFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusPrimeX870PProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusPrimeX870PVoltages),
+        MB_BOARD_ENTRIES(AsusPrimeX870PTemperatures),
+        MB_BOARD_ENTRIES(AsusPrimeX870PFans),
+        MB_BOARD_ENTRIES(AsusPrimeX870PFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusProartB760CreatorD4Products, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusProartB760CreatorD4Voltages),
+        MB_BOARD_ENTRIES(AsusProartB760CreatorD4Temperatures),
+        MB_BOARD_ENTRIES(AsusProartB760CreatorD4Fans),
+        MB_BOARD_ENTRIES(AsusProartB760CreatorD4Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusProartX670eCreatorWifiProducts, 0xd800, 0xfff8,
+        MB_BOARD_ENTRIES(AsusProartX670eCreatorWifiVoltages),
+        MB_BOARD_ENTRIES(AsusProartX670eCreatorWifiTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusProartX870eCreatorWifiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusProartX870eCreatorWifiVoltages),
+        MB_BOARD_ENTRIES(AsusProartX870eCreatorWifiTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogCrosshairViiiHeroProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogCrosshairViiiHeroVoltages),
+        MB_BOARD_ENTRIES(AsusRogCrosshairViiiHeroTemperatures),
+        MB_BOARD_ENTRIES(AsusRogCrosshairViiiHeroFans),
+        MB_BOARD_ENTRIES(AsusRogCrosshairViiiHeroFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogCrosshairX670eGeneProducts, 0xd800, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogCrosshairX670eGeneVoltages),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX670eGeneTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogCrosshairX870eApexProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eApexVoltages),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eApexTemperatures),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eApexFans),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eApexFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogCrosshairX870eHeroProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eHeroVoltages),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eHeroTemperatures),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eHeroFans),
+        MB_BOARD_ENTRIES(AsusRogCrosshairX870eHeroFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusXiiZ490FormulaProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogMaximusXiiZ490FormulaVoltages),
+        MB_BOARD_ENTRIES(AsusRogMaximusXiiZ490FormulaTemperatures),
+        MB_BOARD_ENTRIES(AsusRogMaximusXiiZ490FormulaFans),
+        MB_BOARD_ENTRIES(AsusRogMaximusXiiZ490FormulaFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusXiFormulaProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogMaximusXiFormulaVoltages),
+        MB_BOARD_ENTRIES(AsusRogMaximusXiFormulaTemperatures),
+        MB_BOARD_ENTRIES(AsusRogMaximusXiFormulaFans),
+        MB_BOARD_ENTRIES(AsusRogMaximusXiFormulaFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusZ690ExtremeGlacialProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690ExtremeGlacialVoltages),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690ExtremeGlacialTemperatures),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690ExtremeGlacialFans),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690ExtremeGlacialFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusZ690FormulaProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690FormulaVoltages),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690FormulaTemperatures),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690FormulaFans),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690FormulaFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusZ690HeroProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690HeroVoltages),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690HeroTemperatures),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690HeroFans),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ690HeroFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusZ790DarkHeroProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogMaximusZ790DarkHeroVoltages),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ790DarkHeroTemperatures),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ790DarkHeroFans),
+        MB_BOARD_ENTRIES(AsusRogMaximusZ790DarkHeroFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogMaximusZ790HeroProducts, 0xd428, 0xfff8,
+        NULL, 0,
+        MB_BOARD_ENTRIES(AsusRogMaximusZ790HeroTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixB550FGamingWifiProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogStrixB550FGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixB550FGamingWifiTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixB550IGamingProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogStrixB550IGamingVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixB550IGamingTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixB760IGamingWifiProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogStrixB760IGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixB760IGamingWifiTemperatures),
+        MB_BOARD_ENTRIES(AsusRogStrixB760IGamingWifiFans),
+        MB_BOARD_ENTRIES(AsusRogStrixB760IGamingWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixB850AGamingWifiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogStrixB850AGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixB850AGamingWifiTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixB850EGamingWifiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogStrixB850EGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixB850EGamingWifiTemperatures),
+        MB_BOARD_ENTRIES(AsusRogStrixB850EGamingWifiFans),
+        MB_BOARD_ENTRIES(AsusRogStrixB850EGamingWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixB850IGamingWifiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogStrixB850IGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixB850IGamingWifiTemperatures),
+        MB_BOARD_ENTRIES(AsusRogStrixB850IGamingWifiFans),
+        MB_BOARD_ENTRIES(AsusRogStrixB850IGamingWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixX570IGamingProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogStrixX570IGamingVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixX570IGamingTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixX870eEGamingWifiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogStrixX870eEGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixX870eEGamingWifiTemperatures),
+        MB_BOARD_ENTRIES(AsusRogStrixX870eEGamingWifiFans),
+        MB_BOARD_ENTRIES(AsusRogStrixX870eEGamingWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixX870IGamingWifiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusRogStrixX870IGamingWifiVoltages),
+        MB_BOARD_ENTRIES(AsusRogStrixX870IGamingWifiTemperatures),
+        MB_BOARD_ENTRIES(AsusRogStrixX870IGamingWifiFans),
+        MB_BOARD_ENTRIES(AsusRogStrixX870IGamingWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogStrixZ790EGamingWifiIiProducts, 0xd428, 0xfff8,
+        NULL, 0,
+        MB_BOARD_ENTRIES(AsusRogStrixZ790EGamingWifiIiTemperatures),
+        MB_BOARD_ENTRIES(AsusRogStrixZ790EGamingWifiIiFans),
+        MB_BOARD_ENTRIES(AsusRogStrixZ790EGamingWifiIiControls),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusRogZenithIiExtremeProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusRogZenithIiExtremeVoltages),
+        MB_BOARD_ENTRIES(AsusRogZenithIiExtremeTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusTufGamingB550mPlusWifiProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusTufGamingB550mPlusWifiVoltages),
+        MB_BOARD_ENTRIES(AsusTufGamingB550mPlusWifiTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusTufGamingB760mPlusWifiD4Products, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusTufGamingB760mPlusWifiD4Voltages),
+        MB_BOARD_ENTRIES(AsusTufGamingB760mPlusWifiD4Temperatures),
+        MB_BOARD_ENTRIES(AsusTufGamingB760mPlusWifiD4Fans),
+        MB_BOARD_ENTRIES(AsusTufGamingB760mPlusWifiD4Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusTufGamingB850mPlusIiProducts, 0xd806, 0xffff,
+        MB_BOARD_ENTRIES(AsusTufGamingB850mPlusIiVoltages),
+        MB_BOARD_ENTRIES(AsusTufGamingB850mPlusIiTemperatures),
+        MB_BOARD_ENTRIES(AsusTufGamingB850mPlusIiFans),
+        MB_BOARD_ENTRIES(AsusTufGamingB850mPlusIiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusTufGamingX570PlusWifiProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiVoltages),
+        MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiTemperatures),
+        MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiFans),
+        MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiFans),
     },
 };
 
