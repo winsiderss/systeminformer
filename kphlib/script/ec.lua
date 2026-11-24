@@ -38,6 +38,11 @@ local CURRENT = 3
 local FAN = 4
 
 local BOARD_MANUFACTURER = 'ASUSTeK COMPUTER INC.'
+local MSI_MANUFACTURER = 'Micro-Star International'
+local MSI_FIRMWARE = 0xa0
+local MSI_FIRMWARE_LENGTH = 12
+local MSI_CPU = 0x68
+local MSI_GPU = 0x80
 local BANK_REGISTER = 0xff
 
 -- Each family: sensor -> { kind, size, bank, register, label }; a value of size 2 is big-endian.
@@ -917,6 +922,45 @@ local BOARDS = {
   },
 }
 
+-- MSI laptop controllers by the firmware string at A0h: the CPU temperature is
+-- at 68h; true when the GPU temperature is at 80h.
+local MSI_FIRMWARES = {
+  ['14C1EMS1.012'] = true,
+  ['14C1EMS1.101'] = true,
+  ['14C1EMS1.102'] = true,
+  ['17F2EMS1.103'] = true,
+  ['17F2EMS1.104'] = true,
+  ['17F2EMS1.106'] = true,
+  ['17F2EMS1.107'] = true,
+  ['16U8EMS2.100'] = true,
+  ['1552EMS1.118'] = true,
+  ['1592EMS1.111'] = true,
+  ['16V4EMS1.114'] = true,
+  ['158LEMS1.103'] = false,
+  ['158LEMS1.105'] = false,
+  ['158LEMS1.106'] = false,
+  ['1542EMS1.102'] = true,
+  ['1542EMS1.104'] = true,
+  ['17FKEMS1.108'] = false,
+  ['17FKEMS1.109'] = false,
+  ['17FKEMS1.10A'] = false,
+  ['14F1EMS1.115'] = false,
+  ['14JKEMS1.104'] = false,
+  ['1582EMS1.107'] = true,
+  ['1583EMS1.109'] = true,
+  ['1585EMS1.115'] = true,
+  ['16S6EMS1.111'] = false,
+  ['1552EMS1.115'] = false,
+  ['16R6EMS1.104'] = false,
+  ['1594EMS1.109'] = true,
+  ['17L1EMS1.107'] = true,
+  ['1571EMS1.106'] = true,
+  ['1824EMS1.108'] = true,
+  ['182LIMS1.108'] = true,
+  ['182LIMS1.111'] = true,
+  ['182KIMS1.113'] = true,
+}
+
 local ANY_BOARD = { allow = { { 0, 0x00, 0xff } } }
 
 -- What a script kept between calls finds again: the board's row and each
@@ -963,15 +1007,24 @@ local function baseboard_strings()
   return nil
 end
 
+local msi_row
+
 -- The row of this board: its sensors, the bank register and the { bank,
--- first, last } registers they permit; or the row of every other board.
+-- first, last } registers they permit; or the row of every other board; nil
+-- and a status when an MSI controller's firmware string could not be read.
 local function board()
   if kept.board then
     return kept.board
   end
   local row = ANY_BOARD
   local manufacturer, product = baseboard_strings()
-  if manufacturer == BOARD_MANUFACTURER then
+  if manufacturer and string.sub(manufacturer, 1, #MSI_MANUFACTURER) == MSI_MANUFACTURER then
+    local failed
+    row, failed = msi_row()
+    if not row then
+      return nil, failed
+    end
+  elseif manufacturer == BOARD_MANUFACTURER then
     for _, b in ipairs(BOARDS) do
       for _, p in ipairs(b.products) do
         if product == p then
@@ -1149,6 +1202,73 @@ local function controller(ordinal)
   return s
 end
 
+-- Calls fn with the Global Lock (when the controller wants it) and the isa
+-- lock held and no byte of another transaction waiting; returns what fn
+-- returns, or the status that refused.
+local function with_locks(s, fn)
+  local held <close>, refusal = global_lock(s)
+  if held == nil then
+    ksi.trace('the Global Lock was not taken: 0x%08x', refusal)
+    return refusal
+  end
+  local lock <close>, failed = ksi.lock('isa')
+  if not lock then
+    ksi.trace('the isa lock was not taken: 0x%08x', failed)
+    return failed
+  end
+  if (ksi.hw.port_read(s.command, 1) & OBF) ~= 0 then
+    ksi.trace('the EC holds a byte of another transaction')
+    return nt.STATUS_DEVICE_BUSY
+  end
+  return fn()
+end
+
+-- The row of an MSI laptop by its controller's firmware string; the row of
+-- every other board when there is no controller or the string is not listed;
+-- nil and a status when the string could not be read.
+msi_row = function()
+  local s, missing = controller(0)
+  if not s then
+    ksi.trace('no controller: 0x%08x', missing)
+    return ANY_BOARD
+  end
+  local release <close> = setmetatable({}, {
+    __close = function()
+      if ksi.volatile then
+        s.device:release()
+      end
+    end,
+  })
+  local bytes = {}
+  local status = with_locks(s, function()
+    for i = 0, MSI_FIRMWARE_LENGTH - 1 do
+      local st, value = ec_read(s, MSI_FIRMWARE + i)
+      if st ~= nt.STATUS_SUCCESS then
+        return st
+      end
+      bytes[#bytes + 1] = string.char(value)
+    end
+    return nt.STATUS_SUCCESS
+  end)
+  if status ~= nt.STATUS_SUCCESS then
+    return nil, status
+  end
+  local gpu = MSI_FIRMWARES[table.concat(bytes)]
+  if gpu == nil then
+    ksi.trace('firmware string not listed')
+    return ANY_BOARD
+  end
+  local row = {
+    sensors = { { TEMPERATURE, 1, 0, MSI_CPU, 'CPU' } },
+    allow = { { 0, MSI_CPU, MSI_CPU } },
+  }
+  if gpu then
+    row.sensors[2] = { TEMPERATURE, 1, 0, MSI_GPU, 'GPU' }
+    row.allow[2] = { 0, MSI_GPU, MSI_GPU }
+  end
+  return row
+end
+
 -- The ports and flags of the controller at an ordinal: input <I4 ordinal;
 -- output <I4I4I4 data port, command port, flags (1 the Global Lock is taken,
 -- 2 this board's controller has banks).
@@ -1163,7 +1283,8 @@ function identify(input)
   if not s then
     return refused
   end
-  local flags = (s.glk and 1 or 0) | (board().bank_register and 2 or 0)
+  local row = board()
+  local flags = (s.glk and 1 or 0) | (row and row.bank_register and 2 or 0)
   local output = string.pack('<I4I4I4', s.data, s.command, flags)
   if ksi.volatile then
     s.device:release()
@@ -1177,7 +1298,10 @@ function sensors(input)
   if #input ~= 0 then
     return nt.STATUS_INVALID_PARAMETER
   end
-  local row = board()
+  local row, failed = board()
+  if not row then
+    return failed
+  end
   if not row.sensors then
     return nt.STATUS_NOT_FOUND
   end
@@ -1199,7 +1323,10 @@ function read(input)
     ksi.trace('input of %d bytes', #input)
     return nt.STATUS_INVALID_PARAMETER
   end
-  local row = board()
+  local row, unread = board()
+  if not row then
+    return unread
+  end
   local count = (#input - 4) // 8
   local items = {}
   local any = false
@@ -1226,57 +1353,45 @@ function read(input)
       end
     end,
   })
-  local held <close>, refusal = global_lock(s)
-  if held == nil then
-    ksi.trace('the Global Lock was not taken: 0x%08x', refusal)
-    return refusal
-  end
-  local lock <close>, failed = ksi.lock('isa')
-  if not lock then
-    ksi.trace('the isa lock was not taken: 0x%08x', failed)
-    return failed
-  end
-  if (ksi.hw.port_read(s.command, 1) & OBF) ~= 0 then
-    ksi.trace('the EC holds a byte of another transaction')
-    return nt.STATUS_DEVICE_BUSY
-  end
-  local c = {}
-  local bank <close> = setmetatable({}, {
-    __close = function()
-      if c.changed then
-        put_back(s, row.bank_register, c.orig_bank)
-      end
-    end,
-  })
-  local stopped = false
-  for i, item in ipairs(items) do
-    local status, value = nt.STATUS_ACCESS_DENIED, 0
-    if item.allowed and stopped then
-      status = nt.STATUS_CANCELLED
-    elseif item.allowed then
-      status = nt.STATUS_SUCCESS
-      if row.bank_register then
-        if not c.orig_bank then
-          status, c.orig_bank = ec_read(s, row.bank_register)
-          if status ~= nt.STATUS_SUCCESS then
-            c.orig_bank = nil
-          end
-          c.bank = c.orig_bank
+  return with_locks(s, function()
+    local c = {}
+    local bank <close> = setmetatable({}, {
+      __close = function()
+        if c.changed then
+          put_back(s, row.bank_register, c.orig_bank)
         end
-        if status == nt.STATUS_SUCCESS and item.bank ~= c.bank then
-          c.changed = true
-          status = ec_write(s, row.bank_register, item.bank)
-          if status == nt.STATUS_SUCCESS then
-            c.bank = item.bank
+      end,
+    })
+    local stopped = false
+    for i, item in ipairs(items) do
+      local status, value = nt.STATUS_ACCESS_DENIED, 0
+      if item.allowed and stopped then
+        status = nt.STATUS_CANCELLED
+      elseif item.allowed then
+        status = nt.STATUS_SUCCESS
+        if row.bank_register then
+          if not c.orig_bank then
+            status, c.orig_bank = ec_read(s, row.bank_register)
+            if status ~= nt.STATUS_SUCCESS then
+              c.orig_bank = nil
+            end
+            c.bank = c.orig_bank
+          end
+          if status == nt.STATUS_SUCCESS and item.bank ~= c.bank then
+            c.changed = true
+            status = ec_write(s, row.bank_register, item.bank)
+            if status == nt.STATUS_SUCCESS then
+              c.bank = item.bank
+            end
           end
         end
+        if status == nt.STATUS_SUCCESS then
+          status, value = ec_read(s, item.reg)
+        end
+        stopped = status ~= nt.STATUS_SUCCESS
       end
-      if status == nt.STATUS_SUCCESS then
-        status, value = ec_read(s, item.reg)
-      end
-      stopped = status ~= nt.STATUS_SUCCESS
+      output[i] = string.pack('<i4I4', status, value)
     end
-    output[i] = string.pack('<i4I4', status, value)
-  end
-  return nt.STATUS_SUCCESS, table.concat(output)
+    return nt.STATUS_SUCCESS, table.concat(output)
+  end)
 end
