@@ -988,6 +988,39 @@ static CONST MB_BOARD_LABEL MsiNct6687drFans[] =
     { 12, L"System Fan #4" }, { 11, L"System Fan #5" }, { 10, L"System Fan #6" },
 };
 
+static CONST PH_STRINGREF AsrockB550SteelLegendProducts[] =
+{
+    PH_STRINGREF_INIT(L"B550 Steel Legend"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockB550SteelLegendVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 2, 1, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 56, 10, 0 },
+    { 5, L"Vcore SoC", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 11, L"DIMM VPP", 3, 1, 0 },
+    { 13, L"Chipset Standby", 0, 1, 0 },
+    { 14, L"CPU VDD 1.8V", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockB550SteelLegendTemperatures[] =
+{
+    { 1, L"Motherboard" },
+    { 16, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL AsrockB550SteelLegendFans[] =
+{
+    { 0, L"Chassis Fan #3" }, { 1, L"CPU Fan #1" }, { 2, L"Chassis Fan #2" }, { 3, L"Chassis Fan #4" },
+    { 4, L"Chassis Fan #1" }, { 6, L"CPU Fan #2" },
+};
+
 #define MB_BOARD_ENTRIES(Array) (Array), RTL_NUMBER_OF(Array)
 
 static CONST MB_BOARD SuperIoBoards[] =
@@ -1059,6 +1092,13 @@ static CONST MB_BOARD SuperIoBoards[] =
         NULL, 0,
         MB_BOARD_PRODUCT_PREFIX,
         &Nct6796sChip,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockB550SteelLegendProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockB550SteelLegendVoltages),
+        MB_BOARD_ENTRIES(AsrockB550SteelLegendTemperatures),
+        MB_BOARD_ENTRIES(AsrockB550SteelLegendFans),
+        MB_BOARD_ENTRIES(AsrockB550SteelLegendFans),
     },
     {
         PH_STRINGREF_INIT(L"MSI"), MsiB550aProProducts, 0xd590, 0xfff0,
