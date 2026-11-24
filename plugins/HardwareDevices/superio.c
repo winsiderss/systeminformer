@@ -3788,6 +3788,153 @@ static CONST MB_BOARD_LABEL MsiZ68Ms7672Fans[] =
     { 0, L"CPU Fan" },
 };
 
+static CONST PH_STRINGREF AsrockAb350Pro4Products[] =
+{
+    PH_STRINGREF_INIT(L"AB350 Pro4"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockAb350Pro4Voltages[] =
+{
+    { 0, L"Vcore", 1, 1, 0 },
+    { 1, L"+5V", 3, 1, 0 },
+    { 2, L"AVCC", 1, 1, 0 },
+    { 3, L"+3.3V", 1, 1, 0 },
+    { 4, L"+12V", 5.6f, 1, 0 },
+    { 5, L"Vcore SoC", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+    { 10, L"CPU VDDP", 0, 1, 0 },
+    { 11, L"+1.05V", 0, 1, 0 },
+    { 14, L"+1.8V", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockAb350Pro4Fans[] =
+{
+    { 0, L"Chassis Fan #3" }, { 1, L"CPU Fan #1" }, { 3, L"Chassis Fan #1" }, { 4, L"Chassis Fan #2" },
+};
+
+static CONST PH_STRINGREF AsrockZ690ExtremeProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z690 Extreme"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockZ690ExtremeVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 2, 1, 0 },
+    { 3, L"+3.3V", 1, 1, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 5, L"CPU Input Auxiliary", 1, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 12, L"PCH +1.05V", 0, 1, 0 },
+    { 13, L"CPU System Agent", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockZ690ExtremeTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 16, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL AsrockZ690ExtremeFans[] =
+{
+    { 0, L"Chassis Fan #3" }, { 1, L"CPU Fan #1" }, { 2, L"CPU Fan #2" }, { 3, L"Chassis Fan #1" },
+    { 4, L"Chassis Fan #2" }, { 5, L"Chassis Fan #4" }, { 6, L"Chassis Fan #5" },
+};
+
+static CONST PH_STRINGREF AsusPrimeZ370AProducts[] =
+{
+    PH_STRINGREF_INIT(L"PRIME Z370-A"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsusPrimeZ370AVoltages[] =
+{
+    { 0, L"Vcore", 1, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 1, 1, 0 },
+    { 3, L"+3.3V", 1, 1, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 6, L"CPU Graphics", 1, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+    { 9, L"CPU Sustain", 0, 1, 0 },
+    { 10, L"DIMM", 1, 1, 0 },
+    { 11, L"CPU System Agent", 0, 1, 0 },
+    { 12, L"PCH Core", 0, 1, 0 },
+    { 14, L"CPU I/O", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsusPrimeZ370AFans[] =
+{
+    { 0, L"Chassis Fan #1" }, { 1, L"CPU Fan" }, { 2, L"M.2 Fan" }, { 4, L"AIO Pump" },
+    { 5, L"Chassis Fan #2" },
+};
+
+static CONST PH_STRINGREF MsiX470GamingProProducts[] =
+{
+    PH_STRINGREF_INIT(L"X470 GAMING PRO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiX470GamingProVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4.04f, 1, 0 },
+    { 2, L"AVCC", 1, 1, 0 },
+    { 3, L"+3.3V", 1, 1, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+    { 9, L"CPU +1.8V", 0, 1, 0 },
+    { 12, L"Vcore SoC", 0, 1, 0 },
+    { 13, L"DIMM", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiX470GamingProFans[] =
+{
+    { 0, L"Pump Fan" }, { 1, L"CPU Fan" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+    { 4, L"System Fan #3" }, { 5, L"System Fan #4" },
+};
+
+static CONST PH_STRINGREF GigabyteB550AorusEliteProducts[] =
+{
+    PH_STRINGREF_INIT(L"B550 AORUS ELITE V2"),
+    PH_STRINGREF_INIT(L"B550 AORUS ELITE AX V3"),
+    PH_STRINGREF_INIT(L"B550 GAMING X V2"),
+    PH_STRINGREF_INIT(L"B550 UD AC-Y1"),
+    PH_STRINGREF_INIT(L"B550M AORUS PRO-P"),
+    PH_STRINGREF_INIT(L"B550M AORUS PRO AX"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB550AorusEliteVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.5f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB550AorusEliteTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"System #2" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"Chipset" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB550AorusEliteFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+    { 4, L"CPU Optional Fan" },
+};
+
 #define MB_BOARD_ENTRIES(Array) (Array), RTL_NUMBER_OF(Array)
 
 static CONST MB_BOARD SuperIoBoards[] =
@@ -4545,6 +4692,41 @@ static CONST MB_BOARD SuperIoBoards[] =
         MB_BOARD_ENTRIES(MsiZ68Ms7672Temperatures),
         MB_BOARD_ENTRIES(MsiZ68Ms7672Fans),
         MB_BOARD_ENTRIES(MsiZ68Ms7672Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockAb350Pro4Products, 0xc560, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockAb350Pro4Voltages),
+        NULL, 0,
+        MB_BOARD_ENTRIES(AsrockAb350Pro4Fans),
+        MB_BOARD_ENTRIES(AsrockAb350Pro4Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockZ690ExtremeProducts, 0xd428, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockZ690ExtremeVoltages),
+        MB_BOARD_ENTRIES(AsrockZ690ExtremeTemperatures),
+        MB_BOARD_ENTRIES(AsrockZ690ExtremeFans),
+        MB_BOARD_ENTRIES(AsrockZ690ExtremeFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASUSTeK"), AsusPrimeZ370AProducts, 0xd120, 0xfff8,
+        MB_BOARD_ENTRIES(AsusPrimeZ370AVoltages),
+        NULL, 0,
+        MB_BOARD_ENTRIES(AsusPrimeZ370AFans),
+        MB_BOARD_ENTRIES(AsusPrimeZ370AFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiX470GamingProProducts, 0xd350, 0xfff8,
+        MB_BOARD_ENTRIES(MsiX470GamingProVoltages),
+        NULL, 0,
+        MB_BOARD_ENTRIES(MsiX470GamingProFans),
+        MB_BOARD_ENTRIES(MsiX470GamingProFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB550AorusEliteProducts, 0x8688, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB550AorusEliteVoltages),
+        MB_BOARD_ENTRIES(GigabyteB550AorusEliteTemperatures),
+        MB_BOARD_ENTRIES(GigabyteB550AorusEliteFans),
+        MB_BOARD_ENTRIES(GigabyteB550AorusEliteFans),
     },
 };
 
