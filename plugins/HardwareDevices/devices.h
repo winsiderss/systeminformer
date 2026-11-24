@@ -1437,13 +1437,13 @@ VOID GpdFanUninitialize(
     VOID
     );
 
-// amdpmf.c
+// amdnpu.c
 
-VOID AmdPmfInitialize(
+VOID AmdNpuInitialize(
     VOID
     );
 
-VOID AmdPmfUninitialize(
+VOID AmdNpuUninitialize(
     VOID
     );
 

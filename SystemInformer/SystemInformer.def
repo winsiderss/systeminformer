@@ -1497,9 +1497,9 @@ EXPORTS
     KphHwDellIdentify
     KphHwDellRead
     KphHwGpdReadFan
+    KphHwHsmpReadMetrics
     KphHwLenovoWsRead
     KphHwOcMailboxRead
-    KphHwPmfRead
     KphHwSuperIoIdentify
     KphHwSuperIoRead
     KphOpenDevice

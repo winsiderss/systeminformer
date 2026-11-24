@@ -13,7 +13,10 @@
 -- socket's AMDI0097 device when the firmware describes one, otherwise behind
 -- the root complex's system management network pair. The root complexes,
 -- their mailbox registers and the commands each processor family may be sent
--- are listed below.
+-- are listed below. A client row (family 1Ah models 80h to 8Fh, the Ryzen
+-- Master message set) is reached only through its AMDI0097 device and is sent
+-- no command: metrics fills its metrics table (05h), asks its address (06h)
+-- and returns it.
 --
 
 local nt = require('nt')
@@ -486,6 +489,20 @@ local ROWS = {
           [0x36] = { words = 1, mask = { 0xf } },
           [0x37] = { words = 3, mask = { 0x1 } },
         },
+      }
+    end,
+  },
+  {
+    vendor = 'AuthenticAMD',
+    family = 0x1a,
+    models = { { 0x80, 0x8f } },
+    mailbox = function()
+      return {
+        args = 3,
+        version = 0x02,
+        version_arg = 0x0,
+        commands = {},
+        metrics = { fill = 0x05, address = 0x06, size = 3648 },
       }
     end,
   },
@@ -1646,6 +1663,218 @@ local function acpi_command(s, socket, entries)
   return nt.STATUS_SUCCESS, concat(output)
 end
 
+local LEGACY_END = 0x100000
+local FOUR_GB = 0x100000000
+local MSR_SYSCFG = 0xc0010010
+local MSR_TOP_MEM = 0xc001001a
+local MSR_TOP_MEM2 = 0xc001001d
+local MSR_SMM_ADDR = 0xc0010112
+local MSR_SMM_MASK = 0xc0010113
+local MSR_IORR_BASE0 = 0xc0010016
+local SYSCFG_VAR_DRAM_EN = 1 << 20
+local SYSCFG_TOM2_EN = 1 << 21
+local TOP_MEM_LOW_BITS = 0x7fffff
+local SMM_MASK_TVALID = 1 << 1
+local SMM_LOW_BITS = 0x1ffff
+local IORR_MASK_VALID = 1 << 11
+local IORR_BASE_RDMEM = 1 << 4
+local IORR_LOW_BITS = 0xfff
+local IORR_COUNT = 2
+
+-- The MSRs of the AMD address map, read on processor 0:0; a register that
+-- faults is nil.
+local function address_map()
+  local indexes = { MSR_SYSCFG, MSR_TOP_MEM, MSR_TOP_MEM2, MSR_SMM_ADDR, MSR_SMM_MASK }
+  for i = 0, IORR_COUNT * 2 - 1 do
+    indexes[#indexes + 1] = MSR_IORR_BASE0 + i
+  end
+  local items = {}
+  for i, index in ipairs(indexes) do
+    items[i] = string.pack('<I2I2I4', 0, 0, index)
+  end
+  local results, status = ksi.hw.msr_read(concat(items))
+  if not results then
+    ksi.trace('msr_read failed: 0x%x', status)
+    return nil, status
+  end
+  local map = {}
+  for i, index in ipairs(indexes) do
+    local s, _, value = string.unpack('<i4I4I8', results, (i - 1) * 16 + 1)
+    if nt.NT_SUCCESS(s) then
+      map[index] = value
+    end
+  end
+  return map
+end
+
+local function amd_region(base, mask, low, limit)
+  local m = mask & limit & ~low
+  local first = base & m
+  return first, first + ((~m & limit) + 1)
+end
+
+-- DRAM as the processor decodes it: below TOP_MEM or TOP_MEM2, not TSEG, not
+-- read from I/O by an IORR. A hidden register skips the check that needs it.
+local function check_amd_dram(first, last, bits)
+  local limit = (1 << bits) - 1
+  local msrs, failed = address_map()
+  if not msrs then
+    return failed
+  end
+
+  local syscfg = msrs[MSR_SYSCFG]
+  if not syscfg then
+    ksi.trace('DRAM bound skipped: SYSCFG hidden')
+  elseif syscfg & SYSCFG_VAR_DRAM_EN == 0 then
+    ksi.trace('range 0x%x refused: SYSCFG 0x%x has no TOP_MEM', first, syscfg)
+    return nt.STATUS_CONFLICTING_ADDRESSES
+  elseif not msrs[MSR_TOP_MEM] then
+    ksi.trace('DRAM bound skipped: TOP_MEM hidden')
+  else
+    local top = msrs[MSR_TOP_MEM] & (limit & ~TOP_MEM_LOW_BITS)
+    if top == 0 then
+      ksi.trace('range 0x%x refused: TOP_MEM is zero', first)
+      return nt.STATUS_CONFLICTING_ADDRESSES
+    end
+    local inside = not math.ult(first, LEGACY_END) and not math.ult(top, last)
+    local skipped = false
+    if not inside and syscfg & SYSCFG_TOM2_EN ~= 0 then
+      if not msrs[MSR_TOP_MEM2] then
+        ksi.trace('DRAM bound skipped: TOP_MEM2 hidden')
+        skipped = true
+      else
+        local top2 = msrs[MSR_TOP_MEM2] & (limit & ~TOP_MEM_LOW_BITS)
+        inside = not math.ult(first, FOUR_GB) and not math.ult(top2, last)
+      end
+    end
+    if not inside and not skipped then
+      ksi.trace('range 0x%x-0x%x refused: not below TOP_MEM 0x%x or TOP_MEM2', first, last, top)
+      return nt.STATUS_CONFLICTING_ADDRESSES
+    end
+  end
+
+  local base, mask = msrs[MSR_SMM_ADDR], msrs[MSR_SMM_MASK]
+  if not base or not mask then
+    ksi.trace('TSEG check skipped: TSEG hidden')
+  else
+    local tsegFirst, tsegLast = amd_region(base, mask, SMM_LOW_BITS, limit)
+    if mask & SMM_MASK_TVALID ~= 0 and math.ult(first, tsegLast) and math.ult(tsegFirst, last) then
+      ksi.trace('range 0x%x-0x%x refused: TSEG 0x%x-0x%x', first, last, tsegFirst, tsegLast)
+      return nt.STATUS_CONFLICTING_ADDRESSES
+    end
+  end
+
+  for i = 0, IORR_COUNT - 1 do
+    local ibase = msrs[MSR_IORR_BASE0 + i * 2]
+    local imask = msrs[MSR_IORR_BASE0 + i * 2 + 1]
+    if not ibase or not imask then
+      ksi.trace('IORR %d check skipped: IORR hidden', i)
+    elseif imask & IORR_MASK_VALID ~= 0 and ibase & IORR_BASE_RDMEM == 0 then
+      local ioFirst, ioLast = amd_region(ibase, imask, IORR_LOW_BITS, limit)
+      if math.ult(first, ioLast) and math.ult(ioFirst, last) then
+        ksi.trace('range 0x%x-0x%x refused: IORR %d reads I/O', first, last, i)
+        return nt.STATUS_CONFLICTING_ADDRESSES
+      end
+    end
+  end
+
+  return nt.STATUS_SUCCESS
+end
+
+-- A socket's metrics table mapped: the kept mapping while the address holds,
+-- else checked and mapped anew. Nil and a status when refused.
+local function metrics_map(socket, base, size)
+  local kt = kept.metrics and kept.metrics[socket]
+  if kt then
+    if kt.base == base then
+      return kt.map
+    end
+    ksi.trace('table moved from 0x%x to 0x%x', kt.base, base)
+    kept.metrics[socket] = nil
+    kt.map:release()
+  end
+  if base == 0 then
+    ksi.trace('table base 0')
+    return nil, nt.STATUS_DEVICE_NOT_READY
+  end
+  local last = base + size
+  if math.ult(last, base) then
+    ksi.trace('table base 0x%x overflows', base)
+    return nil, nt.STATUS_INTEGER_OVERFLOW
+  end
+  local first = base & -PAGE
+  local rangeEnd = (last + PAGE - 1) & -PAGE
+  local bits, failed = address_bits()
+  if not bits then
+    return nil, failed
+  end
+  local st = check_amd_dram(first, rangeEnd, bits)
+  if nt.NT_SUCCESS(st) then
+    st = nt.check_range(first, rangeEnd, bits)
+  end
+  if not nt.NT_SUCCESS(st) then
+    ksi.trace('table at 0x%x refused: 0x%x', base, st)
+    return nil, st
+  end
+  local m, mapFailed = ksi.hw.map(base, size)
+  if not m then
+    ksi.trace('table at 0x%x not mapped: 0x%x', base, mapFailed)
+    return nil, mapFailed
+  end
+  if not ksi.volatile then
+    kept.metrics = kept.metrics or {}
+    kept.metrics[socket] = { map = m, base = base }
+  end
+  return m
+end
+
+local function acpi_metrics(s, socket)
+  local device <close> = (not s.kept) and s.device or nil
+  local mapping <close> = (not s.kept) and s.map or nil
+  local t = s.mailbox.metrics
+
+  local lock <close>, failed = ksi.lock('mailbox')
+  if not lock then
+    ksi.trace('the mailbox lock was not taken: 0x%x', failed)
+    return failed
+  end
+
+  if acpi_moved(s) then
+    ksi.trace('the window moved')
+    acpi_drop(socket, s)
+    return nt.STATUS_DEVICE_NOT_READY
+  end
+  local st = acpi_transact(s, t.fill, zeros(), 0)
+  if not nt.NT_SUCCESS(st) then
+    return st
+  end
+  local _, results
+  st, _, results = acpi_transact(s, t.address, zeros(), 3)
+  if not nt.NT_SUCCESS(st) then
+    return st
+  end
+  if results[3] ~= t.size then
+    ksi.trace('table size %d, not %d', results[3], t.size)
+    return nt.STATUS_NOT_SUPPORTED
+  end
+  local table, refused = metrics_map(socket, (results[2] << 32) | results[1], t.size)
+  if not table then
+    return refused
+  end
+  local closer <close> = not (kept.metrics and kept.metrics[socket]) and table or nil
+  local bytes = ksi.hw.map_read_block(table, 0, t.size, 4)
+  if ksi.hw.map_read(table, 0, 4) ~= string.unpack('<I4', bytes) then
+    ksi.trace('table changed during the copy')
+    return nt.STATUS_RETRY
+  end
+  if acpi_moved(s) then
+    ksi.trace('the window moved')
+    acpi_drop(socket, s)
+    return nt.STATUS_DEVICE_NOT_READY
+  end
+  return nt.STATUS_SUCCESS, bytes
+end
+
 -- Returns the version of the mailbox of a socket: in the window of its
 -- AMDI0097 device when it has one, otherwise behind the root complex the
 -- input names.
@@ -1658,6 +1887,10 @@ function identify(input)
   local s, refused = acpi_way(socket)
   if s == nil then
     return refused
+  end
+  if s and s.mailbox.metrics then
+    ksi.trace('a client mailbox is not identified')
+    return nt.STATUS_NOT_SUPPORTED
   end
   if s then
     return acpi_identify(s, socket)
@@ -1682,8 +1915,35 @@ function command(input)
   if s == nil then
     return refused
   end
+  if s and s.mailbox.metrics then
+    ksi.trace('a client mailbox is sent no command')
+    return nt.STATUS_NOT_SUPPORTED
+  end
   if s then
     return acpi_command(s, socket, entries)
   end
   return root_command(input, entries)
+end
+
+-- Returns the metrics table of a socket of a client row after the firmware
+-- wrote it, through the socket's AMDI0097 device.
+function metrics(input)
+  if #input ~= 4 then
+    ksi.trace('input of %d bytes', #input)
+    return nt.STATUS_INVALID_PARAMETER
+  end
+  if not ksi.hw.msr_read then
+    ksi.trace('no MSR functions')
+    return nt.STATUS_NOT_SUPPORTED
+  end
+  local socket = string.unpack('<I4', input)
+  local s, refused = acpi_way(socket)
+  if s == nil then
+    return refused
+  end
+  if not s or not s.mailbox.metrics then
+    ksi.trace('socket %d has no client mailbox', socket)
+    return nt.STATUS_NOT_SUPPORTED
+  end
+  return acpi_metrics(s, socket)
 end

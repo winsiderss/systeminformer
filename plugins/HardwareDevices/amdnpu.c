@@ -12,10 +12,10 @@
 #include "devices.h"
 
 //
-// The NPU of AMD family 1Ah models 80h to 8Fh from the PMF metrics table (the pmf script) as a hardware sensor source:
-// the table holds accumulators, so each value is the change of an accumulator over the change of the table's counter
-// between two reads AP_INTERVAL_MS apart, in Q10. Only the fields with a known scale are reported. A processor the
-// script does not list ends the source for the session.
+// The NPU of AMD family 1Ah models 80h to 8Fh from the metrics table of socket 0's HSMP mailbox (the hsmp script's
+// metrics) as a hardware sensor source: the table holds accumulators, so each value is the change of an accumulator
+// over the change of the table's counter between two reads AP_INTERVAL_MS apart, in Q10. Only the fields with a known
+// scale are reported. A processor the script does not list ends the source for the session.
 //
 
 #define AP_INTERVAL_MS 2000
@@ -37,21 +37,21 @@ typedef struct _AP_CONTEXT
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
     FLOAT Values[AP_SENSORS];
-    UCHAR Previous[KPH_HW_PMF_TABLE_SIZE];
-    UCHAR Current[KPH_HW_PMF_TABLE_SIZE];
+    UCHAR Previous[KPH_HW_HSMP_METRICS_SIZE];
+    UCHAR Current[KPH_HW_HSMP_METRICS_SIZE];
 } AP_CONTEXT, *PAP_CONTEXT;
 
-static PAP_CONTEXT AmdPmfContext = NULL;
-static PPH_HW_SENSOR_SOURCE_REGISTRATION AmdPmfRegistration = NULL;
+static PAP_CONTEXT AmdNpuContext = NULL;
+static PPH_HW_SENSOR_SOURCE_REGISTRATION AmdNpuRegistration = NULL;
 // GUID_DEVCLASS_COMPUTEACCELERATOR
-static CONST GUID AmdPmfClass = { 0xf01a9d53, 0x3ff6, 0x48d2, { 0x9f, 0x97, 0xc8, 0xa7, 0x00, 0x4b, 0xe1, 0x0c } };
+static CONST GUID AmdNpuClass = { 0xf01a9d53, 0x3ff6, 0x48d2, { 0x9f, 0x97, 0xc8, 0xa7, 0x00, 0x4b, 0xe1, 0x0c } };
 
 static CONST struct
 {
     ULONG Type;
     PCWSTR Name;
     ULONG Offset;
-} AmdPmfSensors[AP_SENSORS] =
+} AmdNpuSensors[AP_SENSORS] =
 {
     { PhHwSensorTypeTemperature, L"NPU", AP_NPU_TEMPERATURE },
     { PhHwSensorTypePower, L"NPU", AP_NPU_POWER },
@@ -65,9 +65,9 @@ static CONST struct
 /**
  * The average of an accumulator between two tables in Q10 units, or 0 when the counter or the value went backwards.
  */
-static DOUBLE AmdPmfAverage(
-    _In_reads_bytes_(KPH_HW_PMF_TABLE_SIZE) const UCHAR* Previous,
-    _In_reads_bytes_(KPH_HW_PMF_TABLE_SIZE) const UCHAR* Current,
+static DOUBLE AmdNpuAverage(
+    _In_reads_bytes_(KPH_HW_HSMP_METRICS_SIZE) const UCHAR* Previous,
+    _In_reads_bytes_(KPH_HW_HSMP_METRICS_SIZE) const UCHAR* Current,
     _In_ ULONG Offset
     )
 {
@@ -90,13 +90,13 @@ static DOUBLE AmdPmfAverage(
 /**
  * Reads the table and averages it against the read before.
  */
-static VOID AmdPmfPoll(
+static VOID AmdNpuPoll(
     _Inout_ PAP_CONTEXT Context
     )
 {
     NTSTATUS status;
 
-    status = KphHwPmfRead(Context->Current);
+    status = KphHwHsmpReadMetrics(0, Context->Current);
 
     PhAcquireQueuedLockExclusive(&Context->Lock);
 
@@ -111,17 +111,17 @@ static VOID AmdPmfPoll(
         {
             for (ULONG i = 0; i < AP_SENSORS; i++)
             {
-                Context->Values[i] = (FLOAT)AmdPmfAverage(
+                Context->Values[i] = (FLOAT)AmdNpuAverage(
                     Context->Previous,
                     Context->Current,
-                    AmdPmfSensors[i].Offset
+                    AmdNpuSensors[i].Offset
                     );
             }
 
             Context->Valid = TRUE;
         }
 
-        memcpy(Context->Previous, Context->Current, KPH_HW_PMF_TABLE_SIZE);
+        memcpy(Context->Previous, Context->Current, KPH_HW_HSMP_METRICS_SIZE);
         Context->HavePrevious = TRUE;
     }
     else
@@ -134,7 +134,7 @@ static VOID AmdPmfPoll(
 }
 
 _Function_class_(PH_HW_SENSOR_SOURCE_CALLBACK)
-static VOID NTAPI AmdPmfSourceCallback(
+static VOID NTAPI AmdNpuSourceCallback(
     _In_ PPH_HW_SENSOR_REPORT_FUNCTION Report,
     _In_ PVOID ReportContext,
     _In_opt_ PVOID Context
@@ -152,7 +152,7 @@ static VOID NTAPI AmdPmfSourceCallback(
     if (!context->LastPollTime || now - context->LastPollTime >= AP_INTERVAL_MS)
     {
         context->LastPollTime = now;
-        AmdPmfPoll(context);
+        AmdNpuPoll(context);
     }
 
     PhAcquireQueuedLockShared(&context->Lock);
@@ -164,12 +164,12 @@ static VOID NTAPI AmdPmfSourceCallback(
         report.Flags = PH_HW_SENSOR_REPORT_HISTORY;
         report.ComponentId = 0;
         report.ComponentName = L"AMD NPU";
-        report.ComponentClass = &AmdPmfClass;
+        report.ComponentClass = &AmdNpuClass;
 
         for (ULONG i = 0; i < AP_SENSORS; i++)
         {
-            report.Type = AmdPmfSensors[i].Type;
-            report.SensorName = AmdPmfSensors[i].Name;
+            report.Type = AmdNpuSensors[i].Type;
+            report.SensorName = AmdNpuSensors[i].Name;
             report.SensorId = i;
             report.Value = context->Values[i];
             Report(ReportContext, &report);
@@ -180,7 +180,7 @@ static VOID NTAPI AmdPmfSourceCallback(
 }
 
 _Function_class_(PH_HW_SENSOR_SOURCE_DIAGNOSTICS_CALLBACK)
-static VOID NTAPI AmdPmfSourceDiagnostics(
+static VOID NTAPI AmdNpuSourceDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_opt_ PVOID Context
     )
@@ -194,13 +194,13 @@ static VOID NTAPI AmdPmfSourceDiagnostics(
 
     if (!context->LastPollTime)
     {
-        PhAppendStringBuilder2(Builder, L"AMD PMF: not read (no driver)\n");
+        PhAppendStringBuilder2(Builder, L"AMD NPU: not read (no driver)\n");
     }
     else
     {
         PhAppendFormatStringBuilder(
             Builder,
-            L"AMD PMF: status 0x%08lx%s\n",
+            L"AMD NPU: status 0x%08lx%s\n",
             context->LastStatus,
             context->Stopped ? L" (stopped)" : L""
             );
@@ -210,50 +210,50 @@ static VOID NTAPI AmdPmfSourceDiagnostics(
 }
 
 /**
- * Registers the AMD PMF source. Called on plugin load.
+ * Registers the AMD NPU source. Called on plugin load.
  */
-VOID AmdPmfInitialize(
+VOID AmdNpuInitialize(
     VOID
     )
 {
     PH_HW_SENSOR_SOURCE source;
 
-    if (AmdPmfContext)
+    if (AmdNpuContext)
         return;
 
-    AmdPmfContext = PhAllocateZero(sizeof(AP_CONTEXT));
-    PhInitializeQueuedLock(&AmdPmfContext->Lock);
+    AmdNpuContext = PhAllocateZero(sizeof(AP_CONTEXT));
+    PhInitializeQueuedLock(&AmdNpuContext->Lock);
 
     memset(&source, 0, sizeof(PH_HW_SENSOR_SOURCE));
     source.Size = sizeof(PH_HW_SENSOR_SOURCE);
-    source.Callback = AmdPmfSourceCallback;
-    source.Context = AmdPmfContext;
-    source.Diagnostics = AmdPmfSourceDiagnostics;
+    source.Callback = AmdNpuSourceCallback;
+    source.Context = AmdNpuContext;
+    source.Diagnostics = AmdNpuSourceDiagnostics;
 
-    if (!NT_SUCCESS(PhRegisterHardwareSensorSource(PluginInstance, &source, &AmdPmfRegistration)))
+    if (!NT_SUCCESS(PhRegisterHardwareSensorSource(PluginInstance, &source, &AmdNpuRegistration)))
     {
-        AmdPmfRegistration = NULL;
-        AmdPmfUninitialize();
+        AmdNpuRegistration = NULL;
+        AmdNpuUninitialize();
     }
 }
 
 /**
  * Unregisters the source. Called on plugin unload.
  */
-VOID AmdPmfUninitialize(
+VOID AmdNpuUninitialize(
     VOID
     )
 {
     // Unregistering waits for a callback in progress.
-    if (AmdPmfRegistration)
+    if (AmdNpuRegistration)
     {
-        PhUnregisterHardwareSensorSource(AmdPmfRegistration);
-        AmdPmfRegistration = NULL;
+        PhUnregisterHardwareSensorSource(AmdNpuRegistration);
+        AmdNpuRegistration = NULL;
     }
 
-    if (AmdPmfContext)
+    if (AmdNpuContext)
     {
-        PhFree(AmdPmfContext);
-        AmdPmfContext = NULL;
+        PhFree(AmdNpuContext);
+        AmdNpuContext = NULL;
     }
 }

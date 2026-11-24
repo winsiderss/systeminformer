@@ -387,6 +387,16 @@ KphHwHsmpCommand(
     _Out_writes_(Count) PKPH_HW_HSMP_RESULT Results
     );
 
+#define KPH_HW_HSMP_METRICS_SIZE 3648
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwHsmpReadMetrics(
+    _In_ ULONG Socket,
+    _Out_writes_bytes_(KPH_HW_HSMP_METRICS_SIZE) PVOID Table
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -500,15 +510,6 @@ NTSTATUS
 NTAPI
 KphHwOcMailboxRead(
     _Out_writes_(MaxKphHwOcPlane) PKPH_HW_OC_PLANE Planes
-    );
-
-#define KPH_HW_PMF_TABLE_SIZE 3648
-
-PHLIBAPI
-NTSTATUS
-NTAPI
-KphHwPmfRead(
-    _Out_writes_bytes_(KPH_HW_PMF_TABLE_SIZE) PVOID Table
     );
 
 #define KPH_HW_ASUSWMI_SENSORS 64

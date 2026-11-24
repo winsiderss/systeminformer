@@ -86,7 +86,7 @@
     <ClCompile Include="battery.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>
-    <ClCompile Include="amdpmf.c">
+    <ClCompile Include="amdnpu.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>
     <ClCompile Include="asuswmi.c">

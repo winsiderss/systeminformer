@@ -69,7 +69,7 @@ source_group("Source Files\\RAPL" FILES ${SOURCES_RAPL})
 set(SOURCES_MOTHERBOARD
     "battery.c"
     "disktemp.c"
-    "amdpmf.c"
+    "amdnpu.c"
     "asuswmi.c"
     "dellsmm.c"
     "gpdfan.c"

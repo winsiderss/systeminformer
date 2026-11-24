@@ -48,6 +48,7 @@ This file is part of System Informer.
     <script name="hsmp" file="script/hsmp.lua" arch="amd64" desc="AMD HSMP mailbox">
         <routine name="identify" level="maximum"/>
         <routine name="command" level="maximum"/>
+        <routine name="metrics" level="maximum"/>
     </script>
     <script name="platform" file="script/platform.lua" arch="amd64" desc="Intel platform windows">
         <routine name="read" level="maximum"/>
@@ -81,9 +82,6 @@ This file is part of System Informer.
         <routine name="read" level="maximum"/>
     </script>
     <script name="ocmailbox" file="script/ocmailbox.lua" arch="amd64" desc="Intel overclocking mailbox voltage settings">
-        <routine name="read" level="maximum"/>
-    </script>
-    <script name="pmf" file="script/pmf.lua" arch="amd64" desc="AMD PMF metrics table">
         <routine name="read" level="maximum"/>
     </script>
     <script name="tsens" file="script/tsens.lua" arch="arm64" desc="Qualcomm TSENS temperature sensors">
