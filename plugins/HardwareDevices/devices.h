@@ -1437,6 +1437,16 @@ VOID GpdFanUninitialize(
     VOID
     );
 
+// amdpmf.c
+
+VOID AmdPmfInitialize(
+    VOID
+    );
+
+VOID AmdPmfUninitialize(
+    VOID
+    );
+
 // asuswmi.c
 
 VOID AsusWmiInitialize(

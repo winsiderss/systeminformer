@@ -476,6 +476,15 @@ KphHwGpdReadFan(
     _Out_ PULONG Rpm
     );
 
+#define KPH_HW_PMF_TABLE_SIZE 3648
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwPmfRead(
+    _Out_writes_bytes_(KPH_HW_PMF_TABLE_SIZE) PVOID Table
+    );
+
 #define KPH_HW_ASUSWMI_SENSORS 64
 #define KPH_HW_ASUSWMI_VOLTAGE 0
 #define KPH_HW_ASUSWMI_TEMPERATURE 1

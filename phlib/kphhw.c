@@ -56,6 +56,8 @@ static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell
 static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
 static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\asuswmi.bin");
 static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
+static CONST PH_STRINGREF KphpHwPmfFileName = PH_STRINGREF_INIT(L"scripts\\pmf.bin");
+static KPH_HW_SCRIPT KphpHwPmfScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPmfFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -213,6 +215,7 @@ VOID KphHwSetScriptMode(
         &KphpHwLenovoWsScript,
         &KphpHwDellScript,
         &KphpHwAsusWmiScript,
+        &KphpHwPmfScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1858,6 +1861,48 @@ NTSTATUS KphHwAsusWmiRead(
         return STATUS_INFO_LENGTH_MISMATCH;
 
     memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
+
+    return status;
+}
+
+/**
+ * Reads the AMD PMF metrics table of family 1Ah models 80h to 8Fh after the
+ * firmware writes a sample.
+ *
+ * \param Table Receives the table.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a processor,
+ * root complex or table size the script does not list, or with no PMF device.
+ */
+NTSTATUS KphHwPmfRead(
+    _Out_writes_bytes_(KPH_HW_PMF_TABLE_SIZE) PVOID Table
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG returnLength = 0;
+
+    buffer = PhAllocate(KPH_HW_PMF_TABLE_SIZE);
+
+    status = KphpHwScriptCall(
+        &KphpHwPmfScript,
+        &routine,
+        NULL,
+        0,
+        buffer,
+        KPH_HW_PMF_TABLE_SIZE,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+    else if (NT_SUCCESS(status) && returnLength != KPH_HW_PMF_TABLE_SIZE)
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        memcpy(Table, buffer, KPH_HW_PMF_TABLE_SIZE);
+
+    PhFree(buffer);
 
     return status;
 }
