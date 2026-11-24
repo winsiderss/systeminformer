@@ -14,6 +14,7 @@
 #include <trace.h>
 
 #define KPH_LUA_HW_DEVICE_NAME_MAX 32767
+#define KPH_LUA_HW_GUARD_INPUT_MAX 256
 
 typedef struct _KPH_LUA_HW_REQUEST
 {
@@ -49,6 +50,20 @@ typedef struct _KPH_LUA_HW_BUFFERS
     ULONG Length;
 } KPH_LUA_HW_BUFFERS, *PKPH_LUA_HW_BUFFERS;
 
+typedef struct _KPH_LUA_HW_REQUEST_SPEC
+{
+    UCHAR MajorFunction;
+    ULONG IoControlCode;
+    LONGLONG Offset;
+    PCVOID Input;
+    ULONG InputLength;
+    PCVOID Data;
+    ULONG DataLength;
+    PKPH_LUA_HW_BUFFERS Buffers;
+} KPH_LUA_HW_REQUEST_SPEC, *PKPH_LUA_HW_REQUEST_SPEC;
+
+typedef const KPH_LUA_HW_REQUEST_SPEC* PCKPH_LUA_HW_REQUEST_SPEC;
+
 typedef struct _KPH_LUA_HW_NAMED_DEVICE
 {
     PFILE_OBJECT FileObject;
@@ -64,6 +79,13 @@ typedef struct _KPH_LUA_HW_DEVICE_LIST
     PDEVICE_OBJECT* Devices;
     ULONG Count;
 } KPH_LUA_HW_DEVICE_LIST, *PKPH_LUA_HW_DEVICE_LIST;
+
+typedef struct _KPH_LUA_HW_GUARD
+{
+    PKPH_LUA_HW_REQUEST Request;
+    ULONG IoControlCode;
+    BOOLEAN Claimed;
+} KPH_LUA_HW_GUARD, *PKPH_LUA_HW_GUARD;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 DECLARE_CONST_UNICODE_STRING(KphpLuaHwRequestTypeName, L"KphLuaHwRequest");
@@ -670,46 +692,36 @@ NTSTATUS KphpLuaHwPrepareRequest(
 }
 
 /**
- * \brief Sends a prepared request and waits for it.
+ * \brief Sends a prepared request; its completion signals the request's event.
  *
- * \details A request that does not complete in time is cancelled and, failing
- * that, abandoned until it completes; the device is busy until then.
- *
- * \param[in] State The Lua state.
- * \param[in] Request The request; the caller keeps its reference.
- * \param[in] Milliseconds How long to wait, ULONG_MAX for no limit of its own.
- *
- * \return Successful or errant status, STATUS_BUFFER_OVERFLOW included.
+ * \param[in] Request The request; the completion holds a reference until it
+ * runs.
+ * \param[out] MajorFunction Receives the major function of the request.
+ * \param[out] IoControlCode Receives the control code, 0 for a read or write.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS KphpLuaHwCallRequest(
-    _In_ lua_State* State,
-    _In_ PKPH_LUA_HW_REQUEST Request,
-    _In_ ULONG Milliseconds
+VOID KphpLuaHwStartRequest(
+    _Inout_ PKPH_LUA_HW_REQUEST Request,
+    _Out_ PUCHAR MajorFunction,
+    _Out_ PULONG IoControlCode
     )
 {
     NTSTATUS status;
     PIO_STACK_LOCATION stack;
-    UCHAR majorFunction;
-    ULONG ioControlCode;
-    LARGE_INTEGER zero;
-    BOOLEAN cancelled;
-    NTSTATUS waitStatus;
 
     KPH_PAGED_CODE_PASSIVE();
 
     stack = IoGetNextIrpStackLocation(Request->Irp);
-    majorFunction = stack->MajorFunction;
+    *MajorFunction = stack->MajorFunction;
 
-    if ((majorFunction == IRP_MJ_DEVICE_CONTROL) ||
-        (majorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL))
+    if ((*MajorFunction == IRP_MJ_DEVICE_CONTROL) ||
+        (*MajorFunction == IRP_MJ_INTERNAL_DEVICE_CONTROL))
     {
-        ioControlCode = stack->Parameters.DeviceIoControl.IoControlCode;
+        *IoControlCode = stack->Parameters.DeviceIoControl.IoControlCode;
     }
     else
     {
-        ioControlCode = 0;
+        *IoControlCode = 0;
     }
 
     KsiInitializeIoCompletion(&Request->Completion,
@@ -729,65 +741,135 @@ NTSTATUS KphpLuaHwCallRequest(
     KphTracePrint(TRACE_LEVEL_VERBOSE,
                   HARDWARE,
                   "Request %lu 0x%08lx IoCallDriver: %!STATUS!",
-                  (ULONG)majorFunction,
-                  ioControlCode,
+                  (ULONG)*MajorFunction,
+                  *IoControlCode,
                   status);
+}
+
+/**
+ * \brief Sends a prepared request and waits for it.
+ *
+ * \details A request that does not complete in time is cancelled, then
+ * abandoned or, with Abandon FALSE, waited for.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Request The request; the caller keeps its reference.
+ * \param[in] Milliseconds How long to wait, ULONG_MAX for no limit of its own.
+ * \param[in] Abandon FALSE to wait for the request to complete.
+ * \param[out] LimitReached Optionally receives TRUE when the call's limit was
+ * reached while a request that may not be abandoned was waited for.
+ *
+ * \return Successful or errant status, STATUS_BUFFER_OVERFLOW included.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS KphpLuaHwCallRequest(
+    _In_ lua_State* State,
+    _In_ PKPH_LUA_HW_REQUEST Request,
+    _In_ ULONG Milliseconds,
+    _In_ BOOLEAN Abandon,
+    _Out_opt_ PBOOLEAN LimitReached
+    )
+{
+    NTSTATUS status;
+    UCHAR majorFunction;
+    ULONG ioControlCode;
+    LARGE_INTEGER zero;
+    BOOLEAN cancelled;
+    NTSTATUS waitStatus;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    if (LimitReached)
+    {
+        *LimitReached = FALSE;
+    }
+
+    KphpLuaHwStartRequest(Request, &majorFunction, &ioControlCode);
 
     status = KphScriptWait(State, &Request->Event, Milliseconds);
-    if (status != STATUS_SUCCESS)
+    if (status == STATUS_SUCCESS)
+    {
+        goto Completed;
+    }
+
+    if (LimitReached)
+    {
+        *LimitReached = (status == STATUS_SI_SCRIPT_LIMIT);
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "KphScriptWait returned: %!STATUS!",
+                  status);
+
+    cancelled = IoCancelIrp(Request->Irp);
+
+    if (!Abandon)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphScriptWait returned: %!STATUS!",
-                      status);
-
-        cancelled = IoCancelIrp(Request->Irp);
-
-        zero.QuadPart = 0;
+                      "Request %lu 0x%08lx waited for (cancelled %!bool!)",
+                      (ULONG)majorFunction,
+                      ioControlCode,
+                      cancelled);
 
         waitStatus = KeWaitForSingleObject(&Request->Event,
                                            Executive,
                                            KernelMode,
                                            FALSE,
-                                           &zero);
-        if (waitStatus != STATUS_SUCCESS)
-        {
-            KphpLuaHwAbandonRequest(Request);
+                                           NULL);
+        NT_ASSERT(waitStatus == STATUS_SUCCESS);
 
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          HARDWARE,
-                          "Request %lu 0x%08lx abandoned "
-                          "(cancelled %!bool!)",
-                          (ULONG)majorFunction,
-                          ioControlCode,
-                          cancelled);
-
-            return status;
-        }
-
-        if (status == STATUS_SI_SCRIPT_LIMIT)
-        {
-            return status;
-        }
+        goto Completed;
     }
 
-    status = Request->IoStatus.Status;
-    if (!NT_SUCCESS(status) && (status != STATUS_BUFFER_OVERFLOW))
+    zero.QuadPart = 0;
+
+    waitStatus = KeWaitForSingleObject(&Request->Event,
+                                       Executive,
+                                       KernelMode,
+                                       FALSE,
+                                       &zero);
+    if (waitStatus != STATUS_SUCCESS)
     {
+        KphpLuaHwAbandonRequest(Request);
+
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Request %lu 0x%08lx failed: %!STATUS!",
+                      "Request %lu 0x%08lx abandoned (cancelled %!bool!)",
                       (ULONG)majorFunction,
                       ioControlCode,
-                      status);
+                      cancelled);
 
         return status;
     }
 
-    if (status != STATUS_BUFFER_OVERFLOW)
+    if (status == STATUS_SI_SCRIPT_LIMIT)
     {
-        status = STATUS_SUCCESS;
+        return status;
     }
+
+Completed:
+
+    status = Request->IoStatus.Status;
+
+    if (status == STATUS_BUFFER_OVERFLOW)
+    {
+        return STATUS_BUFFER_OVERFLOW;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  HARDWARE,
+                  "Request %lu 0x%08lx failed: %!STATUS!",
+                  (ULONG)majorFunction,
+                  ioControlCode,
+                  status);
 
     return status;
 }
@@ -1207,44 +1289,29 @@ VOID KphpLuaHwHideBuffers(
 }
 
 /**
- * \brief Creates, sends and waits for a request.
+ * \brief Creates and prepares a request.
  *
  * \param[in] State The Lua state.
  * \param[in] Device The device to send the request to.
  * \param[in] FileObject Optional file object of the request.
- * \param[in] MajorFunction The major function of the request.
- * \param[in] IoControlCode The control code of a device control request.
- * \param[in] Offset The byte offset of a read or write.
- * \param[in] Input Optional input bytes.
- * \param[in] InputLength The number of input bytes.
- * \param[in] Data Optional initial data bytes (not with buffered I/O).
- * \param[in] DataLength The number of data bytes.
- * \param[in] Buffers Optional referred buffers.
- * \param[in] Milliseconds How long to wait, ULONG_MAX for no limit of its own.
- * \param[out] Request Receives the request for the caller to release, or NULL.
+ * \param[in] Spec What to send.
+ * \param[out] Request Receives the request for the caller to release.
  *
  * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-NTSTATUS KphpLuaHwSendRequest(
+NTSTATUS KphpLuaHwBuildRequest(
     _In_ lua_State* State,
     _In_ PDEVICE_OBJECT Device,
     _In_opt_ PFILE_OBJECT FileObject,
-    _In_ UCHAR MajorFunction,
-    _In_ ULONG IoControlCode,
-    _In_ LONGLONG Offset,
-    _In_reads_bytes_opt_(InputLength) PCVOID Input,
-    _In_ ULONG InputLength,
-    _In_reads_bytes_opt_(DataLength) PCVOID Data,
-    _In_ ULONG DataLength,
-    _In_opt_ PKPH_LUA_HW_BUFFERS Buffers,
-    _In_ ULONG Milliseconds,
-    _Outptr_result_maybenull_ PKPH_LUA_HW_REQUEST* Request
+    _In_ PCKPH_LUA_HW_REQUEST_SPEC Spec,
+    _Outptr_result_nullonfailure_ PKPH_LUA_HW_REQUEST* Request
     )
 {
     NTSTATUS status;
     ULONG method;
+    ULONG buffersLength;
     PKPH_LUA_HW_REQUEST request;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -1252,15 +1319,24 @@ NTSTATUS KphpLuaHwSendRequest(
     *Request = NULL;
 
     method = KphpLuaHwTransferMethod(Device,
-                                     MajorFunction,
-                                     IoControlCode);
+                                     Spec->MajorFunction,
+                                     Spec->IoControlCode);
+
+    if (Spec->Buffers)
+    {
+        buffersLength = Spec->Buffers->Length;
+    }
+    else
+    {
+        buffersLength = 0;
+    }
 
     status = KphpLuaHwCreateRequest(Device,
                                     FileObject,
                                     method,
-                                    InputLength,
-                                    DataLength,
-                                    (Buffers ? Buffers->Length : 0),
+                                    Spec->InputLength,
+                                    Spec->DataLength,
+                                    buffersLength,
                                     &request);
     if (!NT_SUCCESS(status))
     {
@@ -1272,29 +1348,27 @@ NTSTATUS KphpLuaHwSendRequest(
         return status;
     }
 
-    *Request = request;
-
-    if (Input)
+    if (Spec->Input)
     {
-        RtlCopyMemory(request->Input, Input, InputLength);
+        RtlCopyMemory(request->Input, Spec->Input, Spec->InputLength);
     }
 
-    if (Data && (method != METHOD_BUFFERED))
+    if (Spec->Data && (method != METHOD_BUFFERED))
     {
-        RtlCopyMemory(request->Data, Data, DataLength);
+        RtlCopyMemory(request->Data, Spec->Data, Spec->DataLength);
     }
 
-    if (Buffers)
+    if (Spec->Buffers)
     {
-        KphpLuaHwLayBuffers(State, request, Buffers);
+        KphpLuaHwLayBuffers(State, request, Spec->Buffers);
     }
 
     status = KphpLuaHwPrepareRequest(request,
-                                     MajorFunction,
-                                     IoControlCode,
-                                     Offset,
-                                     InputLength,
-                                     DataLength);
+                                     Spec->MajorFunction,
+                                     Spec->IoControlCode,
+                                     Spec->Offset,
+                                     Spec->InputLength,
+                                     Spec->DataLength);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -1302,19 +1376,13 @@ NTSTATUS KphpLuaHwSendRequest(
                       "KphpLuaHwPrepareRequest failed: %!STATUS!",
                       status);
 
+        KphDereferenceObject(request);
         return status;
     }
 
-    status = KphpLuaHwCallRequest(State, request, Milliseconds);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      HARDWARE,
-                      "KphpLuaHwCallRequest failed: %!STATUS!",
-                      status);
-    }
+    *Request = request;
 
-    return status;
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -1926,6 +1994,327 @@ ULONG KphpLuaHwCheckMilliseconds(
 }
 
 /**
+ * \brief Sends the give-back of a claimed guard and frees the guard.
+ *
+ * \param[in] Context The guard.
+ */
+_Function_class_(KPH_SCRIPT_CLEANUP_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KSIAPI KphpLuaHwReleaseGuard(
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PKPH_LUA_HW_GUARD guard;
+    UCHAR majorFunction;
+    ULONG ioControlCode;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    NT_ASSERT(Context);
+
+    guard = Context;
+
+    if (guard->Claimed)
+    {
+        KphpLuaHwStartRequest(guard->Request, &majorFunction, &ioControlCode);
+
+        status = KeWaitForSingleObject(&guard->Request->Event,
+                                       Executive,
+                                       KernelMode,
+                                       FALSE,
+                                       NULL);
+        NT_ASSERT(status == STATUS_SUCCESS);
+
+        status = guard->Request->IoStatus.Status;
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Guard 0x%08lx give-back failed: %!STATUS!",
+                          guard->IoControlCode,
+                          status);
+        }
+    }
+
+    KphDereferenceObject(guard->Request);
+
+    KphFree(guard, KPH_TAG_LUA_HARDWARE_GUARD);
+}
+
+/**
+ * \brief Checks a request table of ksi.hw.device_guard: its code and input.
+ *
+ * \details May raise a Lua error. Leaves the fields it reads on the stack.
+ *
+ * \param[in] State The Lua state.
+ * \param[in] Index The index of the table.
+ * \param[in] InputMax The most input bytes.
+ * \param[out] IoControlCode Receives the control code.
+ * \param[out] Input Receives the input.
+ * \param[out] InputLength Receives the number of input bytes.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID KphpLuaHwCheckGuardRequest(
+    _In_ lua_State* State,
+    _In_ int Index,
+    _In_ ULONG InputMax,
+    _Out_ PULONG IoControlCode,
+    _Out_ PCSTR* Input,
+    _Out_ PULONG InputLength
+    )
+{
+    lua_Integer code;
+    SIZE_T inputLength;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    *IoControlCode = 0;
+    *Input = NULL;
+    *InputLength = 0;
+
+    luaL_checktype(State, Index, LUA_TTABLE);
+
+    lua_getfield(State, Index, "code");
+    luaL_argcheck(State, lua_isinteger(State, -1), Index, "a code of an integer");
+    code = lua_tointeger(State, -1);
+    luaL_argcheck(State, (code >= 0) && (code <= ULONG_MAX), Index, "a code out of range");
+
+    lua_getfield(State, Index, "input");
+    luaL_argcheck(State, lua_type(State, -1) == LUA_TSTRING, Index, "an input of a string");
+    *Input = lua_tolstring(State, -1, &inputLength);
+    luaL_argcheck(State, inputLength <= InputMax, Index, "an input too long");
+
+    *IoControlCode = (ULONG)code;
+    *InputLength = (ULONG)inputLength;
+}
+
+/**
+ * \brief Takes ownership through a device control request and returns the
+ * guard that gives it back (ksi.hw.device_guard).
+ *
+ * \details May raise a Lua error. Takes the device, the take request { code,
+ * input, output }, the give-back request { code, input, from, to, length } and
+ * the milliseconds; the take's output [from, from + length) is copied into the
+ * give-back input at to.
+ *
+ * \param[in] State The Lua state.
+ *
+ * \return The number of results: the guard, or nil and a status.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+int KphpLuaHwDeviceGuard(
+    _In_ lua_State* State
+    )
+{
+    NTSTATUS status;
+    PDEVICE_OBJECT target;
+    PFILE_OBJECT fileObject;
+    ULONG takeCode;
+    PCSTR takeInput;
+    ULONG takeInputLength;
+    lua_Integer outputLength;
+    ULONG giveCode;
+    PCSTR giveInput;
+    ULONG giveInputLength;
+    lua_Integer from;
+    lua_Integer to;
+    lua_Integer length;
+    ULONG milliseconds;
+    KPH_LUA_HW_REQUEST_SPEC spec;
+    PKPH_LUA_HW_REQUEST give;
+    PKPH_LUA_HW_GUARD guard;
+    int guardIndex;
+    BOOLEAN limitReached;
+    PKPH_LUA_HW_REQUEST request;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    target = KphpLuaHwCheckTarget(State, 1, &fileObject);
+    milliseconds = KphpLuaHwCheckMilliseconds(State, 4);
+
+    KphpLuaHwCheckGuardRequest(State,
+                               2,
+                               ULONG_MAX,
+                               &takeCode,
+                               &takeInput,
+                               &takeInputLength);
+
+    lua_getfield(State, 2, "output");
+
+    outputLength = 0;
+
+    if (!lua_isnil(State, -1))
+    {
+        luaL_argcheck(State, lua_isinteger(State, -1), 2, "an output of an integer");
+        outputLength = lua_tointeger(State, -1);
+        luaL_argcheck(State,
+                      (outputLength >= 0) && (outputLength <= ULONG_MAX),
+                      2,
+                      "an output out of range");
+    }
+
+    KphpLuaHwCheckGuardRequest(State,
+                               3,
+                               KPH_LUA_HW_GUARD_INPUT_MAX,
+                               &giveCode,
+                               &giveInput,
+                               &giveInputLength);
+
+    lua_getfield(State, 3, "from");
+    lua_getfield(State, 3, "to");
+    lua_getfield(State, 3, "length");
+
+    from = 0;
+    to = 0;
+    length = 0;
+
+    if (!lua_isnil(State, -3) || !lua_isnil(State, -2) || !lua_isnil(State, -1))
+    {
+        luaL_argcheck(State,
+                      lua_isinteger(State, -3) &&
+                      lua_isinteger(State, -2) &&
+                      lua_isinteger(State, -1),
+                      3,
+                      "a splice of integers");
+
+        from = lua_tointeger(State, -3);
+        to = lua_tointeger(State, -2);
+        length = lua_tointeger(State, -1);
+
+        luaL_argcheck(State,
+                      (from >= 0) && (to >= 0) && (length >= 1) &&
+                      (from <= outputLength) &&
+                      (length <= outputLength - from) &&
+                      (to <= (lua_Integer)giveInputLength) &&
+                      (length <= (lua_Integer)giveInputLength - to),
+                      3,
+                      "a splice out of range");
+    }
+
+    RtlZeroMemory(&spec, sizeof(spec));
+    spec.MajorFunction = IRP_MJ_DEVICE_CONTROL;
+    spec.IoControlCode = giveCode;
+    spec.Input = giveInput;
+    spec.InputLength = giveInputLength;
+
+    status = KphpLuaHwBuildRequest(State, target, fileObject, &spec, &give);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpLuaHwBuildRequest failed: %!STATUS!",
+                      status);
+
+        return KphLuaNilErrorStatus(State, status);
+    }
+
+    guard = KphAllocatePaged(sizeof(KPH_LUA_HW_GUARD), KPH_TAG_LUA_HARDWARE_GUARD);
+    if (!guard)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Failed to allocate a guard");
+
+        KphDereferenceObject(give);
+        return KphLuaNilErrorStatus(State, STATUS_INSUFFICIENT_RESOURCES);
+    }
+
+    guard->Request = give;
+    guard->IoControlCode = giveCode;
+    guard->Claimed = FALSE;
+
+    KphScriptPushCleanup(State, KphpLuaHwReleaseGuard, guard);
+    guardIndex = lua_gettop(State);
+
+    RtlZeroMemory(&spec, sizeof(spec));
+    spec.MajorFunction = IRP_MJ_DEVICE_CONTROL;
+    spec.IoControlCode = takeCode;
+    spec.Input = takeInput;
+    spec.InputLength = takeInputLength;
+    spec.DataLength = (ULONG)outputLength;
+
+    limitReached = FALSE;
+
+    ObReferenceObject(target);
+
+    status = KphpLuaHwBuildRequest(State, target, fileObject, &spec, &request);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "KphpLuaHwBuildRequest failed: %!STATUS!",
+                      status);
+    }
+    else
+    {
+        status = KphpLuaHwCallRequest(State,
+                                      request,
+                                      milliseconds,
+                                      FALSE,
+                                      &limitReached);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpLuaHwCallRequest failed: %!STATUS!",
+                          status);
+        }
+    }
+
+    ObDereferenceObject(target);
+
+    if (status == STATUS_SUCCESS)
+    {
+        NT_ASSERT(request);
+
+        if (length &&
+            (((ULONG_PTR)from > request->IoStatus.Information) ||
+             ((ULONG_PTR)length > request->IoStatus.Information - (ULONG_PTR)from)))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "Guard 0x%08lx not claimed: the output is short",
+                          giveCode);
+
+            NT_ASSERT(FALSE);
+            status = STATUS_DEVICE_PROTOCOL_ERROR;
+        }
+        else
+        {
+            if (length)
+            {
+                RtlCopyMemory(Add2Ptr(give->Input, (ULONG)to),
+                              Add2Ptr(request->Data, (ULONG)from),
+                              (ULONG)length);
+            }
+
+            guard->Claimed = TRUE;
+        }
+    }
+
+    if (request)
+    {
+        KphpLuaHwReleaseRequest(request);
+    }
+
+    if (limitReached)
+    {
+        KphScriptCharge(State, 0);
+    }
+
+    if (!guard->Claimed)
+    {
+        KphScriptReleaseCleanup(State, guardIndex);
+        return KphLuaNilErrorStatus(State, status);
+    }
+
+    lua_pushvalue(State, guardIndex);
+
+    return 1;
+}
+
+/**
  * \brief Sends a device control request (ksi.hw.device_control).
  *
  * \details May raise a Lua error. The output is a length, or the initial bytes
@@ -1955,6 +2344,7 @@ int KphpLuaHwDeviceControl(
     UCHAR majorFunction;
     KPH_LUA_HW_BUFFERS bufferList;
     PKPH_LUA_HW_BUFFERS buffers;
+    KPH_LUA_HW_REQUEST_SPEC spec;
     PKPH_LUA_HW_REQUEST request;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -2027,31 +2417,38 @@ int KphpLuaHwDeviceControl(
         majorFunction = IRP_MJ_DEVICE_CONTROL;
     }
 
+    RtlZeroMemory(&spec, sizeof(spec));
+    spec.MajorFunction = majorFunction;
+    spec.IoControlCode = (ULONG)code;
+    spec.Input = input;
+    spec.InputLength = (ULONG)inputLength;
+    spec.Data = data;
+    spec.DataLength = (ULONG)dataLength;
+    spec.Buffers = buffers;
+
     ObReferenceObject(target);
 
-    status = KphpLuaHwSendRequest(State,
-                                  target,
-                                  fileObject,
-                                  majorFunction,
-                                  (ULONG)code,
-                                  0,
-                                  input,
-                                  (ULONG)inputLength,
-                                  data,
-                                  (ULONG)dataLength,
-                                  buffers,
-                                  milliseconds,
-                                  &request);
-
-    ObDereferenceObject(target);
-
+    status = KphpLuaHwBuildRequest(State, target, fileObject, &spec, &request);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphpLuaHwSendRequest failed: %!STATUS!",
+                      "KphpLuaHwBuildRequest failed: %!STATUS!",
                       status);
     }
+    else
+    {
+        status = KphpLuaHwCallRequest(State, request, milliseconds, TRUE, NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpLuaHwCallRequest failed: %!STATUS!",
+                          status);
+        }
+    }
+
+    ObDereferenceObject(target);
 
     return KphpLuaHwPushRequest(State,
                                 status,
@@ -2081,6 +2478,7 @@ int KphpLuaHwDeviceRead(
     lua_Integer length;
     ULONG milliseconds;
     lua_Integer offset;
+    KPH_LUA_HW_REQUEST_SPEC spec;
     PKPH_LUA_HW_REQUEST request;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -2095,31 +2493,34 @@ int KphpLuaHwDeviceRead(
                   2,
                   "out of range");
 
+    RtlZeroMemory(&spec, sizeof(spec));
+    spec.MajorFunction = IRP_MJ_READ;
+    spec.Offset = (LONGLONG)offset;
+    spec.DataLength = (ULONG)length;
+
     ObReferenceObject(target);
 
-    status = KphpLuaHwSendRequest(State,
-                                  target,
-                                  fileObject,
-                                  IRP_MJ_READ,
-                                  0,
-                                  (LONGLONG)offset,
-                                  NULL,
-                                  0,
-                                  NULL,
-                                  (ULONG)length,
-                                  NULL,
-                                  milliseconds,
-                                  &request);
-
-    ObDereferenceObject(target);
-
+    status = KphpLuaHwBuildRequest(State, target, fileObject, &spec, &request);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphpLuaHwSendRequest failed: %!STATUS!",
+                      "KphpLuaHwBuildRequest failed: %!STATUS!",
                       status);
     }
+    else
+    {
+        status = KphpLuaHwCallRequest(State, request, milliseconds, TRUE, NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpLuaHwCallRequest failed: %!STATUS!",
+                          status);
+        }
+    }
+
+    ObDereferenceObject(target);
 
     return KphpLuaHwPushRequest(State,
                                 status,
@@ -2151,6 +2552,7 @@ int KphpLuaHwDeviceWrite(
     ULONG milliseconds;
     lua_Integer offset;
     ULONG inputLength;
+    KPH_LUA_HW_REQUEST_SPEC spec;
     PKPH_LUA_HW_REQUEST request;
 
     KPH_PAGED_CODE_PASSIVE();
@@ -2174,31 +2576,37 @@ int KphpLuaHwDeviceWrite(
         inputLength = 0;
     }
 
+    RtlZeroMemory(&spec, sizeof(spec));
+    spec.MajorFunction = IRP_MJ_WRITE;
+    spec.Offset = (LONGLONG)offset;
+    spec.Input = data;
+    spec.InputLength = inputLength;
+    spec.Data = data;
+    spec.DataLength = (ULONG)length;
+
     ObReferenceObject(target);
 
-    status = KphpLuaHwSendRequest(State,
-                                  target,
-                                  fileObject,
-                                  IRP_MJ_WRITE,
-                                  0,
-                                  (LONGLONG)offset,
-                                  data,
-                                  inputLength,
-                                  data,
-                                  (ULONG)length,
-                                  NULL,
-                                  milliseconds,
-                                  &request);
-
-    ObDereferenceObject(target);
-
+    status = KphpLuaHwBuildRequest(State, target, fileObject, &spec, &request);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "KphpLuaHwSendRequest failed: %!STATUS!",
+                      "KphpLuaHwBuildRequest failed: %!STATUS!",
                       status);
     }
+    else
+    {
+        status = KphpLuaHwCallRequest(State, request, milliseconds, TRUE, NULL);
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          HARDWARE,
+                          "KphpLuaHwCallRequest failed: %!STATUS!",
+                          status);
+        }
+    }
+
+    ObDereferenceObject(target);
 
     return KphpLuaHwPushRequest(State,
                                 status,
@@ -2412,6 +2820,7 @@ KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const luaL_Reg KphpLuaHwDeviceLibrary[] =
 {
     { "device_control", KphpLuaHwDeviceControl },
+    { "device_guard", KphpLuaHwDeviceGuard },
     { "device_open", KphpLuaHwDeviceOpen },
     { "device_read", KphpLuaHwDeviceRead },
     { "device_write", KphpLuaHwDeviceWrite },
