@@ -1021,6 +1021,582 @@ static CONST MB_BOARD_LABEL AsrockB550SteelLegendFans[] =
     { 4, L"Chassis Fan #1" }, { 6, L"CPU Fan #2" },
 };
 
+static CONST PH_STRINGREF GigabyteZ790UdProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z790 UD"),
+    PH_STRINGREF_INIT(L"Z790 UD AC"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteZ790UdVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"iGPU", 0, 1, 0 },
+    { 5, L"CPU Input Auxiliary", 0, 1, 0 },
+    { 6, L"Dual DDR5 5V", 1.5f, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ790UdTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"System #2" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ790UdFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3 / Pump" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteZ790GamingXProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z790 GAMING X"),
+    PH_STRINGREF_INIT(L"Z790 GAMING X AX"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteZ790GamingXVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"iGPU", 0, 1, 0 },
+    { 5, L"CPU Input Auxiliary", 0, 1, 0 },
+    { 6, L"Dual DDR5 5V", 1.5f, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ790GamingXTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"System #2" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ790GamingXFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+    { 4, L"System Fan #4 / Pump" }, { 5, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteZ690AorusProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z790 AORUS PRO X WIFI7"),
+    PH_STRINGREF_INIT(L"Z690 AORUS ULTRA"),
+    PH_STRINGREF_INIT(L"Z690 AORUS MASTER"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteZ690AorusVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"iGPU VAXG", 0, 1, 0 },
+    { 5, L"CPU Input Auxiliary", 0, 1, 0 },
+    { 6, L"Dual DDR5 5V", 1.5f, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ690AorusTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"External #1" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ690AorusFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3 / Pump" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteX870AorusEliteProducts[] =
+{
+    PH_STRINGREF_INIT(L"X870 AORUS ELITE WIFI7"),
+    PH_STRINGREF_INIT(L"X870 AORUS ELITE WIFI7 ICE"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX870AorusEliteVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"CPU NB/SoC", 0, 1, 0 },
+    { 5, L"CPU Misc", 0, 1, 0 },
+    { 6, L"CPU VDDIO", 0, 1, 0 },
+    { 7, L"DRAM VDD", 0, 1, 0 },
+    { 8, L"DRAM VDDQ", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX870AorusEliteTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"EC" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX870AorusEliteFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteX670eAorusXtremeProducts[] =
+{
+    PH_STRINGREF_INIT(L"X670E AORUS XTREME"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX670eAorusXtremeVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"Vcore Misc", 0, 1, 0 },
+    { 6, L"CPU VDDIO Memory", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX670eAorusXtremeTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"External #1" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX670eAorusXtremeFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteB560mAorusEliteProducts[] =
+{
+    PH_STRINGREF_INIT(L"B560M AORUS ELITE"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB560mAorusEliteVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"iGPU VAGX", 0, 1, 0 },
+    { 5, L"CPU System Agent", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 59.9f, 9.8f, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB560mAorusEliteTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"System #2" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB560mAorusEliteFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteX570AorusMasterProducts[] =
+{
+    PH_STRINGREF_INIT(L"X570 AORUS MASTER"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX570AorusMasterVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX570AorusMasterTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"Sensor #1" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"PCH" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX570AorusMasterFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"PCH Fan" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteX570AorusProProducts[] =
+{
+    PH_STRINGREF_INIT(L"X570 AORUS PRO"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX570AorusProVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX570AorusProTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"External #1" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"PCH" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX570AorusProFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"PCH Fan" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteX570GamingXProducts[] =
+{
+    PH_STRINGREF_INIT(L"X570 GAMING X"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX570GamingXVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX570GamingXTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"System #2" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"PCH" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX570GamingXFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"PCH Fan" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteB360AorusGaming3Products[] =
+{
+    PH_STRINGREF_INIT(L"B360 AORUS GAMING 3 WIFI-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB360AorusGaming3Voltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"CPU Vcore", 0, 1, 0 },
+    { 5, L"CPU System Agent", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB360AorusGaming3Temperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"Sensor #1" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"PCH" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB360AorusGaming3Fans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"PCH Fan" },
+    { 4, L"CPU Optional Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteZ390mGamingProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z390 M GAMING-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteZ390mGamingVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.49f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"CPU VCCGT", 0, 1, 0 },
+    { 5, L"CPU System Agent", 0, 1, 0 },
+    { 6, L"VDDQ", 0, 1, 0 },
+    { 7, L"DDRVTT", 0, 1, 0 },
+    { 8, L"PCHCore", 0, 1, 0 },
+    { 9, L"CPU VCCIO", 0, 1, 0 },
+    { 10, L"DDRVPP", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ390mGamingTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"System #2" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ390mGamingFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" }, { 3, L"System Fan #3" },
+};
+
+static CONST PH_STRINGREF GigabyteX470AorusGaming7Products[] =
+{
+    PH_STRINGREF_INIT(L"X470 AORUS GAMING 7 WIFI-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX470AorusGaming7Voltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.5f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 54, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX470AorusGaming7Temperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM" }, { 5, L"Sensor #1" },
+    { 6, L"Sensor #2" },
+};
+
+static CONST PH_STRINGREF GigabyteX399AorusGaming7Products[] =
+{
+    PH_STRINGREF_INIT(L"X399 AORUS Gaming 7"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteX399AorusGaming7Voltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.5f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"DIMM C/D", 0, 1, 0 },
+    { 5, L"Vcore SoC", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 54, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteX399AorusGaming7Temperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM" },
+};
+
+static CONST PH_STRINGREF GigabyteAx370GamingProducts[] =
+{
+    PH_STRINGREF_INIT(L"AX370-Gaming K7"),
+    PH_STRINGREF_INIT(L"AB350-Gaming 3-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteAx370GamingVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 0.65f, 1, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"VSOC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 7.53f, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteAx370GamingTemperatures[] =
+{
+    { 0, L"System" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" },
+};
+
+static CONST PH_STRINGREF GigabyteB450mGamingProducts[] =
+{
+    PH_STRINGREF_INIT(L"B450M GAMING-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB450mGamingVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.5f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB450mGamingTemperatures[] =
+{
+    { 0, L"System" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 4, L"VRM MOS" }, { 5, L"VSoC MOS" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB450mGamingFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan #1" }, { 2, L"System Fan #2" },
+};
+
+static CONST PH_STRINGREF GigabyteB450mDs3hProducts[] =
+{
+    PH_STRINGREF_INIT(L"B450M DS3H V2-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB450mDs3hVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.5f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 4, L"Vcore SoC", 0, 1, 0 },
+    { 5, L"VDDP", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB450mDs3hTemperatures[] =
+{
+    { 0, L"System" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 4, L"VRM MOS" }, { 5, L"VSoC MOS" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB450mDs3hFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteZ170nWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z170N-WIFI-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteZ170nWifiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 6.5f, 10, 0 },
+    { 2, L"+12V", 5, 1, 0 },
+    { 3, L"+5V", 1.5f, 1, 0 },
+    { 5, L"iGPU VAXG", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 54, 10, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ170nWifiTemperatures[] =
+{
+    { 0, L"System #1" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM" }, { 5, L"System #2" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteZ170nWifiFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteA320mS2hProducts[] =
+{
+    PH_STRINGREF_INIT(L"A320M-S2H-CF"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteA320mS2hVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 4, L"CPU Vcore SoC", 0, 1, 0 },
+    { 5, L"CPU VDDP", 0, 1, 0 },
+    { 6, L"DRAM", 0, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+    { 9, L"AVCC3", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteA320mS2hTemperatures[] =
+{
+    { 0, L"System" }, { 1, L"Chipset" }, { 2, L"CPU" },
+    { 3, L"PCIe x16" }, { 4, L"VRM MOS" }, { 5, L"VSoC MOS" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteA320mS2hFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan" },
+};
+
+static CONST PH_STRINGREF GigabyteB360mHProducts[] =
+{
+    PH_STRINGREF_INIT(L"B360M H"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE GigabyteB360mHVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+3.3V", 29.4f, 45.3f, 0 },
+    { 2, L"+12V", 10, 2, 0 },
+    { 3, L"+5V", 15, 10, 0 },
+    { 5, L"VCCSA", 0, 1, 0 },
+    { 6, L"DIMM A/B", 0, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB360mHTemperatures[] =
+{
+    { 0, L"System" }, { 1, L"PCH" }, { 2, L"CPU" },
+    { 4, L"VRM MOS" },
+};
+
+static CONST MB_BOARD_LABEL GigabyteB360mHFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"System Fan" },
+};
+
 #define MB_BOARD_ENTRIES(Array) (Array), RTL_NUMBER_OF(Array)
 
 static CONST MB_BOARD SuperIoBoards[] =
@@ -1106,6 +1682,139 @@ static CONST MB_BOARD SuperIoBoards[] =
         MB_BOARD_ENTRIES(MsiB550aProTemperatures),
         MB_BOARD_ENTRIES(MsiB550aProFans),
         MB_BOARD_ENTRIES(MsiB550aProFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteZ790UdProducts, 0x8689, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteZ790UdVoltages),
+        MB_BOARD_ENTRIES(GigabyteZ790UdTemperatures),
+        MB_BOARD_ENTRIES(GigabyteZ790UdFans),
+        MB_BOARD_ENTRIES(GigabyteZ790UdFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteZ790GamingXProducts, 0x8689, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteZ790GamingXVoltages),
+        MB_BOARD_ENTRIES(GigabyteZ790GamingXTemperatures),
+        MB_BOARD_ENTRIES(GigabyteZ790GamingXFans),
+        MB_BOARD_ENTRIES(GigabyteZ790GamingXFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteZ690AorusProducts, 0x8689, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteZ690AorusVoltages),
+        MB_BOARD_ENTRIES(GigabyteZ690AorusTemperatures),
+        MB_BOARD_ENTRIES(GigabyteZ690AorusFans),
+        MB_BOARD_ENTRIES(GigabyteZ690AorusFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX870AorusEliteProducts, 0x8696, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX870AorusEliteVoltages),
+        MB_BOARD_ENTRIES(GigabyteX870AorusEliteTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX870AorusEliteFans),
+        MB_BOARD_ENTRIES(GigabyteX870AorusEliteFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX670eAorusXtremeProducts, 0x8689, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX670eAorusXtremeVoltages),
+        MB_BOARD_ENTRIES(GigabyteX670eAorusXtremeTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX670eAorusXtremeFans),
+        MB_BOARD_ENTRIES(GigabyteX670eAorusXtremeFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB560mAorusEliteProducts, 0x8689, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB560mAorusEliteVoltages),
+        MB_BOARD_ENTRIES(GigabyteB560mAorusEliteTemperatures),
+        MB_BOARD_ENTRIES(GigabyteB560mAorusEliteFans),
+        MB_BOARD_ENTRIES(GigabyteB560mAorusEliteFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX570AorusMasterProducts, 0x8688, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX570AorusMasterVoltages),
+        MB_BOARD_ENTRIES(GigabyteX570AorusMasterTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX570AorusMasterFans),
+        MB_BOARD_ENTRIES(GigabyteX570AorusMasterFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX570AorusProProducts, 0x8688, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX570AorusProVoltages),
+        MB_BOARD_ENTRIES(GigabyteX570AorusProTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX570AorusProFans),
+        MB_BOARD_ENTRIES(GigabyteX570AorusProFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX570GamingXProducts, 0x8688, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX570GamingXVoltages),
+        MB_BOARD_ENTRIES(GigabyteX570GamingXTemperatures),
+        MB_BOARD_ENTRIES(GigabyteX570GamingXFans),
+        MB_BOARD_ENTRIES(GigabyteX570GamingXFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB360AorusGaming3Products, 0x8688, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB360AorusGaming3Voltages),
+        MB_BOARD_ENTRIES(GigabyteB360AorusGaming3Temperatures),
+        MB_BOARD_ENTRIES(GigabyteB360AorusGaming3Fans),
+        MB_BOARD_ENTRIES(GigabyteB360AorusGaming3Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteZ390mGamingProducts, 0x8688, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteZ390mGamingVoltages),
+        MB_BOARD_ENTRIES(GigabyteZ390mGamingTemperatures),
+        MB_BOARD_ENTRIES(GigabyteZ390mGamingFans),
+        MB_BOARD_ENTRIES(GigabyteZ390mGamingFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX470AorusGaming7Products, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX470AorusGaming7Voltages),
+        MB_BOARD_ENTRIES(GigabyteX470AorusGaming7Temperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteX399AorusGaming7Products, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteX399AorusGaming7Voltages),
+        MB_BOARD_ENTRIES(GigabyteX399AorusGaming7Temperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteAx370GamingProducts, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteAx370GamingVoltages),
+        MB_BOARD_ENTRIES(GigabyteAx370GamingTemperatures),
+        NULL, 0,
+        NULL, 0,
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB450mGamingProducts, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB450mGamingVoltages),
+        MB_BOARD_ENTRIES(GigabyteB450mGamingTemperatures),
+        MB_BOARD_ENTRIES(GigabyteB450mGamingFans),
+        MB_BOARD_ENTRIES(GigabyteB450mGamingFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB450mDs3hProducts, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB450mDs3hVoltages),
+        MB_BOARD_ENTRIES(GigabyteB450mDs3hTemperatures),
+        MB_BOARD_ENTRIES(GigabyteB450mDs3hFans),
+        MB_BOARD_ENTRIES(GigabyteB450mDs3hFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteZ170nWifiProducts, 0x8628, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteZ170nWifiVoltages),
+        MB_BOARD_ENTRIES(GigabyteZ170nWifiTemperatures),
+        MB_BOARD_ENTRIES(GigabyteZ170nWifiFans),
+        MB_BOARD_ENTRIES(GigabyteZ170nWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteA320mS2hProducts, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteA320mS2hVoltages),
+        MB_BOARD_ENTRIES(GigabyteA320mS2hTemperatures),
+        MB_BOARD_ENTRIES(GigabyteA320mS2hFans),
+        MB_BOARD_ENTRIES(GigabyteA320mS2hFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Gigabyte"), GigabyteB360mHProducts, 0x8686, 0xffff,
+        MB_BOARD_ENTRIES(GigabyteB360mHVoltages),
+        MB_BOARD_ENTRIES(GigabyteB360mHTemperatures),
+        MB_BOARD_ENTRIES(GigabyteB360mHFans),
+        MB_BOARD_ENTRIES(GigabyteB360mHFans),
     },
 };
 
