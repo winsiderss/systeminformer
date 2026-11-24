@@ -249,6 +249,41 @@ local ROWS = {
       }
     end,
   },
+  {
+    ids = {
+      'MSHW0187',
+      'MSHW0188',
+      'QCOM0C58',
+      'QCOM0C59',
+      'QCOM0C5A',
+      'QCOM0C5E',
+      'QCOM0C5F',
+      'QCOM0C60',
+      'QCOM0C61',
+      'QCOM0C62',
+      'QCOM0C63',
+      'QCOM0C64',
+      'QCOM0C91',
+      'QCOM0CBF',
+      'QCOM0CF2',
+      'QCOM0CF3',
+      'QCOM0CF4',
+      'QCOM0CF5',
+      'QCOM0CF6',
+      'QCOM0CF7',
+      'QCOM0CF8',
+      'QCOM0CF9',
+      'QCOM0CFB',
+      'QCOM0CFC',
+      'QCOM0D01',
+    },
+    evals = function()
+      return {
+        { name = '_PSV', results = 0x1, max = 0x20 },
+        { name = '_CRT', results = 0x1, max = 0x20 },
+      }
+    end,
+  },
 }
 
 local MILLISECONDS_MAX = 0xfffffffe
