@@ -48,6 +48,8 @@ static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SC
 static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCrosEcFileName };
 static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwVsecFileName };
 static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
+static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.bin");
+static KPH_HW_SCRIPT KphpHwGpdScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGpdFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -201,6 +203,7 @@ VOID KphHwSetScriptMode(
         &KphpHwCrosEcScript,
         &KphpHwVsecScript,
         &KphpHwTsensScript,
+        &KphpHwGpdScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1559,6 +1562,51 @@ NTSTATUS KphHwCrosEcRead(
 
     PhFree(values);
     PhFree(input);
+
+    return status;
+}
+
+/**
+ * Reads the fan speed of a GPD handheld from its embedded controller.
+ *
+ * \param Rpm Receives the speed in RPM.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a machine the
+ * script does not list; STATUS_RETRY when another tool holds the bus.
+ */
+NTSTATUS KphHwGpdReadFan(
+    _Out_ PULONG Rpm
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG rpm;
+    ULONG returnLength;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwGpdScript,
+        &routine,
+        NULL,
+        0,
+        &rpm,
+        sizeof(rpm),
+        &returnLength
+        );
+
+    KphpHwReleaseBus(KphHwBusIsa);
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(rpm))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Rpm = rpm;
 
     return status;
 }

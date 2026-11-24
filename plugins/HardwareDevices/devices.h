@@ -1427,6 +1427,16 @@ VOID BatteryUninitialize(
     VOID
     );
 
+// gpdfan.c
+
+VOID GpdFanInitialize(
+    VOID
+    );
+
+VOID GpdFanUninitialize(
+    VOID
+    );
+
 // gpusensor.c
 
 VOID GpuSensorInitialize(

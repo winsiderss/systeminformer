@@ -1492,6 +1492,7 @@ EXPORTS
     KphAlpcQueryCommunicationsNamesInfo
     KphAlpcQueryInformation
     KphDuplicateObject
+    KphHwGpdReadFan
     KphHwSuperIoIdentify
     KphHwSuperIoRead
     KphOpenDevice

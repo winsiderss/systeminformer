@@ -66,6 +66,9 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="gpd" file="script/gpd.lua" arch="amd64" desc="GPD handheld fan">
+        <routine name="read" level="maximum"/>
+    </script>
     <script name="tsens" file="script/tsens.lua" arch="arm64" desc="Qualcomm TSENS temperature sensors">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>

@@ -472,6 +472,13 @@ KphHwCrosEcRead(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphHwGpdReadFan(
+    _Out_ PULONG Rpm
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphHwVsecIdentify(
     _In_ ULONG Locator,
     _Out_ PKPH_HW_VSEC Device

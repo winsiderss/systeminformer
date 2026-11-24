@@ -77,6 +77,7 @@ VOID NTAPI LoadCallback(
     DiskTemperatureInitialize();
     BatteryInitialize();
     GpuSensorInitialize();
+    GpdFanInitialize();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -85,6 +86,7 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
+    GpdFanUninitialize();
     GpuSensorUninitialize();
     BatteryUninitialize();
     DiskTemperatureUninitialize();
