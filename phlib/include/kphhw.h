@@ -174,6 +174,23 @@ typedef struct _KPH_HW_CROSEC_IDENTITY
     UCHAR HostCommandFlags;
 } KPH_HW_CROSEC_IDENTITY, *PKPH_HW_CROSEC_IDENTITY;
 
+#define KPH_HW_EC_GLOBAL_LOCK 0x1 // read with the ACPI Global Lock held (its _GLK is 1)
+#define KPH_HW_EC_BANKED 0x2 // the board's controller has banks the script may select
+
+typedef struct _KPH_HW_EC_IDENTITY
+{
+    ULONG DataPort;
+    ULONG CommandPort;
+    ULONG Flags; // KPH_HW_EC_*
+} KPH_HW_EC_IDENTITY, *PKPH_HW_EC_IDENTITY;
+
+typedef struct _KPH_HW_EC_REGISTER
+{
+    ULONG Bank;
+    ULONG Register;
+} KPH_HW_EC_REGISTER, *PKPH_HW_EC_REGISTER;
+typedef const KPH_HW_EC_REGISTER* PCKPH_HW_EC_REGISTER;
+
 typedef struct _KPH_HW_VSEC
 {
     USHORT Vendor;
@@ -271,6 +288,8 @@ C_ASSERT(sizeof(KPH_HW_PCI_MMIO) == 8);
 C_ASSERT(sizeof(KPH_HW_WINDOW_ITEM) == 8);
 C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
 C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
+C_ASSERT(sizeof(KPH_HW_EC_IDENTITY) == 12);
+C_ASSERT(sizeof(KPH_HW_EC_REGISTER) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
@@ -475,6 +494,24 @@ NTSTATUS
 NTAPI
 KphHwCrosEcRead(
     _In_reads_(Count) PCULONG Offsets,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwEcIdentify(
+    _In_ ULONG Ordinal,
+    _Out_ PKPH_HW_EC_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwEcRead(
+    _In_ ULONG Ordinal,
+    _In_reads_(Count) PCKPH_HW_EC_REGISTER Registers,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );

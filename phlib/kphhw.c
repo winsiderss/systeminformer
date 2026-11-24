@@ -46,6 +46,8 @@ static KPH_HW_SCRIPT KphpHwHsmpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_
 static KPH_HW_SCRIPT KphpHwPlatformScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPlatformFileName };
 static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciConfigFileName };
 static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCrosEcFileName };
+static CONST PH_STRINGREF KphpHwEcFileName = PH_STRINGREF_INIT(L"scripts\\ec.bin");
+static KPH_HW_SCRIPT KphpHwEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwEcFileName };
 static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwVsecFileName };
 static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
 static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.bin");
@@ -209,6 +211,7 @@ VOID KphHwSetScriptMode(
         &KphpHwPlatformScript,
         &KphpHwPciConfigScript,
         &KphpHwCrosEcScript,
+        &KphpHwEcScript,
         &KphpHwVsecScript,
         &KphpHwTsensScript,
         &KphpHwGpdScript,
@@ -1689,6 +1692,121 @@ NTSTATUS KphHwCrosEcRead(
     {
         status = KphpHwScriptCall(
             &KphpHwCrosEcScript,
+            &routine,
+            input,
+            inputLength,
+            values,
+            outputLength,
+            &returnLength
+            );
+
+        KphpHwReleaseEc();
+
+        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+            status = STATUS_INFO_LENGTH_MISMATCH;
+
+        if (NT_SUCCESS(status))
+            RtlCopyMemory(Values, values, outputLength);
+    }
+
+    PhFree(values);
+    PhFree(input);
+
+    return status;
+}
+
+/**
+ * Identifies an ACPI embedded controller.
+ *
+ * \param Ordinal The controller, an ordinal of the PNP0C09 devices.
+ * \param Identity Receives its data and command ports and KPH_HW_EC_* flags.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bus.
+ */
+NTSTATUS KphHwEcIdentify(
+    _In_ ULONG Ordinal,
+    _Out_ PKPH_HW_EC_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_EC_IDENTITY identity;
+    ULONG returnLength;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireEc()))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwEcScript,
+        &routine,
+        &Ordinal,
+        sizeof(Ordinal),
+        &identity,
+        sizeof(identity),
+        &returnLength
+        );
+
+    KphpHwReleaseEc();
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(identity))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Identity = identity;
+
+    return status;
+}
+
+/**
+ * Reads registers of an ACPI embedded controller. The script permits the
+ * banks and registers of the board's row; a bank it selects is put back before
+ * it returns.
+ *
+ * \param Ordinal The controller, an ordinal of the PNP0C09 devices.
+ * \param Registers The bank and register of each byte to read.
+ * \param Count The number of registers.
+ * \param Values Receives a status and a byte per register, in their order.
+ * \return Successful or errant status; STATUS_DEVICE_BUSY when the controller
+ * holds a byte of another transaction; STATUS_RETRY when another tool holds the
+ * bus.
+ */
+NTSTATUS KphHwEcRead(
+    _In_ ULONG Ordinal,
+    _In_reads_(Count) PCKPH_HW_EC_REGISTER Registers,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG inputLength;
+    ULONG outputLength;
+    ULONG returnLength;
+    PUCHAR input;
+    PKPH_HW_VALUE32 values;
+
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_EC_REGISTER), &inputLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongAdd(inputLength, sizeof(ULONG), &inputLength)))
+        return status;
+    if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE32), &outputLength)))
+        return status;
+
+    input = PhAllocate(inputLength);
+    RtlCopyMemory(input, &Ordinal, sizeof(ULONG));
+    RtlCopyMemory(input + sizeof(ULONG), Registers, inputLength - sizeof(ULONG));
+
+    values = PhAllocate(outputLength ? outputLength : 1);
+
+    if (NT_SUCCESS(status = KphpHwAcquireEc()))
+    {
+        status = KphpHwScriptCall(
+            &KphpHwEcScript,
             &routine,
             input,
             inputLength,
