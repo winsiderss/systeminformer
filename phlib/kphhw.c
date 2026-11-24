@@ -341,6 +341,8 @@ typedef enum _KPH_HW_BUS
     KphHwBusIsa,
     KphHwBusSmbus,
     KphHwBusIntelOcMailbox,
+    KphHwBusEc,
+    KphHwBusDimm,
     KphHwBusMaximum
 } KPH_HW_BUS;
 
@@ -352,10 +354,12 @@ static CONST PH_STRINGREF KphpHwBusNames[KphHwBusMaximum] =
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_ISABUS.HTP.Method"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_SMBUS.HTP.Method"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_Intel_OC_Mailbox"),
+    PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_EC"),
+    PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_DIMM"),
 };
-static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
-static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL };
-static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
+static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
+static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL, NULL, NULL };
+static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
 
 /**
  * Creates or opens a mutant hardware monitors share to serialize a bus.
@@ -469,6 +473,42 @@ static VOID KphpHwReleaseBus(
     )
 {
     NT_VERIFY(NT_SUCCESS(NtReleaseMutant(KphpHwBusHandles[Bus], NULL)));
+}
+
+/**
+ * Acquires the buses an embedded controller is reached through: the ISA bus,
+ * then the EC.
+ *
+ * \return Successful or errant status; STATUS_RETRY when another tool holds a
+ * bus.
+ */
+static NTSTATUS KphpHwAcquireEc(
+    VOID
+    )
+{
+    NTSTATUS status;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusEc, KPH_HW_BUS_TIMEOUT)))
+    {
+        KphpHwReleaseBus(KphHwBusIsa);
+        return status;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Releases the buses acquired with KphpHwAcquireEc.
+ */
+static VOID KphpHwReleaseEc(
+    VOID
+    )
+{
+    KphpHwReleaseBus(KphHwBusEc);
+    KphpHwReleaseBus(KphHwBusIsa);
 }
 
 /**
@@ -1031,11 +1071,14 @@ NTSTATUS KphHwHsmpCommand(
  * \details The host of a processor that is not Intel's is reached through an
  * index and data port pair on the ISA bus, so that bus is held as well.
  *
+ * \param Dimm Whether the memory modules' devices are reached; the DIMM bus is
+ * then held inside the others.
  * \param Isa Receives whether the ISA bus is held.
  * \return Successful or errant status; STATUS_RETRY when another tool holds a
  * bus.
  */
 static NTSTATUS KphpHwAcquireSmbus(
+    _In_ BOOLEAN Dimm,
     _Out_ PBOOLEAN Isa
     )
 {
@@ -1069,18 +1112,33 @@ static NTSTATUS KphpHwAcquireSmbus(
         *Isa = TRUE;
     }
 
+    if (Dimm && !NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusDimm, KPH_HW_BUS_TIMEOUT)))
+    {
+        if (*Isa)
+            KphpHwReleaseBus(KphHwBusIsa);
+
+        KphpHwReleaseBus(KphHwBusSmbus);
+        *Isa = FALSE;
+        return status;
+    }
+
     return STATUS_SUCCESS;
 }
 
 /**
  * Releases the buses acquired with KphpHwAcquireSmbus.
  *
+ * \param Dimm Whether the DIMM bus is held.
  * \param Isa Whether the ISA bus is held.
  */
 static VOID KphpHwReleaseSmbus(
+    _In_ BOOLEAN Dimm,
     _In_ BOOLEAN Isa
     )
 {
+    if (Dimm)
+        KphpHwReleaseBus(KphHwBusDimm);
+
     if (Isa)
         KphpHwReleaseBus(KphHwBusIsa);
 
@@ -1108,7 +1166,7 @@ NTSTATUS KphHwSmbusIdentify(
     ULONG returnLength;
     BOOLEAN isa;
 
-    if (!NT_SUCCESS(status = KphpHwAcquireSmbus(&isa)))
+    if (!NT_SUCCESS(status = KphpHwAcquireSmbus(FALSE, &isa)))
         return status;
 
     status = KphpHwScriptCall(
@@ -1121,7 +1179,7 @@ NTSTATUS KphHwSmbusIdentify(
         &returnLength
         );
 
-    KphpHwReleaseSmbus(isa);
+    KphpHwReleaseSmbus(FALSE, isa);
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
@@ -1168,6 +1226,7 @@ NTSTATUS KphHwSmbusRead(
     PULONG input;
     PKPH_HW_VALUE32 values;
     BOOLEAN isa;
+    BOOLEAN dimm = FALSE;
 
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_SMBUS_ITEM), &itemsLength)))
         return status;
@@ -1183,7 +1242,16 @@ NTSTATUS KphHwSmbusRead(
 
     values = PhAllocate(outputLength ? outputLength : 1);
 
-    if (NT_SUCCESS(status = KphpHwAcquireSmbus(&isa)))
+    // A memory module's thermal sensor (18h-1Fh), PMIC (48h-4Fh) or SPD hub (50h-57h).
+    for (ULONG i = 0; i < Count; i++)
+    {
+        UCHAR address = Items[i].Address;
+
+        if ((address >= 0x18 && address <= 0x1F) || (address >= 0x48 && address <= 0x57))
+            dimm = TRUE;
+    }
+
+    if (NT_SUCCESS(status = KphpHwAcquireSmbus(dimm, &isa)))
     {
         status = KphpHwScriptCall(
             &KphpHwSmbusScript,
@@ -1195,7 +1263,7 @@ NTSTATUS KphHwSmbusRead(
             &returnLength
             );
 
-        KphpHwReleaseSmbus(isa);
+        KphpHwReleaseSmbus(dimm, isa);
 
         if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
             status = STATUS_INFO_LENGTH_MISMATCH;
@@ -1492,7 +1560,7 @@ NTSTATUS KphHwCrosEcIdentify(
     KPH_HW_CROSEC_IDENTITY identity;
     ULONG returnLength;
 
-    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+    if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
 
     status = KphpHwScriptCall(
@@ -1505,7 +1573,7 @@ NTSTATUS KphHwCrosEcIdentify(
         &returnLength
         );
 
-    KphpHwReleaseBus(KphHwBusIsa);
+    KphpHwReleaseEc();
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
@@ -1556,7 +1624,7 @@ NTSTATUS KphHwCrosEcRead(
 
     values = PhAllocate(outputLength ? outputLength : 1);
 
-    if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+    if (NT_SUCCESS(status = KphpHwAcquireEc()))
     {
         status = KphpHwScriptCall(
             &KphpHwCrosEcScript,
@@ -1568,7 +1636,7 @@ NTSTATUS KphHwCrosEcRead(
             &returnLength
             );
 
-        KphpHwReleaseBus(KphHwBusIsa);
+        KphpHwReleaseEc();
 
         if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
             status = STATUS_INFO_LENGTH_MISMATCH;
@@ -1599,7 +1667,7 @@ NTSTATUS KphHwGpdReadFan(
     ULONG rpm;
     ULONG returnLength;
 
-    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+    if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
 
     status = KphpHwScriptCall(
@@ -1612,7 +1680,7 @@ NTSTATUS KphHwGpdReadFan(
         &returnLength
         );
 
-    KphpHwReleaseBus(KphHwBusIsa);
+    KphpHwReleaseEc();
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
@@ -1653,7 +1721,7 @@ NTSTATUS KphHwLenovoWsRead(
 
     *ReturnLength = 0;
 
-    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+    if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
 
     status = KphpHwScriptCall(
@@ -1666,7 +1734,7 @@ NTSTATUS KphHwLenovoWsRead(
         &returnLength
         );
 
-    KphpHwReleaseBus(KphHwBusIsa);
+    KphpHwReleaseEc();
 
     if (status == STATUS_BUFFER_TOO_SMALL)
         return STATUS_INFO_LENGTH_MISMATCH;
