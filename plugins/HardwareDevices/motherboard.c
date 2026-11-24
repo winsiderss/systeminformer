@@ -421,7 +421,7 @@ static VOID MotherboardPollSlot(
     }
 }
 
-// Called by the provider once per update while the gate is open, on the provider thread.
+// Called by the provider once per update while hardware sensors are enabled, on the provider thread.
 _Function_class_(PH_HW_SENSOR_SOURCE_CALLBACK)
 static VOID NTAPI MotherboardSensorSourceCallback(
     _In_ PPH_HW_SENSOR_REPORT_FUNCTION Report,
@@ -435,6 +435,14 @@ static VOID NTAPI MotherboardSensorSourceCallback(
 
     if (!context)
         return;
+
+    // The Super I/O is read through the driver; without it there is nothing to report, and its return starts a
+    // new session.
+    if (KsiLevel() != KphLevelMax)
+    {
+        WriteRelease(&MotherboardSessionEnded, TRUE);
+        return;
+    }
 
     if (!context->SmbiosRead)
     {

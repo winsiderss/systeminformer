@@ -573,12 +573,12 @@ static VOID NTAPI PhpHwSourceReport(
 }
 
 /**
- * Invokes the callback of each registered source; while the gate is closed every source sensor is stale.
+ * Invokes the callback of each registered source; while hardware sensors are off every source sensor is stale.
  *
- * \param GateOpen Whether the gate is open.
+ * \param Enabled Whether hardware sensors are on. Sources run in user mode: the driver is not needed.
  */
 static VOID PhpHwUpdateSources(
-    _In_ BOOLEAN GateOpen
+    _In_ BOOLEAN Enabled
     )
 {
     PhAcquireQueuedLockExclusive(&PhpHwSourceUpdateLock);
@@ -589,7 +589,7 @@ static VOID PhpHwUpdateSources(
         PhpHwSourceUpdateId++;
         PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
 
-        if (GateOpen)
+        if (Enabled)
         {
             WritePointerRelease(&PhpHwSourceUpdateThread, NtCurrentThreadId());
 
@@ -691,7 +691,7 @@ VOID PhHwProviderUpdate(
     else
     {
         PhpHwUpdateCounters(!!PhCsEnableHardwareSensors);
-        PhpHwUpdateSources(FALSE);
+        PhpHwUpdateSources(!!PhCsEnableHardwareSensors);
     }
 
     memset(&updatedEvent, 0, sizeof(PH_PROVIDER_UPDATED_EVENT));
