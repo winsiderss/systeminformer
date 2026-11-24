@@ -11,7 +11,31 @@
 
 #include <hwprvp.h>
 #include <perflib.h>
+#include <SetupAPI.h>
 #include <trace.h>
+
+// IOCTL_THERMAL_QUERY_INFORMATION and the THERMAL_INFORMATION_EX that ACPI.sys returns (92 bytes; poclass.h has only the
+// older layout). A stamp equal to the zone's current one holds the request until the zone changes.
+#define PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION CTL_CODE(FILE_DEVICE_BATTERY, 0x20, METHOD_BUFFERED, FILE_READ_ACCESS)
+#define PHP_HW_THERMAL_STAMP_NONE 0xFFFFFFFF
+
+typedef struct _PHP_HW_THERMAL_INFORMATION_EX
+{
+    ULONG ThermalStamp;
+    ULONG ThermalConstant1;
+    ULONG ThermalConstant2;
+    GROUP_AFFINITY Processors;
+    ULONG SamplingPeriod;
+    ULONG CurrentTemperature;
+    ULONG PassiveTripPoint;
+    ULONG CriticalTripPoint;
+    UCHAR ActiveTripPointCount;
+    ULONG ActiveTripPoint[10];
+} PHP_HW_THERMAL_INFORMATION_EX, *PPHP_HW_THERMAL_INFORMATION_EX;
+#ifdef _WIN64
+C_ASSERT(FIELD_OFFSET(PHP_HW_THERMAL_INFORMATION_EX, PassiveTripPoint) == 40);
+C_ASSERT(FIELD_OFFSET(PHP_HW_THERMAL_INFORMATION_EX, ActiveTripPoint) + sizeof(ULONG) * 10 == 92);
+#endif
 
 // Collector counters: the Windows performance counters (Perflib V2) of ACPI thermal zones, energy meters and processor
 // limits. Sampled on the provider thread once per update; the setting alone enables them, no driver.
@@ -80,7 +104,17 @@ typedef struct _PHP_HW_COUNTER_ITEM
     ULONG SensorIndex; // the temperature, clock or power sensor; ULONG_MAX when none
     ULONG SensorId; // the Id of that sensor
     ULONG LimitIndex; // the processor performance limit sensor; ULONG_MAX when none
+    ULONG TripIndex[2]; // a zone's passive and critical trip point sensors; ULONG_MAX when none
 } PHP_HW_COUNTER_ITEM, *PPHP_HW_COUNTER_ITEM;
+
+// A thermal zone's trip points, read once a query from its device interface.
+typedef struct _PHP_HW_COUNTER_TRIP
+{
+    WCHAR Name[PH_HW_NAMED_SENSOR_NAME_LENGTH]; // the zone's BIOS device name
+    ULONG Trip[2]; // passive and critical, tenths of a kelvin; 0 when none
+} PHP_HW_COUNTER_TRIP, *PPHP_HW_COUNTER_TRIP;
+
+#define PHP_HW_COUNTER_MAX_TRIPS 32
 
 // One counter of the last sample, for the report.
 typedef struct _PHP_HW_COUNTER_BLOCK
@@ -100,6 +134,9 @@ static PHP_HW_COUNTER_ITEM PhpHwCounterItems[PHP_HW_COUNTER_MAX_ITEMS];
 static ULONG PhpHwCounterBlockCount = 0;
 static PHP_HW_COUNTER_BLOCK PhpHwCounterBlocks[RTL_NUMBER_OF(PhpHwCounters)];
 static ULONG PhpHwCounterZoneLimitIndex = ULONG_MAX; // the lowest zone passive limit sensor
+static PHP_HW_COUNTER_TRIP PhpHwCounterTrips[PHP_HW_COUNTER_MAX_TRIPS];
+static ULONG PhpHwCounterTripCount = 0;
+static BOOLEAN PhpHwCounterTripsRead = FALSE; // since the query opened
 
 // Under PhpHwNamedSensorLock.
 ULONG PhpHwCounterSensorCount = 0;
@@ -180,6 +217,8 @@ static VOID PhpHwCounterClose(
     PhpHwCounterAddedCount = 0;
     PhpHwCounterItemCount = 0;
     PhpHwCounterZoneLimitIndex = ULONG_MAX;
+    PhpHwCounterTripCount = 0;
+    PhpHwCounterTripsRead = FALSE;
 
     PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
     PhpHwCounterClearSensorsLocked();
@@ -316,6 +355,8 @@ static PPHP_HW_COUNTER_ITEM PhpHwCounterFindItem(
     item->Set = Set;
     memcpy(item->Name, Name->Buffer, Name->Length);
     item->SensorIndex = ULONG_MAX;
+    item->TripIndex[0] = ULONG_MAX;
+    item->TripIndex[1] = ULONG_MAX;
     item->LimitIndex = ULONG_MAX;
 
     return item;
@@ -477,6 +518,108 @@ static ULONG PhpHwCounterZoneId(
 }
 
 /**
+ * Compares two ACPI namespace names, ignoring each segment's trailing underscore padding (\_TZ_.TZ0_ is \_TZ.TZ0).
+ */
+static BOOLEAN PhpHwCounterSameZone(
+    _In_ PCWSTR Name1,
+    _In_ PCWSTR Name2
+    )
+{
+    while (TRUE)
+    {
+        while (*Name1 == L'_' && (Name1[1] == L'.' || !Name1[1]))
+            Name1++;
+        while (*Name2 == L'_' && (Name2[1] == L'.' || !Name2[1]))
+            Name2++;
+
+        if (towupper(*Name1) != towupper(*Name2))
+            return FALSE;
+        if (!*Name1)
+            return TRUE;
+
+        Name1++;
+        Name2++;
+    }
+}
+
+/**
+ * Reads the passive and critical trip points of every thermal zone from its device interface
+ * (IOCTL_THERMAL_QUERY_INFORMATION), once a query.
+ */
+static VOID PhpHwCounterReadTrips(
+    VOID
+    )
+{
+    // GUID_DEVICE_THERMAL_ZONE
+    static CONST GUID thermalZone = { 0x4afa3d51, 0x74a7, 0x11d0, { 0xbe, 0x5e, 0x00, 0xa0, 0xc9, 0x06, 0x28, 0x57 } };
+    HDEVINFO deviceInfoSet;
+    SP_DEVICE_INTERFACE_DATA interfaceData;
+
+    PhpHwCounterTripsRead = TRUE;
+    PhpHwCounterTripCount = 0;
+
+    deviceInfoSet = SetupDiGetClassDevsW(&thermalZone, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+
+    if (deviceInfoSet == INVALID_HANDLE_VALUE)
+        return;
+
+    memset(&interfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
+    interfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
+
+    for (ULONG i = 0; PhpHwCounterTripCount < PHP_HW_COUNTER_MAX_TRIPS && SetupDiEnumDeviceInterfaces(deviceInfoSet, NULL, &thermalZone, i, &interfaceData); i++)
+    {
+        UCHAR detailBuffer[sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + 512 * sizeof(WCHAR)];
+        PSP_DEVICE_INTERFACE_DETAIL_DATA_W detail = (PSP_DEVICE_INTERFACE_DETAIL_DATA_W)detailBuffer;
+        SP_DEVINFO_DATA deviceInfoData;
+        DEVPROPTYPE propertyType;
+        WCHAR name[256];
+        HANDLE handle;
+        PHP_HW_THERMAL_INFORMATION_EX thermal;
+        PPHP_HW_COUNTER_TRIP trip;
+
+        memset(detailBuffer, 0, sizeof(detailBuffer));
+        detail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
+        memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
+        deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
+
+        if (!SetupDiGetDeviceInterfaceDetailW(deviceInfoSet, &interfaceData, detail, sizeof(detailBuffer), NULL, &deviceInfoData))
+            continue;
+        if (!SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_BiosDeviceName, &propertyType, (PBYTE)name, sizeof(name) - sizeof(WCHAR), NULL, 0) || propertyType != DEVPROP_TYPE_STRING)
+            continue;
+
+        name[RTL_NUMBER_OF(name) - 1] = UNICODE_NULL;
+
+        if (!NT_SUCCESS(PhCreateFileWin32(
+            &handle,
+            detail->DevicePath,
+            FILE_READ_DATA | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            )))
+        {
+            continue;
+        }
+
+        memset(&thermal, 0, sizeof(PHP_HW_THERMAL_INFORMATION_EX));
+        thermal.ThermalStamp = PHP_HW_THERMAL_STAMP_NONE;
+
+        if (NT_SUCCESS(PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), NULL)))
+        {
+            trip = &PhpHwCounterTrips[PhpHwCounterTripCount++];
+            PhCopyStringZ(name, SIZE_MAX, trip->Name, RTL_NUMBER_OF(trip->Name), NULL);
+            trip->Trip[0] = thermal.PassiveTripPoint;
+            trip->Trip[1] = thermal.CriticalTripPoint;
+        }
+
+        NtClose(handle);
+    }
+
+    SetupDiDestroyDeviceInfoList(deviceInfoSet);
+}
+
+/**
  * Determines whether a thermal zone is an MPTF power participant (\_TZ.PSOC, \_TZ.PSYS), whose temperature counter
  * carries milliwatts.
  */
@@ -626,6 +769,44 @@ static VOID PhpHwCounterPublish(
 
                 item->SensorIndex = PhpHwCounterAddSensor(PhHwNamedSensorZoneTemperature, id, item->Name);
                 item->SensorId = id;
+
+                if (!PhpHwCounterTripsRead)
+                    PhpHwCounterReadTrips();
+
+                for (ULONG t = 0; t < PhpHwCounterTripCount; t++)
+                {
+                    static CONST PCWSTR suffixes[2] = { L" passive", L" critical" };
+
+                    if (!PhpHwCounterSameZone(PhpHwCounterTrips[t].Name, item->Name))
+                        continue;
+
+                    for (ULONG k = 0; k < 2; k++)
+                    {
+                        WCHAR tripName[PH_HW_NAMED_SENSOR_NAME_LENGTH];
+                        PH_FORMAT format[2];
+
+                        // A trip point below 0 C or the zone maximum is firmware's "none".
+                        if (PhpHwCounterTrips[t].Trip[k] <= 2732 || PhpHwCounterTrips[t].Trip[k] > PHP_HW_COUNTER_ZONE_MAXIMUM)
+                            continue;
+
+                        PhInitFormatS(&format[0], item->Name);
+                        PhInitFormatS(&format[1], suffixes[k]);
+                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), tripName, sizeof(tripName), NULL);
+                        item->TripIndex[k] = PhpHwCounterAddSensor(PhHwNamedSensorZoneTrip, id * 2 + k, tripName);
+
+                        PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
+
+                        if (item->TripIndex[k] < PhpHwCounterSensorCount)
+                        {
+                            PhpHwCounterSensors[item->TripIndex[k]].Valid = TRUE;
+                            PhpHwCounterSensors[item->TripIndex[k]].Value = (FLOAT)PhpHwCounterTrips[t].Trip[k] / 10.0f - 273.15f;
+                        }
+
+                        PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
+                    }
+
+                    break;
+                }
             }
             break;
         case PhpHwCounterSetProcessor:

@@ -53,6 +53,7 @@ typedef enum _PH_HW_NAMED_SENSOR_KIND
     PhHwNamedSensorCoreMemoryStall, // percent of cycles stalled on memory, CPU component; Id is the flat processor index
     PhHwNamedSensorCStateResidency, // percent of time, CPU component; Id is the state, plus 0x100 + 16 * core for a core's
     PhHwNamedSensorRaplPower, // watts, CPU component; Id is the RAPL domain (1 PP1, the integrated graphics)
+    PhHwNamedSensorZoneTrip, // degrees Celsius, Windows component: ACPI thermal zone passive and critical trip points
     PhHwNamedSensorMaximum
 } PH_HW_NAMED_SENSOR_KIND;
 
