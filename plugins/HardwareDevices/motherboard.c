@@ -12,7 +12,7 @@
 #include "devices.h"
 #include <phfirmware.h>
 
-#define MB_SLOTS 2
+#define MB_SLOTS 4 // 2Eh, 4Eh, and the SMSC strap ports 162Eh and 164Eh
 #define MB_MAX_REGISTERS 256
 #define MB_MAX_SENSORS 128
 #define MB_MIN_INTERVAL_MS 900

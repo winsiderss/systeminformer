@@ -22,7 +22,9 @@ local FAMILY_ITE = 3
 local FAMILY_FINTEK = 4
 local FAMILY_SMSC = 5
 
-local SLOTS = { [0] = 0x2e, [1] = 0x4e }
+-- Slots 2 and 3 are the SMSC strap ports, probed only where the firmware reserves them (claimed).
+local SLOTS = { [0] = 0x2e, [1] = 0x4e, [2] = 0x162e, [3] = 0x164e }
+local STRAPS = { [0x162e] = true, [0x164e] = true }
 
 local CHASSIS = { { 0x01, 0x07 }, { 0x0f, 0x1d } }
 
@@ -1557,7 +1559,12 @@ end
 
 -- The families in the order a slot is tried: the one that identified last
 -- first, in a kept script.
+local SMSC_ONLY = { FAMILIES[5] }
+
 local function family_order(s)
+  if STRAPS[s.port] then
+    return SMSC_ONLY
+  end
   return kept.orders and kept.orders[s.port] or FAMILIES
 end
 
@@ -1699,12 +1706,33 @@ local function vendor(s, monitor)
   return nt.STATUS_SUCCESS
 end
 
+-- Whether an ACPI device's I/O resources cover a strap port and the one after it.
+local claims = {}
+
+local function claimed(port)
+  if claims[port] == nil then
+    claims[port] = false
+    for _, e in ipairs(nt.acpi.list() or {}) do
+      for _, r in ipairs(nt.resources(e.device) or {}) do
+        if r.kind == 2 and r.raw <= port and port + 1 < r.raw + r.length then
+          claims[port] = true
+        end
+      end
+    end
+  end
+  return claims[port]
+end
+
 local function session(input)
   local slot = string.unpack('<I4', input)
   local port = SLOTS[slot]
   if not port then
     ksi.trace('slot %d does not exist', slot)
     return nil, nt.STATUS_INVALID_PARAMETER
+  end
+  if STRAPS[port] and not claimed(port) then
+    ksi.trace('strap port 0x%x is not reserved by the firmware', port)
+    return nil, nt.STATUS_NOT_SUPPORTED
   end
   if not chassis_permitted() then
     return nil, nt.STATUS_NOT_SUPPORTED
