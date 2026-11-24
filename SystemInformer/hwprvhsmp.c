@@ -15,13 +15,14 @@
 #include <trace.h>
 
 // Collector hsmp: the AMD server firmware's HSMP mailbox of each socket, one KphHwHsmpCommand a package a second with
-// the commands of phlib's PhHwSmuHsmpCommands still accepted, decoded by phlib into named sensors. On protocol 5 and 7
-// a second call every PHP_HW_HSMP_DIMM_INTERVAL passes reads the DIMMs: its first sends GET_DIMM_THERMAL to each of
-// the PHP_HW_HSMP_DIMM_PROBES mode-1 addresses 80h | sensor << 6 | DIMM << 4 | UMC and keeps those
-// answered with the address echoed; later ones read their temperature, and the power of each sensor-0 address.
+// the commands of phlib's PhHwSmuHsmpCommands still accepted, decoded by phlib into named sensors. On interface
+// version 5 and 7 a second call every PHP_HW_HSMP_DIMM_INTERVAL passes reads the DIMMs: its first sends GET_DIMM_THERMAL
+// to each of the PHP_HW_HSMP_DIMM_PROBES mode-1 addresses 80h | sensor << 6 | DIMM << 4 | UMC and keeps
+// those answered with the address echoed; later ones read their temperature, and the power of each sensor-0 address.
 
 #define PHP_HW_HSMP_STRIKE_LIMIT 2 // consecutive busy or timed-out mailbox failures that end a package's mailbox
 #define PHP_HW_HSMP_COMMAND_LIMIT 3 // consecutive firmware failures that drop a command
+#define PHP_HW_HSMP_GET_INTERFACE_VERSION 0x03 // the identify's version is the firmware's (02h)
 #define PHP_HW_HSMP_DIMM_INTERVAL 5 // passes between DIMM reads
 #define PHP_HW_HSMP_DIMM_PROBES (PH_HW_HSMP_DIMM_CHANNELS * 4) // two DIMMs a channel, two sensors a DIMM
 
@@ -33,7 +34,8 @@ typedef struct _PHP_HW_HSMP_PACKAGE
     BOOLEAN MemoryClockValid; // the last pass decoded MCLK
     BOOLEAN LimitSourcesValid;
     UCHAR Strikes;
-    ULONG Version;
+    ULONG Version; // the SMU firmware version
+    ULONG InterfaceVersion; // HSMP protocol; 0 when not answered
     ULONG Dropped; // bit per PhHwSmuHsmpCommands entry
     ULONG LimitSources; // PH_HW_HSMP_LIMIT_*, for the report
     NTSTATUS Status; // the last call's, for the report
@@ -108,8 +110,17 @@ static VOID PhpHwHsmpIdentify(
 
     if (PhpHwHsmpApplyStatus(Package, PackageIndex, KphHwHsmpIdentify(Package->Locator, PackageIndex, &identity)))
     {
+        KPH_HW_HSMP_COMMAND command;
+        KPH_HW_HSMP_RESULT result;
+
         Package->Version = identity.Version;
         Package->Identified = TRUE;
+
+        memset(&command, 0, sizeof(KPH_HW_HSMP_COMMAND));
+        command.Opcode = PHP_HW_HSMP_GET_INTERFACE_VERSION;
+
+        if (NT_SUCCESS(KphHwHsmpCommand(Package->Locator, PackageIndex, &command, 1, &result)) && NT_SUCCESS(result.Status))
+            Package->InterfaceVersion = result.Results[0];
     }
 }
 
@@ -391,7 +402,7 @@ NTSTATUS PhpHwHsmpPass(
             else
                 answered = TRUE;
 
-            if (!package->Ended && (package->Version == 5 || package->Version == 7) &&
+            if (!package->Ended && (package->InterfaceVersion == 5 || package->InterfaceVersion == 7) &&
                 ++package->DimmPasses >= PHP_HW_HSMP_DIMM_INTERVAL)
             {
                 package->DimmPasses = 0;
@@ -494,12 +505,13 @@ VOID PhpHwHsmpDiagnostics(
 
         PhAppendFormatStringBuilder(
             Builder,
-            L"  Package %lu: socket %lu, root 0x%05lx, %s, version %lu, commands %lu of %lu, last 0x%08lx, %lu sensors",
+            L"  Package %lu: socket %lu, root 0x%05lx, %s, firmware 0x%08lx, interface %lu, commands %lu of %lu, last 0x%08lx, %lu sensors",
             i,
             i,
             package->Locator,
             package->Ended ? L"ended" : (package->Identified ? L"identified" : L"not identified"),
             package->Version,
+            package->InterfaceVersion,
             accepted,
             PhHwSmuHsmpCommandCount,
             package->Status,
