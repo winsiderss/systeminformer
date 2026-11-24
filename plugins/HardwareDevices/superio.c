@@ -16,6 +16,7 @@
 #define MB_FAMILY_ITE 3
 #define MB_FAMILY_FINTEK 4
 #define MB_FAMILY_SMSC 5
+#define MB_FAMILY_SCH56XX 6
 
 #define MB_DECODER_DEFAULT 0
 #define MB_DECODER_W836 1
@@ -146,6 +147,26 @@ typedef struct _MB_SMSC_VARIANT
     UCHAR InputCount;
 } MB_SMSC_VARIANT, *PMB_SMSC_VARIANT;
 typedef const MB_SMSC_VARIANT* PCMB_SMSC_VARIANT;
+
+typedef struct _MB_SCH56_VARIANT
+{
+    const USHORT* InputRegisters; // the value, or its high eight bits with InputNibbles
+    const USHORT* InputNibbles; // the low four bits, NULL for 8-bit inputs
+    ULONG InputHighNibbles; // inputs whose low four bits are the nibble register's high half
+    const USHORT* InputFactors; // millivolts at full scale
+    PCWSTR const* InputLabels;
+    UCHAR InputCount;
+    const USHORT* TemperatureRegisters;
+    const USHORT* TemperatureNibbles; // NULL for 8-bit temperatures (degrees + 64)
+    ULONG TemperatureHighNibbles;
+    USHORT TemperatureControl; // first per-temperature control register (80h deactivated), 0 for none
+    UCHAR TemperatureCount;
+    const USHORT* FanRegisters; // low byte first; the low byte read latches the high
+    USHORT FanControl; // first per-fan control register (08h not present), 0 for none
+    UCHAR FanCount;
+    USHORT StartRegister; // bit 0 set while firmware runs the monitor, 0 for none
+} MB_SCH56_VARIANT, *PMB_SCH56_VARIANT;
+typedef const MB_SCH56_VARIANT* PCMB_SCH56_VARIANT;
 
 struct _MB_CHIP
 {
@@ -429,6 +450,35 @@ static CONST USHORT Sch311xNominal[] = { 2500, 1500, 3300, 5000, 12000, 3300, 33
 static CONST USHORT Sch5127Nominal[] = { 2500, 2250, 3300, 1125, 1125, 3300, 3300, 1500 };
 static CONST PCWSTR SmscInputLabels[] = { L"Voltage 0", L"Voltage 1", L"VCC", L"Voltage 3", L"Voltage 4", L"VTR", L"VBAT", L"Voltage 7" };
 static CONST PCWSTR SmscTemperatureLabels[] = { L"Remote diode 1", L"Internal", L"Remote diode 2" };
+
+// SCH5627 and SCH5636: virtual registers read through the embedded controller's mailbox. A 12-bit value's high
+// byte read latches its nibble.
+static CONST USHORT Sch5627InputRegisters[] = { 0x22, 0x23, 0x24, 0x25, 0x189 };
+static CONST USHORT Sch5627InputNibbles[] = { 0xe4, 0xe4, 0xe3, 0xe3, 0x18a };
+static CONST USHORT Sch5627InputFactors[] = { 10745, 3660, 9765, 10745, 3660 };
+static CONST PCWSTR Sch5627InputLabels[] = { L"VCC", L"VTT", L"VBAT", L"VTR", L"VIN" };
+static CONST USHORT Sch5627TemperatureRegisters[] = { 0x2b, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x180, 0x181 };
+static CONST USHORT Sch5627TemperatureNibbles[] = { 0xe2, 0xe1, 0xe1, 0xe5, 0xe5, 0xe6, 0x182, 0x182 };
+static CONST USHORT Sch56FanRegisters[] = { 0x2c, 0x2e, 0x30, 0x32, 0x62, 0x64, 0x66, 0x68 };
+static CONST USHORT Sch5636InputFactors[] = { 4400, 1500, 4000, 4400, 16000 };
+static CONST PCWSTR Sch5636InputLabels[] = { L"+3.3V", L"VREF", L"VBAT", L"+3.3V Standby", L"+12V" };
+static CONST USHORT Sch5636TemperatureRegisters[] = { 0x2b, 0x26, 0x27, 0x28, 0x29, 0x2a, 0x180, 0x181, 0x85, 0x86, 0x87, 0x88, 0x89, 0x8a, 0x8b, 0x8c };
+
+static CONST MB_SCH56_VARIANT Sch5627 =
+{
+    Sch5627InputRegisters, Sch5627InputNibbles, 0x15, Sch5627InputFactors, Sch5627InputLabels, RTL_NUMBER_OF(Sch5627InputRegisters),
+    Sch5627TemperatureRegisters, Sch5627TemperatureNibbles, 0x8c, 0, RTL_NUMBER_OF(Sch5627TemperatureRegisters),
+    Sch56FanRegisters, 0, 4,
+    0x40
+};
+
+static CONST MB_SCH56_VARIANT Sch5636 =
+{
+    Sch5627InputRegisters, NULL, 0, Sch5636InputFactors, Sch5636InputLabels, RTL_NUMBER_OF(Sch5627InputRegisters),
+    Sch5636TemperatureRegisters, NULL, 0, 0x790, RTL_NUMBER_OF(Sch5636TemperatureRegisters),
+    Sch56FanRegisters, 0x880, RTL_NUMBER_OF(Sch56FanRegisters),
+    0
+};
 
 #define SMSC_REG_CONFIG 0x40 // bit 0 monitoring started, bit 2 ready
 #define SMSC_CONFIG_RUNNING 0x05
@@ -716,6 +766,8 @@ static CONST MB_CHIP SuperIoChips[] =
     { MB_FAMILY_SMSC, 0x007d, 0xffff, L"SCH3114", &Sch311x },
     { MB_FAMILY_SMSC, 0x007f, 0xffff, L"SCH3116", &Sch311x },
     { MB_FAMILY_SMSC, 0x0086, 0xffff, L"SCH5127", &Sch5127 },
+    { MB_FAMILY_SCH56XX, 0x00c6, 0xffff, L"SCH5627", &Sch5627 },
+    { MB_FAMILY_SCH56XX, 0x00c7, 0xffff, L"SCH5636", &Sch5636 },
     { MB_FAMILY_FINTEK, 0x0406, 0xffff, L"F71805F", &F71805f, MB_DECODER_F71805F },
     { MB_FAMILY_FINTEK, 0x0341, 0xffff, L"F71872F", &F71872f, MB_DECODER_F71805F },
     { MB_FAMILY_FINTEK, 0x0901, 0xffff, L"F71808E", &F71808e },
@@ -5163,6 +5215,42 @@ static VOID SuperIoAddFintekRegisters(
     }
 }
 
+static VOID SuperIoAddSch56Registers(
+    _In_ PCMB_SCH56_VARIANT Variant,
+    _Inout_ PMB_REGISTER_LIST List
+    )
+{
+    if (Variant->StartRegister)
+        SuperIoAddRegister(List, Variant->StartRegister);
+
+    for (ULONG i = 0; i < Variant->InputCount; i++)
+    {
+        SuperIoAddRegister(List, Variant->InputRegisters[i]);
+
+        if (Variant->InputNibbles)
+            SuperIoAddRegister(List, Variant->InputNibbles[i]);
+    }
+
+    for (USHORT i = 0; i < Variant->TemperatureCount; i++)
+    {
+        if (Variant->TemperatureControl)
+            SuperIoAddRegister(List, (USHORT)(Variant->TemperatureControl + i));
+
+        SuperIoAddRegister(List, Variant->TemperatureRegisters[i]);
+
+        if (Variant->TemperatureNibbles)
+            SuperIoAddRegister(List, Variant->TemperatureNibbles[i]);
+    }
+
+    for (USHORT i = 0; i < Variant->FanCount; i++)
+    {
+        if (Variant->FanControl)
+            SuperIoAddRegister(List, (USHORT)(Variant->FanControl + i));
+
+        SuperIoAddWord(List, Variant->FanRegisters[i]);
+    }
+}
+
 static VOID SuperIoAddSmscRegisters(
     _In_ PCMB_SMSC_VARIANT Variant,
     _Inout_ PMB_REGISTER_LIST List
@@ -5226,6 +5314,9 @@ ULONG SuperIoGetRegisters(
         break;
     case MB_FAMILY_SMSC:
         SuperIoAddSmscRegisters(State->Chip->Variant, &list);
+        break;
+    case MB_FAMILY_SCH56XX:
+        SuperIoAddSch56Registers(State->Chip->Variant, &list);
         break;
     }
 
@@ -6391,6 +6482,89 @@ static VOID SuperIoDecodeF71805f(
     }
 }
 
+// A 12-bit value: the high byte's eight bits and the nibble register's high or low half.
+_Success_(return)
+static BOOLEAN SuperIoRead12(
+    _In_ PCMB_REGISTERS Registers,
+    _In_ USHORT Register,
+    _In_ USHORT Nibble,
+    _In_ BOOLEAN HighNibble,
+    _Out_ PUSHORT Value
+    )
+{
+    UCHAR high;
+    UCHAR nibble;
+
+    if (!SuperIoRead8(Registers, Register, &high) || !SuperIoRead8(Registers, Nibble, &nibble))
+        return FALSE;
+
+    *Value = (USHORT)((high << 4) | (HighNibble ? (nibble >> 4) : (nibble & 0x0f)));
+    return TRUE;
+}
+
+static VOID SuperIoDecodeSch56(
+    _Inout_ PMB_DECODE_CONTEXT Context
+    )
+{
+    PCMB_SCH56_VARIANT variant = Context->State->Chip->Variant;
+    PCMB_REGISTERS registers = Context->Registers;
+    UCHAR value8;
+    USHORT value;
+
+    if (variant->StartRegister && (!SuperIoRead8(registers, variant->StartRegister, &value8) || !(value8 & 0x01)))
+        return;
+
+    // 12-bit inputs: millivolts = value * factor / 10000; 8-bit inputs: value * factor / 255.
+    for (ULONG i = 0; i < variant->InputCount; i++)
+    {
+        if (variant->InputNibbles)
+        {
+            if (SuperIoRead12(registers, variant->InputRegisters[i], variant->InputNibbles[i], !!(variant->InputHighNibbles & (1ul << i)), &value))
+                SuperIoAddVoltage(Context, i, value * variant->InputFactors[i] / 10000.0f / 1000.0f, FALSE, variant->InputLabels[i]);
+        }
+        else if (SuperIoRead8(registers, variant->InputRegisters[i], &value8))
+        {
+            SuperIoAddVoltage(Context, i, value8 * variant->InputFactors[i] / 255.0f / 1000.0f, FALSE, variant->InputLabels[i]);
+        }
+    }
+
+    // 12-bit temperatures: value / 16 - 64 degrees, 0 a faulty sensor; 8-bit: value - 64.
+    for (USHORT i = 0; i < variant->TemperatureCount; i++)
+    {
+        if (variant->TemperatureControl && (!SuperIoRead8(registers, (USHORT)(variant->TemperatureControl + i), &value8) || (value8 & 0x80)))
+            continue;
+
+        if (variant->TemperatureNibbles)
+        {
+            if (SuperIoRead12(registers, variant->TemperatureRegisters[i], variant->TemperatureNibbles[i], !!(variant->TemperatureHighNibbles & (1ul << i)), &value) && value)
+                SuperIoAddTemperature(Context, i, i, value / 16.0f - 64.0f, L"Temperature #", i + 1);
+        }
+        else if (SuperIoRead8(registers, variant->TemperatureRegisters[i], &value8))
+        {
+            SuperIoAddTemperature(Context, i, i, value8 - 64.0f, L"Temperature #", i + 1);
+        }
+    }
+
+    // RPM = 5 400 540 / count; FFFFh is a stopped fan, 0 no reading.
+    for (USHORT i = 0; i < variant->FanCount; i++)
+    {
+        BOOLEAN present = FALSE;
+
+        if (variant->FanControl)
+        {
+            if (!SuperIoRead8(registers, (USHORT)(variant->FanControl + i), &value8) || (value8 & 0x08))
+                continue;
+
+            present = TRUE;
+        }
+
+        if (!SuperIoRead16Le(registers, variant->FanRegisters[i], &value) || value == 0)
+            continue;
+
+        SuperIoAddFan(Context, i, value != 0xffff ? 5400540.0f / value : 0, present);
+    }
+}
+
 static VOID SuperIoDecodeSmsc(
     _Inout_ PMB_DECODE_CONTEXT Context
     )
@@ -6487,6 +6661,9 @@ ULONG SuperIoDecode(
         break;
     case MB_FAMILY_SMSC:
         SuperIoDecodeSmsc(&context);
+        break;
+    case MB_FAMILY_SCH56XX:
+        SuperIoDecodeSch56(&context);
         break;
     }
 
