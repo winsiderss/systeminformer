@@ -58,6 +58,8 @@ typedef struct _GS_CONTEXT
 
 static PGS_CONTEXT GpuSensorContext = NULL;
 static PPH_HW_SENSOR_SOURCE_REGISTRATION GpuSensorRegistration = NULL;
+// GUID_DEVCLASS_DISPLAY
+static CONST GUID GpuSensorClass = { 0x4d36e968, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
 static CONST struct { ULONG Type; PCWSTR Name; } GpuSensors[GsSensorMaximum] =
 {
@@ -285,6 +287,7 @@ static VOID NTAPI GpuSensorSourceCallback(
             report.SensorName = GpuSensors[s].Name;
             report.SensorId = s;
             report.Value = adapter->Value[s];
+            report.ComponentClass = &GpuSensorClass;
 
             Report(ReportContext, &report);
         }

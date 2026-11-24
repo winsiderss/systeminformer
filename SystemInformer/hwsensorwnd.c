@@ -16,6 +16,7 @@
 #include <colmgr.h>
 #include <cpysave.h>
 #include <emenu.h>
+#include <devprv.h>
 #include <hwprv.h>
 #include <procprv.h>
 #include <sysinfo.h>
@@ -58,6 +59,8 @@ typedef struct _PHP_HW_NODE
         {
             struct _PHP_HW_NODE *Groups[PhHwGroupMaximum];
             PH_HW_COMPONENT_KIND Kind;
+            BOOLEAN HasClass;
+            GUID Class; // the device setup class of its icon
         } Component;
         struct
         {
@@ -96,6 +99,8 @@ typedef struct _PHP_HW_SENSORS_CONTEXT
     PPH_LIST ComponentList; // all components ordered by key
     PPH_LIST RootList; // components with sensors
     PPH_LIST SensorList; // all sensors, unordered
+    ULONG IconCount;
+    struct { GUID Class; HICON Icon; } Icons[16]; // the component icons loaded at the window's DPI; NULL when none loads
     ULONG ProcessorCount;
     BOOLEAN StructureChanged;
 
@@ -246,6 +251,49 @@ static PPHP_HW_NODE PhpHwFindNode(
     return NULL;
 }
 
+// The device setup classes of the built-in components' icons.
+static CONST GUID PhpHwClassProcessor = { 0x50127dc3, 0x0f36, 0x415e, { 0xa6, 0xcc, 0x4c, 0xb3, 0xbe, 0x91, 0x0b, 0x65 } };
+static CONST GUID PhpHwClassMemory = { 0x5099944a, 0xf6b9, 0x4057, { 0xa0, 0x56, 0x8c, 0x55, 0x02, 0x28, 0x54, 0x4c } };
+static CONST GUID PhpHwClassSystem = { 0x4d36e97d, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
+static CONST GUID PhpHwClassComputer = { 0x4d36e966, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
+
+/**
+ * Sets a component's icon class: a source's own, else the class of its kind.
+ */
+static VOID PhpHwSetComponentClass(
+    _Inout_ PPHP_HW_NODE Component,
+    _In_ PCPH_HW_SENSOR_ENTRY Entry
+    )
+{
+    const GUID* class = Entry->ComponentClass;
+
+    if (!class)
+    {
+        switch (Entry->ComponentKind)
+        {
+        case PhHwComponentCpu:
+            class = &PhpHwClassProcessor;
+            break;
+        case PhHwComponentMemory:
+            class = &PhpHwClassMemory;
+            break;
+        case PhHwComponentChipset:
+        case PhHwComponentSystem:
+            class = &PhpHwClassSystem;
+            break;
+        case PhHwComponentWindows:
+            class = &PhpHwClassComputer;
+            break;
+        }
+    }
+
+    if (class)
+    {
+        Component->Component.Class = *class;
+        Component->Component.HasClass = TRUE;
+    }
+}
+
 // Ordered by kind, source registration, then index.
 static PPHP_HW_NODE PhpHwGetComponent(
     _In_ PPHP_HW_SENSORS_CONTEXT Context,
@@ -258,10 +306,16 @@ static PPHP_HW_NODE PhpHwGetComponent(
     component = PhpHwFindNode(Context->ComponentList, Entry->ComponentKey, &position);
 
     if (component)
+    {
+        if (!component->Component.HasClass)
+            PhpHwSetComponentClass(component, Entry);
+
         return component;
+    }
 
     component = PhpHwCreateNode(PhpHwNodeComponent, Entry->ComponentKey, PhReferenceObject(Entry->ComponentName));
     component->Component.Kind = Entry->ComponentKind;
+    PhpHwSetComponentClass(component, Entry);
     PhInsertItemList(Context->ComponentList, position, component);
 
     return component;
@@ -1032,6 +1086,64 @@ static VOID PhpHwSensorsShowContextMenu(
     PhDestroyEMenu(menu);
 }
 
+/**
+ * Finds a component's icon: its class's, loaded once at the window's DPI, else the application icon.
+ */
+static HICON PhpHwSensorsComponentIcon(
+    _In_ PPHP_HW_SENSORS_CONTEXT Context,
+    _In_ PPHP_HW_NODE Component
+    )
+{
+    HICON icon = NULL;
+
+    if (Component->Component.HasClass)
+    {
+        ULONG i;
+
+        for (i = 0; i < Context->IconCount; i++)
+        {
+            if (IsEqualGUID(&Context->Icons[i].Class, &Component->Component.Class))
+                break;
+        }
+
+        if (i < Context->IconCount)
+        {
+            icon = Context->Icons[i].Icon;
+        }
+        else if (Context->IconCount < RTL_NUMBER_OF(Context->Icons))
+        {
+            LONG dpi = PhGetWindowDpi(Context->TreeNewHandle);
+            PH_INTEGER_PAIR size = { PhGetSystemMetrics(SM_CXSMICON, dpi), PhGetSystemMetrics(SM_CYSMICON, dpi) };
+
+            icon = PhGetDeviceClassIcon(&Component->Component.Class, &size);
+            Context->Icons[Context->IconCount].Class = Component->Component.Class;
+            Context->Icons[Context->IconCount].Icon = icon;
+            Context->IconCount++;
+        }
+    }
+
+    if (!icon)
+        icon = PhGetApplicationIcon(TRUE, PhGetWindowDpi(Context->TreeNewHandle));
+
+    return icon;
+}
+
+/**
+ * Destroys the component icons, as when the window's DPI changes.
+ */
+static VOID PhpHwSensorsClearIcons(
+    _Inout_ PPHP_HW_SENSORS_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->IconCount; i++)
+    {
+        if (Context->Icons[i].Icon)
+            DestroyIcon(Context->Icons[i].Icon);
+    }
+
+    Context->IconCount = 0;
+}
+
 _Function_class_(PH_TREENEW_CALLBACK)
 static BOOLEAN NTAPI PhpHwSensorsTreeNewCallback(
     _In_ HWND WindowHandle,
@@ -1069,6 +1181,18 @@ static BOOLEAN NTAPI PhpHwSensorsTreeNewCallback(
             node = (PPHP_HW_NODE)isLeaf->Node;
 
             isLeaf->IsLeaf = node->Type == PhpHwNodeSensor;
+        }
+        return TRUE;
+    case TreeNewGetNodeIcon:
+        {
+            PPH_TREENEW_GET_NODE_ICON getNodeIcon = Parameter1;
+            node = (PPHP_HW_NODE)getNodeIcon->Node;
+
+            // Components only; the icons follow the DPI, so they are not cached.
+            if (node->Type != PhpHwNodeComponent)
+                return FALSE;
+
+            getNodeIcon->Icon = PhpHwSensorsComponentIcon(context, node);
         }
         return TRUE;
     case TreeNewGetCellText:
@@ -1220,6 +1344,7 @@ static VOID PhpHwSensorsDeleteTree(
     PhDereferenceObject(Context->RootList);
     PhDereferenceObject(Context->ComponentList);
 
+    PhpHwSensorsClearIcons(Context);
     PhpHwSensorsDeleteGraphContext(Context);
 }
 
@@ -1382,6 +1507,8 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
+            PhpHwSensorsClearIcons(context);
+            InvalidateRect(context->TreeNewHandle, NULL, FALSE);
         }
         break;
     case WM_SIZE:

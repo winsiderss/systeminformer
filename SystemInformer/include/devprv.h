@@ -528,4 +528,10 @@ PhDeviceProviderInitialization(
 
 // end_phapppub
 
+HICON
+PhGetDeviceClassIcon(
+    _In_ const GUID* Class,
+    _In_ PPH_INTEGER_PAIR IconSize
+    );
+
 #endif

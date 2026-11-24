@@ -4171,6 +4171,95 @@ HICON PhGetDeviceIcon(
     return iconHandle;
 }
 
+/**
+ * Loads a device setup class's icon, from the class's icon path, for things that are not a device item.
+ *
+ * \param Class The device setup class (GUID_DEVCLASS_*).
+ * \param IconSize The icon's size.
+ * \return The icon, or NULL when the class has no icon that loads. The caller destroys it.
+ */
+HICON PhGetDeviceClassIcon(
+    _In_ const GUID* Class,
+    _In_ PPH_INTEGER_PAIR IconSize
+    )
+{
+    DEVPROPCOMPKEY requestedProperties[] =
+    {
+        { DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    HICON icon = NULL;
+    ULONG propertyCount = 0;
+    const DEVPROPERTY* properties = NULL;
+    const DEVPROPERTY* iconPath;
+    PPH_STRING classString;
+    PPH_STRING path;
+    PH_STRINGREF filePart;
+    PH_STRINGREF indexPart;
+    LONG64 index = 0;
+
+    if (!(classString = PhFormatGuid((PGUID)Class)))
+        return NULL;
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInstallerClass,
+        classString->Buffer,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &propertyCount,
+        &properties
+        )))
+    {
+        PhDereferenceObject(classString);
+        return NULL;
+    }
+
+    PhDereferenceObject(classString);
+    iconPath = PhDevFindProperty(&DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, propertyCount, properties);
+
+    if (
+        !iconPath ||
+        (iconPath->Type != DEVPROP_TYPE_STRING && iconPath->Type != DEVPROP_TYPE_STRING_LIST) ||
+        !iconPath->Buffer || iconPath->BufferSize < sizeof(UNICODE_NULL)
+        )
+    {
+        PhDevFreeObjectProperties(propertyCount, properties);
+        return NULL;
+    }
+
+    // The first path of the list, as "%SystemRoot%\System32\setupapi.dll,-53".
+    path = PhCreateStringEx((PWSTR)iconPath->Buffer, iconPath->BufferSize);
+    PhTrimToNullTerminatorString(path);
+    PhDevFreeObjectProperties(propertyCount, properties);
+
+    if (PhSplitStringRefAtChar(&path->sr, L',', &filePart, &indexPart) && PhStringToInteger64(&indexPart, 10, &index))
+    {
+        PPH_STRING fileName = PhExpandEnvironmentStrings(&filePart);
+
+        if (fileName)
+        {
+            // Returns a mix of BOOLEAN and NTSTATUS: the icon handle is the result.
+            PhExtractIconEx(
+                &fileName->sr,
+                FALSE,
+                (LONG)index,
+                0,
+                0,
+                IconSize->X,
+                IconSize->Y,
+                NULL,
+                &icon
+                );
+
+            PhDereferenceObject(fileName);
+        }
+    }
+
+    PhDereferenceObject(path);
+
+    return icon;
+}
+
 ULONG PhpGenerateInstanceIdHash(
     _In_ PPH_STRINGREF InstanceId
     )

@@ -56,7 +56,7 @@ typedef struct _BT_CONTEXT
     BT_BATTERY Batteries[BT_MAX_BATTERIES];
 } BT_CONTEXT, *PBT_CONTEXT;
 
-// GUID_DEVICE_BATTERY
+// GUID_DEVICE_BATTERY, also GUID_DEVCLASS_BATTERY
 static CONST GUID BatteryInterfaceGuid = { 0x72631e54, 0x78a4, 0x11d0, { 0xbc, 0xf7, 0x00, 0xaa, 0x00, 0xb7, 0xb3, 0x2a } };
 
 static PBT_CONTEXT BatteryContext = NULL;
@@ -299,6 +299,7 @@ static VOID NTAPI BatterySourceCallback(
             report.SensorName = BatterySensors[s].Name;
             report.SensorId = s;
             report.Value = battery->Value[s];
+            report.ComponentClass = &BatteryInterfaceGuid;
 
             Report(ReportContext, &report);
         }

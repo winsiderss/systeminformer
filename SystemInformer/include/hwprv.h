@@ -190,6 +190,7 @@ typedef struct _PH_HW_SOURCE_SENSOR
     ULONG Flags; // PH_HW_SENSOR_REPORT_*
     FLOAT Value;
     BOOLEAN Current; // reported in the last update
+    const GUID* ComponentClass; // the device setup class of the component's icon; NULL when the source gave none
 } PH_HW_SOURCE_SENSOR, *PPH_HW_SOURCE_SENSOR;
 typedef const PH_HW_SOURCE_SENSOR* PCPH_HW_SOURCE_SENSOR;
 
@@ -295,6 +296,7 @@ typedef struct _PH_HW_SENSOR_ENTRY
     BOOLEAN History; // the sensors window keeps a graph
     FLOAT Value; // in the unit of Unit; temperatures in Celsius
     ULONG ThrottleFlags; // PH_HW_THROTTLE_*, PhHwUnitThrottle only
+    const GUID* ComponentClass; // a source's device setup class for the component's icon; NULL otherwise
 } PH_HW_SENSOR_ENTRY, *PPH_HW_SENSOR_ENTRY;
 typedef const PH_HW_SENSOR_ENTRY* PCPH_HW_SENSOR_ENTRY;
 

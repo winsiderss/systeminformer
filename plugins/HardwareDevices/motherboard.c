@@ -69,6 +69,8 @@ static BOOLEAN MotherboardSupported = FALSE;
 static LONG MotherboardSessionEnded = FALSE;
 static PMB_CONTEXT MotherboardContext = NULL;
 static PPH_HW_SENSOR_SOURCE_REGISTRATION MotherboardRegistration = NULL;
+// GUID_DEVCLASS_SYSTEM
+static CONST GUID MotherboardClass = { 0x4d36e97d, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
 static ULONG64 MotherboardQueryTime(
     VOID
@@ -486,6 +488,7 @@ static VOID NTAPI MotherboardSensorSourceCallback(
             report.SensorName = slot->Sensors[j].Name;
             report.SensorId = slot->Sensors[j].SensorId;
             report.Value = slot->Sensors[j].Value;
+            report.ComponentClass = &MotherboardClass;
 
             Report(ReportContext, &report);
         }

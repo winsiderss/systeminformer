@@ -25,6 +25,8 @@ typedef struct _PHP_HW_SOURCE_SENSOR
     ULONG Flags;
     FLOAT Value;
     ULONG UpdateId; // PhpHwSourceUpdateId of the last report
+    BOOLEAN HasComponentClass;
+    GUID ComponentClass;
 } PHP_HW_SOURCE_SENSOR, *PPHP_HW_SOURCE_SENSOR;
 
 typedef struct _PHP_HW_REPORT_REQUEST
@@ -564,6 +566,12 @@ static VOID NTAPI PhpHwSourceReport(
 
     if (sensor)
     {
+        if (Report->Size >= RTL_SIZEOF_THROUGH_FIELD(PH_HW_SENSOR_REPORT, ComponentClass) && Report->ComponentClass)
+        {
+            sensor->ComponentClass = *Report->ComponentClass;
+            sensor->HasComponentClass = TRUE;
+        }
+
         sensor->Value = Report->Value;
         sensor->UpdateId = PhpHwSourceUpdateId;
         source->NextIndex = index + 1;
@@ -1066,6 +1074,7 @@ VOID PhHwEnumerateSourceSensors(
             info.Flags = sensor->Flags;
             info.Value = sensor->Value;
             info.Current = sensor->UpdateId == PhpHwSourceCompletedUpdateId;
+            info.ComponentClass = sensor->HasComponentClass ? &sensor->ComponentClass : NULL;
 
             Callback(&info, Context);
         }

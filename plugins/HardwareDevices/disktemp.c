@@ -48,6 +48,8 @@ typedef struct _DT_CONTEXT
 
 static PDT_CONTEXT DiskTemperatureContext = NULL;
 static PPH_HW_SENSOR_SOURCE_REGISTRATION DiskTemperatureRegistration = NULL;
+// GUID_DEVCLASS_DISKDRIVE
+static CONST GUID DiskTemperatureClass = { 0x4d36e967, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
 static PCWSTR DiskTemperatureSensorNames[DT_SENSORS] =
 {
@@ -369,6 +371,7 @@ static VOID NTAPI DiskTemperatureSourceCallback(
             report.SensorName = disk->Ata ? L"Temperature" : DiskTemperatureSensorNames[s];
             report.SensorId = s;
             report.Value = disk->Celsius[s];
+            report.ComponentClass = &DiskTemperatureClass;
 
             Report(ReportContext, &report);
         }

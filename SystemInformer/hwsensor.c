@@ -408,6 +408,7 @@ static VOID PhpHwEmitSensor(
     entry.History = info->History;
     entry.Value = Value;
     entry.ThrottleFlags = ThrottleFlags;
+    entry.ComponentClass = NULL;
 
     Context->Callback(&entry, Context->Context);
 
@@ -608,6 +609,7 @@ static VOID NTAPI PhpHwEnumerateSourceSensor(
     entry.History = !!(Sensor->Flags & PH_HW_SENSOR_REPORT_HISTORY);
     entry.Value = Sensor->Value;
     entry.ThrottleFlags = 0;
+    entry.ComponentClass = Sensor->ComponentClass;
 
     context->Callback(&entry, context->Context);
 }

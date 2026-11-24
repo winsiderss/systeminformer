@@ -1040,7 +1040,7 @@ typedef enum _PH_HW_SENSOR_TYPE
  * \brief One sensor value. Names are copied on the first report (at most 128 characters).
  *
  * \details Ignored when Size is too small, Type or a Flags bit is unknown, a name is NULL or Value
- * is not finite.
+ * is not finite. ComponentClass is read only when Size covers it.
  */
 typedef struct _PH_HW_SENSOR_REPORT
 {
@@ -1052,6 +1052,7 @@ typedef struct _PH_HW_SENSOR_REPORT
     PCWSTR SensorName;
     ULONG SensorId; // chosen by the source; unique within the component and type
     FLOAT Value; // in the unit of Type
+    const GUID* ComponentClass; // optional: the device setup class whose icon marks the component (GUID_DEVCLASS_*)
 } PH_HW_SENSOR_REPORT, *PPH_HW_SENSOR_REPORT;
 typedef const PH_HW_SENSOR_REPORT* PCPH_HW_SENSOR_REPORT;
 
