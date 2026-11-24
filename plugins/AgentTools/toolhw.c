@@ -37,6 +37,7 @@ static CONST PCSTR AtpHwGroups[] =
     "fans",
     "controls",
     "throttling",
+    "activity",
 };
 C_ASSERT(RTL_NUMBER_OF(AtpHwGroups) == PhHwGroupMaximum);
 
@@ -54,6 +55,7 @@ static CONST PCSTR AtpHwUnits[] =
     "amperes",
     "rpm",
     "percent",
+    "ratio",
 };
 C_ASSERT(RTL_NUMBER_OF(AtpHwUnits) == PhHwUnitMaximum);
 
@@ -376,7 +378,7 @@ VOID AtpGetHardwareSensors(
         "group",
         AtpHwGroups,
         RTL_NUMBER_OF(AtpHwGroups),
-        L"temperatures, powers, limits, clocks, bandwidth, active_clocks, multipliers, voltages, currents, residency, fans, controls or throttling",
+        L"temperatures, powers, limits, clocks, bandwidth, active_clocks, multipliers, voltages, currents, residency, fans, controls, throttling or activity",
         &groupFilter,
         Result
         ))
@@ -738,7 +740,7 @@ VOID AtpGetHardwareSensorHistory(
         "group",
         AtpHwGroups,
         RTL_NUMBER_OF(AtpHwGroups),
-        L"temperatures, powers, limits, clocks, bandwidth, active_clocks, multipliers, voltages, currents, residency, fans, controls or throttling",
+        L"temperatures, powers, limits, clocks, bandwidth, active_clocks, multipliers, voltages, currents, residency, fans, controls, throttling or activity",
         &groupFilter,
         Result
         ))
