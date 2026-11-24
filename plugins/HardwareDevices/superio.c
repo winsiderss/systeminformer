@@ -381,6 +381,14 @@ static CONST MB_NCT67_DIRECT Nct6796sDirects[] =
 
 static CONST MB_NCT67_VARIANT Nct6796s = { 16, TRUE, 7, 7, 8, 2, Nct67TemperatureLabelsB, 0xbfff2ffe, 0x80000c00, 7, 0, 7, &Nct6796sMap, Nct6796sDirects, RTL_NUMBER_OF(Nct6796sDirects) };
 
+// NCT5585D (the second chip of an ASRock board, at ID D42Ah): the NCT6798D map with PECI_0 at 720h; inputs 0-15.
+static CONST MB_NCT67_DIRECT Nct5585dDirects[] =
+{
+    { 0x720, 16 },
+};
+
+static CONST MB_NCT67_VARIANT Nct5585d = { 16, TRUE, 7, 7, 8, 2, Nct67TemperatureLabelsB, 0xbfff0ffe, 0x80000c00, 7, 0, 7, &Nct6779Map, Nct5585dDirects, RTL_NUMBER_OF(Nct5585dDirects) };
+
 // NCT6102D/6104D/6106D and NCT6112D/6114D/6116D: in0-in8 at 00h-05h,
 // 07h-09h, or at 300h-305h, 307h-309h; whichever bank reads.
 static CONST USHORT Nct610xInputRegisters[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x07, 0x08, 0x09 };
@@ -732,6 +740,7 @@ static CONST MB_CHIP SuperIoChips[] =
 
 // Board-gated chip identities; never matched by ID.
 static CONST MB_CHIP Nct6796sChip = { MB_FAMILY_NUVOTON, 0xd802, 0xffff, L"NCT6796D-S", &Nct6796s };
+static CONST MB_CHIP Nct5585dChip = { MB_FAMILY_NUVOTON, 0xd42a, 0xffff, L"NCT5585D", &Nct5585d };
 
 // ASRock boards whose D802h chip is an NCT6796D-S; labels stay generic until confirmed.
 static CONST PH_STRINGREF AsrockNct6796sProducts[] =
@@ -744,6 +753,27 @@ static CONST PH_STRINGREF AsrockNct6796sPrefixProducts[] =
 {
     PH_STRINGREF_INIT(L"B650M-HDV/M.2"),
     { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockX870eNovaSecondVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"DIMM", 0, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"VDD Misc", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockX870eNovaSecondTemperatures[] =
+{
+    { 2, L"MOS" }, { 16, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL AsrockX870eNovaSecondFans[] =
+{
+    { 1, L"MOS Fan" },
 };
 
 static CONST PH_STRINGREF GigabyteB650AorusEliteProducts[] =
@@ -4006,6 +4036,15 @@ static CONST MB_BOARD SuperIoBoards[] =
         NULL, 0,
         MB_BOARD_PRODUCT_PREFIX,
         &Nct6796sChip,
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockNct6796sProducts, 0xd42a, 0xffff,
+        MB_BOARD_ENTRIES(AsrockX870eNovaSecondVoltages),
+        MB_BOARD_ENTRIES(AsrockX870eNovaSecondTemperatures),
+        MB_BOARD_ENTRIES(AsrockX870eNovaSecondFans),
+        MB_BOARD_ENTRIES(AsrockX870eNovaSecondFans),
+        0,
+        &Nct5585dChip,
     },
     {
         PH_STRINGREF_INIT(L"ASRock"), AsrockB550SteelLegendProducts, 0xd428, 0xfff8,
