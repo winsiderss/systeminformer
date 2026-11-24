@@ -1763,6 +1763,72 @@ NTSTATUS KphHwEcIdentify(
 }
 
 /**
+ * Lists the sensors of the board's embedded controller: where each is and how
+ * its bytes read.
+ *
+ * \param Sensors Receives the sensors.
+ * \param Capacity The number of elements in Sensors.
+ * \param Count Receives the number of sensors.
+ * \return Successful or errant status; STATUS_NOT_FOUND on a board the script
+ * has no row for; STATUS_BUFFER_TOO_SMALL when the board has more sensors than
+ * Capacity.
+ */
+NTSTATUS KphHwEcSensors(
+    _Out_writes_to_(Capacity, *Count) PKPH_HW_EC_SENSOR Sensors,
+    _In_ ULONG Capacity,
+    _Out_ PULONG Count
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("sensors");
+    NTSTATUS status;
+    UCHAR output[0x1000];
+    ULONG returnLength;
+    ULONG count = 0;
+
+    status = KphpHwScriptCall(
+        &KphpHwEcScript,
+        &routine,
+        NULL,
+        0,
+        output,
+        sizeof(output),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG at = 0; at < returnLength; count++)
+    {
+        if (returnLength - at < 5 || returnLength - at - 5 < output[at + 4] || output[at + 4] >= KPH_HW_EC_LABEL_LENGTH)
+            return STATUS_INFO_LENGTH_MISMATCH;
+
+        at += 5 + output[at + 4];
+    }
+
+    if (count > Capacity)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    for (ULONG i = 0, at = 0; i < count; i++)
+    {
+        Sensors[i].Kind = output[at];
+        Sensors[i].Size = output[at + 1];
+        Sensors[i].Bank = output[at + 2];
+        Sensors[i].Register = output[at + 3];
+        RtlZeroMemory(Sensors[i].Label, sizeof(Sensors[i].Label));
+        RtlCopyMemory(Sensors[i].Label, &output[at + 5], output[at + 4]);
+        at += 5 + output[at + 4];
+    }
+
+    *Count = count;
+
+    return status;
+}
+
+/**
  * Reads registers of an ACPI embedded controller. The script permits the
  * banks and registers of the board's row; a bank it selects is put back before
  * it returns.

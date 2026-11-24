@@ -191,6 +191,25 @@ typedef struct _KPH_HW_EC_REGISTER
 } KPH_HW_EC_REGISTER, *PKPH_HW_EC_REGISTER;
 typedef const KPH_HW_EC_REGISTER* PCKPH_HW_EC_REGISTER;
 
+typedef enum _KPH_HW_EC_KIND
+{
+    KphHwEcTemperature = 1, // degrees C, signed
+    KphHwEcVoltage = 2, // mV
+    KphHwEcCurrent = 3, // A
+    KphHwEcFan = 4, // RPM
+} KPH_HW_EC_KIND;
+
+#define KPH_HW_EC_LABEL_LENGTH 32
+
+typedef struct _KPH_HW_EC_SENSOR
+{
+    UCHAR Kind; // KPH_HW_EC_KIND
+    UCHAR Size; // bytes, big-endian when 2
+    UCHAR Bank;
+    UCHAR Register;
+    CHAR Label[KPH_HW_EC_LABEL_LENGTH]; // null-terminated
+} KPH_HW_EC_SENSOR, *PKPH_HW_EC_SENSOR;
+
 typedef struct _KPH_HW_VSEC
 {
     USHORT Vendor;
@@ -290,6 +309,7 @@ C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
 C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
 C_ASSERT(sizeof(KPH_HW_EC_IDENTITY) == 12);
 C_ASSERT(sizeof(KPH_HW_EC_REGISTER) == 8);
+C_ASSERT(sizeof(KPH_HW_EC_SENSOR) == 36);
 C_ASSERT(sizeof(KPH_HW_VSEC) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
@@ -504,6 +524,15 @@ NTAPI
 KphHwEcIdentify(
     _In_ ULONG Ordinal,
     _Out_ PKPH_HW_EC_IDENTITY Identity
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwEcSensors(
+    _Out_writes_to_(Capacity, *Count) PKPH_HW_EC_SENSOR Sensors,
+    _In_ ULONG Capacity,
+    _Out_ PULONG Count
     );
 
 PHLIBAPI
