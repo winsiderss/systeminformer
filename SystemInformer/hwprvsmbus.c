@@ -31,7 +31,8 @@
 #define PHP_HW_PMIC_ADDRESS 0x48
 #define PHP_HW_PMIC_RAIL_VPP 2 // rails are VDD, VDDQ, VPP
 #define PHP_HW_PMIC_TELEMETRY 6 // SWA, SWB, SWC, power mode, telemetry mode, temperature
-#define PHP_HW_SMBUS_MAX_ITEMS (PHP_HW_DIMM_COUNT * PH_HW_PMIC_REPORT_REGISTERS)
+#define PHP_HW_PMIC_PROBE_ITEMS (PH_HW_PMIC_REPORT_REGISTERS + 1) // the report registers, then the ADC select again
+#define PHP_HW_SMBUS_MAX_ITEMS (PHP_HW_DIMM_COUNT * PHP_HW_PMIC_PROBE_ITEMS)
 
 typedef enum _PHP_HW_DIMM_TYPE
 {
@@ -281,19 +282,20 @@ static BOOLEAN PhpHwProbePmics(
             continue;
 
         for (ULONG j = 0; j < PH_HW_PMIC_REPORT_REGISTERS; j++)
-            PhpHwSmbusItem(count * PH_HW_PMIC_REPORT_REGISTERS + j, (UCHAR)(PHP_HW_PMIC_ADDRESS + slot), PhHwPmicCommands[j], PHP_HW_SMBUS_BYTE);
+            PhpHwSmbusItem(count * PHP_HW_PMIC_PROBE_ITEMS + j, (UCHAR)(PHP_HW_PMIC_ADDRESS + slot), PhHwPmicCommands[j], PHP_HW_SMBUS_BYTE);
 
+        PhpHwSmbusItem(count * PHP_HW_PMIC_PROBE_ITEMS + PH_HW_PMIC_REPORT_REGISTERS, (UCHAR)(PHP_HW_PMIC_ADDRESS + slot), 0x30, PHP_HW_SMBUS_BYTE);
         slots[count++] = slot;
     }
 
     if (!count)
         return TRUE;
 
-    PhpHwSmbusSend(Locator, count * PH_HW_PMIC_REPORT_REGISTERS);
+    PhpHwSmbusSend(Locator, count * PHP_HW_PMIC_PROBE_ITEMS);
 
     for (ULONG i = 0; i < count; i++)
     {
-        PKPH_HW_VALUE32 value = &PhpHwSmbusValues[i * PH_HW_PMIC_REPORT_REGISTERS];
+        PKPH_HW_VALUE32 value = &PhpHwSmbusValues[i * PHP_HW_PMIC_PROBE_ITEMS];
         PPHP_HW_DIMM dimm = &PhpHwDimms[slots[i]];
         UCHAR registers[PH_HW_PMIC_REPORT_REGISTERS];
         NTSTATUS status = STATUS_SUCCESS;
@@ -340,6 +342,17 @@ static BOOLEAN PhpHwProbePmics(
         {
             PhTraceInfo("Hardware sensors: PMIC 0x%02X: 0x%lx", PHP_HW_PMIC_ADDRESS + slots[i], status);
             continue;
+        }
+
+        // An ADC select that moved between its two reads does not pair with the value read between them.
+        if (!NT_SUCCESS(value[PH_HW_PMIC_REPORT_REGISTERS].Status) ||
+            (UCHAR)value[PH_HW_PMIC_REPORT_REGISTERS].Value != PhpHwPmicRegister(registers, 0x30))
+        {
+            for (ULONG j = 0; j < PH_HW_PMIC_REPORT_REGISTERS; j++)
+            {
+                if (PhHwPmicCommands[j] == 0x30)
+                    registers[j] &= 0x7F;
+            }
         }
 
         highVoltage = PhHwPmicHighVoltage(registers);
