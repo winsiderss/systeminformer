@@ -21,8 +21,10 @@ local FAMILY_NCT668X = 2
 local FAMILY_ITE = 3
 local FAMILY_FINTEK = 4
 local FAMILY_SMSC = 5
+local FAMILY_SCH56XX = 6
 
--- Slots 2 and 3 are the SMSC strap ports, probed only where the firmware reserves them (claimed).
+-- Slots 2 and 3 are the SMSC strap ports, probed only where the firmware
+-- reserves them (claimed).
 local SLOTS = { [0] = 0x2e, [1] = 0x4e, [2] = 0x162e, [3] = 0x164e }
 local STRAPS = { [0x162e] = true, [0x164e] = true }
 
@@ -38,6 +40,9 @@ local EXIT_CONFIG_02 = 2
 local BANK = 0x4e
 local PAGE_FREE = 0xff
 local PAGE_WAIT = 500000
+local MAILBOX_READ = 0x02
+local MAILBOX_SPINS = 64
+local MAILBOX_NAPS = 32
 
 local kept = {}
 
@@ -1204,6 +1209,61 @@ local SMSC_ROWS = {
   },
 }
 
+local SCH56XX_ROWS = {
+  {
+    chips = {
+      0xc6,
+    },
+    ldn = 0x0c,
+    exit = EXIT_KEY_AA,
+    bank_mask = 0x00,
+    monitor = function()
+      return {
+        ids = {
+          { 0x003c, 0xa5, 0xa5 },
+          { 0x003e, 0x5c, 0x5c },
+          { 0x003f, 0xa0, 0xa0 },
+        },
+        reads = {
+          { 0x0022, 0xa },
+          { 0x002c, 0x8 },
+          { 0x0040, 0x1 },
+          { 0x00e1, 0x6 },
+          { 0x0180, 0x3 },
+          { 0x0189, 0x2 },
+        },
+      }
+    end,
+  },
+  {
+    chips = {
+      0xc7,
+    },
+    ldn = 0x0c,
+    exit = EXIT_KEY_AA,
+    bank_mask = 0x00,
+    monitor = function()
+      return {
+        ids = {
+          { 0x0780, 0x54, 0x54 },
+          { 0x0781, 0x48, 0x48 },
+          { 0x0782, 0x53, 0x53 },
+        },
+        reads = {
+          { 0x0022, 0xa },
+          { 0x002c, 0x8 },
+          { 0x0062, 0x8 },
+          { 0x0085, 0x8 },
+          { 0x0180, 0x2 },
+          { 0x0189, 0x1 },
+          { 0x0790, 0x10 },
+          { 0x0880, 0x8 },
+        },
+      }
+    end,
+  },
+}
+
 local function answers(id)
   return (id ~= 0) and (id ~= 0xffff)
 end
@@ -1236,6 +1296,16 @@ local FAMILIES = {
     byte_id = true,
     block = 0x80,
     pair = 0x70,
+  },
+  {
+    family = FAMILY_SCH56XX,
+    rows = SCH56XX_ROWS,
+    key = smsc_key,
+    byte_id = true,
+    base_register = 0x66,
+    block = 2,
+    extent = 10,
+    mailbox = true,
   },
 }
 
@@ -1508,9 +1578,10 @@ local function configure(s, family)
     ksi.trace('LDN 0x%02x is not active', s.row.ldn)
     return nt.STATUS_DEVICE_NOT_READY
   end
-  local base = rcw(s, 0x60)
+  local base_register = family.base_register or 0x60
+  local base = rcw(s, base_register)
   ksi.sleep(1)
-  if rc(s, 0x07) ~= s.row.ldn or rcw(s, 0x60) ~= base then
+  if rc(s, 0x07) ~= s.row.ldn or rcw(s, base_register) ~= base then
     ksi.trace('LDN 0x%02x base 0x%04x changed while read', s.row.ldn, base)
     s.contended = true
     return nt.STATUS_RETRY
@@ -1527,7 +1598,7 @@ local function configure(s, family)
     ksi.trace('monitor base 0x%04x is misaligned', base)
     return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  if base < BASE_MIN or base + block - 1 > BASE_LAST then
+  if base < BASE_MIN or base + (family.extent or block) - 1 > BASE_LAST then
     ksi.trace('monitor base 0x%04x is outside the permitted range', base)
     return nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
@@ -1637,7 +1708,54 @@ local function put_back_bank(s)
   ksi.hw.port_write(s.base + 6, 1, (current & ~mask) | (s.orig_bank & mask))
 end
 
+-- A virtual register through the EC mailbox, or nil when another agent's
+-- command is outstanding or ours fails.
+local function mailbox(s, reg)
+  local b = s.base
+  if ksi.hw.port_read(b, 1) ~= 0 then
+    ksi.trace('the mailbox is busy for register 0x%04x', reg)
+    return nil
+  end
+  ksi.hw.port_write(b + 1, 1, ksi.hw.port_read(b + 1, 1))
+  ksi.hw.port_write(b + 2, 1, 0x00)
+  ksi.hw.port_write(b + 3, 1, 0x80)
+  ksi.hw.port_write(b + 4, 1, MAILBOX_READ)
+  ksi.hw.port_write(b + 5, 1, 0x01)
+  ksi.hw.port_write(b + 2, 1, 0x04)
+  ksi.hw.port_write(b + 6, 1, reg & 0xff)
+  ksi.hw.port_write(b + 7, 1, reg >> 8)
+  ksi.hw.port_write(b, 1, 0x01)
+  local done = false
+  for i = 1, MAILBOX_SPINS + MAILBOX_NAPS do
+    if i > MAILBOX_SPINS then
+      ksi.sleep(1)
+    end
+    local source = ksi.hw.port_read(b + 8, 1)
+    if source ~= 0 then
+      ksi.hw.port_write(b + 8, 1, source)
+    end
+    if (source & 1) ~= 0 then
+      done = true
+      break
+    end
+  end
+  if not done then
+    ksi.trace('the controller did not complete register 0x%04x', reg)
+    return nil
+  end
+  for _ = 1, MAILBOX_SPINS do
+    if ksi.hw.port_read(b + 1, 1) == 0x01 then
+      return ksi.hw.port_read(b + 4, 1)
+    end
+  end
+  ksi.trace('the controller did not report register 0x%04x', reg)
+  return nil
+end
+
 local function rm(s, reg)
+  if s.family.mailbox then
+    return mailbox(s, reg)
+  end
   local pair = s.family.pair
   if pair then
     ksi.hw.port_write(s.base + pair, 1, reg & 0xff)
@@ -1722,7 +1840,8 @@ local function vendor(s, monitor)
   return nt.STATUS_SUCCESS
 end
 
--- Whether an ACPI device's I/O resources cover a strap port and the one after it.
+-- Whether an ACPI device's I/O resources cover a strap port and the one after
+-- it.
 local claims = {}
 
 local function claimed(port)
