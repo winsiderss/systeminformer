@@ -1695,8 +1695,6 @@ NTSTATUS KphHwDellIdentify(
     KPH_HW_DELL_IDENTITY identity;
     ULONG returnLength;
 
-    memset(Identity, 0, sizeof(KPH_HW_DELL_IDENTITY));
-
     status = KphpHwScriptCall(
         &KphpHwDellScript,
         &routine,
@@ -1743,9 +1741,6 @@ NTSTATUS KphHwDellRead(
     ULONG input[2];
     LONG values[KPH_HW_DELL_FANS + KPH_HW_DELL_TEMPS];
     ULONG returnLength;
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(values); i++)
-        Values[i] = -1;
 
     input[0] = FanMask;
     input[1] = TempMask;
