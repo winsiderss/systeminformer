@@ -585,6 +585,7 @@ static VOID PhpHwCounterReadTrips(
         WCHAR name[256];
         HANDLE handle;
         PHP_HW_THERMAL_INFORMATION_EX thermal;
+        ULONG returnLength = 0;
         PPHP_HW_COUNTER_TRIP trip;
 
         memset(detailBuffer, 0, sizeof(detailBuffer));
@@ -625,7 +626,13 @@ static VOID PhpHwCounterReadTrips(
         memset(&thermal, 0, sizeof(PHP_HW_THERMAL_INFORMATION_EX));
         thermal.ThermalStamp = PHP_HW_THERMAL_STAMP_NONE;
 
-        if (NT_SUCCESS(status = PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), NULL)))
+        status = PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), &returnLength);
+
+        // A zone a vendor driver owns (Snapdragon) can complete it with no data.
+        if (NT_SUCCESS(status) && returnLength < RTL_SIZEOF_THROUGH_FIELD(PHP_HW_THERMAL_INFORMATION_EX, CriticalTripPoint))
+            status = STATUS_INFO_LENGTH_MISMATCH;
+
+        if (NT_SUCCESS(status))
         {
             report[2]++;
             trip = &PhpHwCounterTrips[PhpHwCounterTripCount++];
