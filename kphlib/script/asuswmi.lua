@@ -30,7 +30,6 @@ local GET_INFO = 0x50574543
 local GET_NUMBER = 0x50574572
 local GET_VERSION = 0x50574574
 
-local VERSION_MIN = 2
 local SENSORS_MAX = 64
 local NAME_MAX = 32
 local SOURCE_SIO = 1
@@ -43,23 +42,24 @@ local ARGUMENT_BUFFER = 2
 local ARGUMENT_PACKAGE = 3
 
 local MANUFACTURER = 'ASUSTEK COMPUTER INC.'
+-- The boards by product name, each with the lowest interface version its firmware may be called at.
 local BOARDS = {
-  ['PRIME X399-A'] = true,
-  ['PRIME X470-PRO'] = true,
-  ['ROG CROSSHAIR VI EXTREME'] = true,
-  ['CROSSHAIR VI HERO'] = true,
-  ['ROG CROSSHAIR VI HERO (WI-FI AC)'] = true,
-  ['ROG CROSSHAIR VII HERO'] = true,
-  ['ROG CROSSHAIR VII HERO (WI-FI)'] = true,
-  ['ROG STRIX B450-E GAMING'] = true,
-  ['ROG STRIX B450-F GAMING'] = true,
-  ['ROG STRIX B450-F GAMING II'] = true,
-  ['ROG STRIX B450-I GAMING'] = true,
-  ['ROG STRIX X399-E GAMING'] = true,
-  ['ROG STRIX X470-F GAMING'] = true,
-  ['ROG STRIX X470-I GAMING'] = true,
-  ['ROG ZENITH EXTREME'] = true,
-  ['ROG ZENITH EXTREME ALPHA'] = true,
+  ['PRIME X399-A'] = 2,
+  ['PRIME X470-PRO'] = 2,
+  ['ROG CROSSHAIR VI EXTREME'] = 2,
+  ['CROSSHAIR VI HERO'] = 2,
+  ['ROG CROSSHAIR VI HERO (WI-FI AC)'] = 2,
+  ['ROG CROSSHAIR VII HERO'] = 2,
+  ['ROG CROSSHAIR VII HERO (WI-FI)'] = 2,
+  ['ROG STRIX B450-E GAMING'] = 3,
+  ['ROG STRIX B450-F GAMING'] = 3,
+  ['ROG STRIX B450-F GAMING II'] = 3,
+  ['ROG STRIX B450-I GAMING'] = 3,
+  ['ROG STRIX X399-E GAMING'] = 2,
+  ['ROG STRIX X470-F GAMING'] = 3,
+  ['ROG STRIX X470-I GAMING'] = 3,
+  ['ROG ZENITH EXTREME'] = 2,
+  ['ROG ZENITH EXTREME ALPHA'] = 2,
 }
 
 local kept = {}
@@ -124,18 +124,18 @@ local function baseboard_strings()
   return nil
 end
 
-local function board_listed()
-  if kept.listed ~= nil then
-    return kept.listed
+local function board_minimum()
+  if kept.minimum ~= nil then
+    return kept.minimum or nil
   end
   local manufacturer, product = baseboard_strings()
-  local listed = manufacturer ~= nil
+  local minimum = manufacturer ~= nil
     and normalized(manufacturer) == MANUFACTURER
-    and BOARDS[normalized(product)] == true
+    and BOARDS[normalized(product)]
   if not ksi.volatile then
-    kept.listed = listed
+    kept.minimum = minimum or false
   end
-  return listed
+  return minimum or nil
 end
 
 -- The first record of an evaluation's output: its type and data, or nil.
@@ -266,13 +266,21 @@ local function sensor_info(device, method, index)
   return fields
 end
 
--- The board's interface and nil, or nil and the status the routine returns.
+local function finish(device)
+  if ksi.volatile then
+    device:release()
+  end
+end
+
+-- The board's interface and its version, or nil, nil and the status the routine
+-- returns.
 local function begin()
   if not ksi.hw.firmware_table or not ksi.hw.device_control then
     ksi.trace('no firmware table or device control functions')
     return nil, nil, nt.STATUS_NOT_SUPPORTED
   end
-  if not board_listed() then
+  local minimum = board_minimum()
+  if not minimum then
     ksi.trace('no row for this board')
     return nil, nil, nt.STATUS_NOT_SUPPORTED
   end
@@ -281,13 +289,24 @@ local function begin()
     ksi.trace('no PNP0C14 device lists the monitoring GUID')
     return nil, nil, nt.STATUS_NOT_FOUND
   end
-  return device, method
-end
-
-local function finish(device)
-  if ksi.volatile then
-    device:release()
+  local version, failed = kept.version, nil
+  if not version then
+    version, failed = call_integer(device, method, GET_VERSION, 0)
+    if not version then
+      ksi.trace('no version: 0x%x', failed)
+      finish(device)
+      return nil, nil, failed
+    end
+    if not ksi.volatile then
+      kept.version = version
+    end
   end
+  if version < minimum then
+    ksi.trace('version %d, this board needs %d', version, minimum)
+    finish(device)
+    return nil, nil, nt.STATUS_NOT_SUPPORTED
+  end
+  return device, method, version
 end
 
 -- Returns the interface version (4 bytes), the sensor count (4 bytes) and for
@@ -298,18 +317,11 @@ function identify(input)
     ksi.trace('input of %d bytes', #input)
     return nt.STATUS_INVALID_PARAMETER
   end
-  local device, method, status = begin()
+  local device, method, version = begin()
   if not device then
-    return status
+    return version
   end
-  local version, failed = call_integer(device, method, GET_VERSION, 0)
-  if not version or version < VERSION_MIN then
-    ksi.trace('version %s', tostring(version))
-    finish(device)
-    return version and nt.STATUS_NOT_SUPPORTED or failed
-  end
-  local count
-  count, failed = call_integer(device, method, GET_NUMBER, 0)
+  local count, failed = call_integer(device, method, GET_NUMBER, 0)
   if not count or count == 0 or count > SENSORS_MAX then
     ksi.trace('count %s', tostring(count))
     finish(device)
