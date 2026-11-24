@@ -89,6 +89,9 @@
     <ClCompile Include="gpdfan.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>
+    <ClCompile Include="lenovows.c">
+      <Filter>Source Files\Motherboard</Filter>
+    </ClCompile>
     <ClCompile Include="gpusensor.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>

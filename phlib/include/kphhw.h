@@ -479,6 +479,15 @@ KphHwGpdReadFan(
 PHLIBAPI
 NTSTATUS
 NTAPI
+KphHwLenovoWsRead(
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ReturnLength
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 KphHwVsecIdentify(
     _In_ ULONG Locator,
     _Out_ PKPH_HW_VSEC Device

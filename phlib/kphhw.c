@@ -50,6 +50,8 @@ static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_
 static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
 static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.bin");
 static KPH_HW_SCRIPT KphpHwGpdScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGpdFileName };
+static CONST PH_STRINGREF KphpHwLenovoWsFileName = PH_STRINGREF_INIT(L"scripts\\lenovows.bin");
+static KPH_HW_SCRIPT KphpHwLenovoWsScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwLenovoWsFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -204,6 +206,7 @@ VOID KphHwSetScriptMode(
         &KphpHwVsecScript,
         &KphpHwTsensScript,
         &KphpHwGpdScript,
+        &KphpHwLenovoWsScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1607,6 +1610,55 @@ NTSTATUS KphHwGpdReadFan(
         return STATUS_INFO_LENGTH_MISMATCH;
 
     *Rpm = rpm;
+
+    return status;
+}
+
+/**
+ * Reads the temperatures and fan speeds of a Lenovo ThinkStation from its
+ * embedded controller.
+ *
+ * \param Buffer Receives the model number (4 bytes), each of the model's
+ * temperatures in degrees C (4 bytes, signed; -1 for none) and each of its fan
+ * speeds in RPM (4 bytes).
+ * \param Length The size of Buffer.
+ * \param ReturnLength Receives the number of bytes written.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a machine the
+ * script does not list; STATUS_DEVICE_BUSY when another agent holds the
+ * controller's window; STATUS_RETRY when another tool holds the bus.
+ */
+NTSTATUS KphHwLenovoWsRead(
+    _Out_writes_bytes_to_(Length, *ReturnLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG ReturnLength
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    ULONG returnLength = 0;
+
+    *ReturnLength = 0;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwLenovoWsScript,
+        &routine,
+        NULL,
+        0,
+        Buffer,
+        Length,
+        &returnLength
+        );
+
+    KphpHwReleaseBus(KphHwBusIsa);
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        *ReturnLength = returnLength;
 
     return status;
 }

@@ -1437,6 +1437,16 @@ VOID GpdFanUninitialize(
     VOID
     );
 
+// lenovows.c
+
+VOID LenovoWsInitialize(
+    VOID
+    );
+
+VOID LenovoWsUninitialize(
+    VOID
+    );
+
 // gpusensor.c
 
 VOID GpuSensorInitialize(

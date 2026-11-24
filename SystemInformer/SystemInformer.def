@@ -1493,6 +1493,7 @@ EXPORTS
     KphAlpcQueryInformation
     KphDuplicateObject
     KphHwGpdReadFan
+    KphHwLenovoWsRead
     KphHwSuperIoIdentify
     KphHwSuperIoRead
     KphOpenDevice

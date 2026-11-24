@@ -71,6 +71,7 @@ set(SOURCES_MOTHERBOARD
     "disktemp.c"
     "gpdfan.c"
     "gpusensor.c"
+    "lenovows.c"
     "motherboard.c"
     "superio.c"
 )
