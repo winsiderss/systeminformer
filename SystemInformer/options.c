@@ -1592,7 +1592,7 @@ static VOID PhpAdvancedPageLoad(
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN, L"Start hidden", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_WARNINGS, L"Enable warnings", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_DRIVER, L"Enable kernel-mode driver", NULL);
-        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_HARDWARE_SENSORS, L"Enable hardware sensors (requires kernel driver)", NULL);
+        PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_HARDWARE_SENSORS, L"Enable hardware sensors (kernel driver recommended)", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_TEMPERATURE_FAHRENHEIT, L"Show temperatures in Fahrenheit", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_MONOSPACE, L"Enable monospace fonts", NULL);
         PhAddListViewItem(listViewHandle, PHP_OPTIONS_INDEX_ENABLE_PLUGINS, L"Enable plugins", NULL);
