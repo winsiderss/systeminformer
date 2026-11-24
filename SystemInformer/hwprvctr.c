@@ -137,6 +137,7 @@ static ULONG PhpHwCounterZoneLimitIndex = ULONG_MAX; // the lowest zone passive 
 static PHP_HW_COUNTER_TRIP PhpHwCounterTrips[PHP_HW_COUNTER_MAX_TRIPS];
 static ULONG PhpHwCounterTripCount = 0;
 static BOOLEAN PhpHwCounterTripsRead = FALSE; // since the query opened
+static ULONG PhpHwCounterTripReport[4] = { 0 }; // under PhpHwNamedSensorLock: interfaces, opened, read; the last failure
 
 // Under PhpHwNamedSensorLock.
 ULONG PhpHwCounterSensorCount = 0;
@@ -554,6 +555,7 @@ static VOID PhpHwCounterReadTrips(
     static CONST GUID thermalZone = { 0x4afa3d51, 0x74a7, 0x11d0, { 0xbe, 0x5e, 0x00, 0xa0, 0xc9, 0x06, 0x28, 0x57 } };
     HDEVINFO deviceInfoSet;
     SP_DEVICE_INTERFACE_DATA interfaceData;
+    ULONG report[4] = { 0 };
 
     PhpHwCounterTripsRead = TRUE;
     PhpHwCounterTripCount = 0;
@@ -561,13 +563,21 @@ static VOID PhpHwCounterReadTrips(
     deviceInfoSet = SetupDiGetClassDevsW(&thermalZone, NULL, NULL, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
 
     if (deviceInfoSet == INVALID_HANDLE_VALUE)
+    {
+        report[3] = PhGetLastWin32ErrorAsNtStatus();
+        PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
+        memcpy(PhpHwCounterTripReport, report, sizeof(report));
+        PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
         return;
+    }
 
     memset(&interfaceData, 0, sizeof(SP_DEVICE_INTERFACE_DATA));
     interfaceData.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
 
     for (ULONG i = 0; PhpHwCounterTripCount < PHP_HW_COUNTER_MAX_TRIPS && SetupDiEnumDeviceInterfaces(deviceInfoSet, NULL, &thermalZone, i, &interfaceData); i++)
     {
+        NTSTATUS status;
+
         UCHAR detailBuffer[sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) + 512 * sizeof(WCHAR)];
         PSP_DEVICE_INTERFACE_DETAIL_DATA_W detail = (PSP_DEVICE_INTERFACE_DETAIL_DATA_W)detailBuffer;
         SP_DEVINFO_DATA deviceInfoData;
@@ -582,14 +592,22 @@ static VOID PhpHwCounterReadTrips(
         memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
 
+        report[0]++;
+
         if (!SetupDiGetDeviceInterfaceDetailW(deviceInfoSet, &interfaceData, detail, sizeof(detailBuffer), NULL, &deviceInfoData))
+        {
+            report[3] = PhGetLastWin32ErrorAsNtStatus();
             continue;
+        }
         if (!SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_BiosDeviceName, &propertyType, (PBYTE)name, sizeof(name) - sizeof(WCHAR), NULL, 0) || propertyType != DEVPROP_TYPE_STRING)
+        {
+            report[3] = STATUS_OBJECT_NAME_NOT_FOUND;
             continue;
+        }
 
         name[RTL_NUMBER_OF(name) - 1] = UNICODE_NULL;
 
-        if (!NT_SUCCESS(PhCreateFileWin32(
+        if (!NT_SUCCESS(status = PhCreateFileWin32(
             &handle,
             detail->DevicePath,
             FILE_READ_DATA | SYNCHRONIZE,
@@ -599,24 +617,35 @@ static VOID PhpHwCounterReadTrips(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
+            report[3] = status;
             continue;
         }
 
+        report[1]++;
         memset(&thermal, 0, sizeof(PHP_HW_THERMAL_INFORMATION_EX));
         thermal.ThermalStamp = PHP_HW_THERMAL_STAMP_NONE;
 
-        if (NT_SUCCESS(PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), NULL)))
+        if (NT_SUCCESS(status = PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), NULL)))
         {
+            report[2]++;
             trip = &PhpHwCounterTrips[PhpHwCounterTripCount++];
             PhCopyStringZ(name, SIZE_MAX, trip->Name, RTL_NUMBER_OF(trip->Name), NULL);
             trip->Trip[0] = thermal.PassiveTripPoint;
             trip->Trip[1] = thermal.CriticalTripPoint;
+        }
+        else
+        {
+            report[3] = status;
         }
 
         NtClose(handle);
     }
 
     SetupDiDestroyDeviceInfoList(deviceInfoSet);
+
+    PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
+    memcpy(PhpHwCounterTripReport, report, sizeof(report));
+    PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
 }
 
 /**
@@ -1133,8 +1162,10 @@ VOID PhpHwWriteCounterDiagnostics(
     ULONG blockCount;
     ULONG status;
     ULONG sets;
+    ULONG trips[4];
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
+    memcpy(trips, PhpHwCounterTripReport, sizeof(trips));
     count = PhpHwCounterReportCount;
     blockCount = PhpHwCounterReportBlockCount;
     status = PhpHwCounterStatus;
@@ -1162,6 +1193,18 @@ VOID PhpHwWriteCounterDiagnostics(
         PhAppendStringBuilder2(Builder, L" none");
 
     PhAppendCharStringBuilder(Builder, L'\n');
+
+    if (PhpHwCounterTripsRead)
+    {
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"  Trip points: %lu zone interfaces, %lu opened, %lu read; last failure 0x%08lx\n",
+            trips[0],
+            trips[1],
+            trips[2],
+            trips[3]
+            );
+    }
 
     for (ULONG i = 0; i < blockCount; i++)
     {
