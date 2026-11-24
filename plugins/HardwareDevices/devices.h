@@ -1417,6 +1417,16 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+// battery.c
+
+VOID BatteryInitialize(
+    VOID
+    );
+
+VOID BatteryUninitialize(
+    VOID
+    );
+
 // disktemp.c
 
 VOID DiskTemperatureInitialize(
