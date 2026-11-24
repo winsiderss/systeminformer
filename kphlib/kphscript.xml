@@ -82,6 +82,10 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="hpwmi" file="script/hpwmi.lua" arch="amd64" desc="HP numeric sensors through the firmware data block">
+        <routine name="identify" level="maximum"/>
+        <routine name="read" level="maximum"/>
+    </script>
     <script name="alienware" file="script/alienware.lua" arch="amd64" desc="Alienware and Dell G temperatures and fans through the firmware method">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
