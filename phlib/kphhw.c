@@ -58,6 +58,8 @@ static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\a
 static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
 static CONST PH_STRINGREF KphpHwPmfFileName = PH_STRINGREF_INIT(L"scripts\\pmf.bin");
 static KPH_HW_SCRIPT KphpHwPmfScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPmfFileName };
+static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
+static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -216,6 +218,7 @@ VOID KphHwSetScriptMode(
         &KphpHwDellScript,
         &KphpHwAsusWmiScript,
         &KphpHwPmfScript,
+        &KphpHwOcMailboxScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1861,6 +1864,46 @@ NTSTATUS KphHwAsusWmiRead(
         return STATUS_INFO_LENGTH_MISMATCH;
 
     memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
+
+    return status;
+}
+
+/**
+ * Reads the voltage settings of the Intel overclocking mailbox, plane by plane.
+ *
+ * \param Planes Receives per plane (core, GPU, cache, system agent, analog I/O) a status, the completion code
+ * and the data of the read command.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a processor the script does not list.
+ */
+NTSTATUS KphHwOcMailboxRead(
+    _Out_writes_(MaxKphHwOcPlane) PKPH_HW_OC_PLANE Planes
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_OC_PLANE planes[MaxKphHwOcPlane];
+    ULONG returnLength = 0;
+
+    status = KphpHwScriptCall(
+        &KphpHwOcMailboxScript,
+        &routine,
+        NULL,
+        0,
+        planes,
+        sizeof(planes),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(planes))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Planes, planes, sizeof(planes));
 
     return status;
 }

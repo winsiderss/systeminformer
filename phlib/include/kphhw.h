@@ -476,6 +476,32 @@ KphHwGpdReadFan(
     _Out_ PULONG Rpm
     );
 
+typedef enum _KPH_HW_OC_PLANES
+{
+    KphHwOcPlaneCore,
+    KphHwOcPlaneGpu,
+    KphHwOcPlaneCache,
+    KphHwOcPlaneSystemAgent,
+    KphHwOcPlaneAnalogIo,
+    MaxKphHwOcPlane,
+} KPH_HW_OC_PLANES_ENUM;
+
+typedef struct _KPH_HW_OC_PLANE
+{
+    NTSTATUS Status;
+    ULONG Code;
+    ULONG Data;
+} KPH_HW_OC_PLANE, *PKPH_HW_OC_PLANE;
+
+C_ASSERT(sizeof(KPH_HW_OC_PLANE) == 12);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwOcMailboxRead(
+    _Out_writes_(MaxKphHwOcPlane) PKPH_HW_OC_PLANE Planes
+    );
+
 #define KPH_HW_PMF_TABLE_SIZE 3648
 
 PHLIBAPI

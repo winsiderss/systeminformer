@@ -194,6 +194,8 @@ static ULONG64 PhpHwCpuPolicy[12] = { 0 }; // Intel, processor 0 at the probe: P
 static ULONG PhpHwCpuTccOffset = ULONG_MAX; // Intel MSR_TEMPERATURE_TARGET 29:24; ULONG_MAX when unread
 static PULONG PhpHwCpuPp1Index = NULL; // per package, the integrated graphics power's named sensor; ULONG_MAX when not listed
 static ULONG PhpHwCpuPolicyValid = 0; // 1 << the index into PhpHwCpuPolicy
+static KPH_HW_OC_PLANE PhpHwCpuOc[MaxKphHwOcPlane]; // Intel, the overclocking mailbox at the probe
+static BOOLEAN PhpHwCpuOcValid = FALSE;
 static ULONG64 PhpHwCpuCppc[3] = { 0 }; // AMD, processor 0 at the probe: PhpHwRegCppcCapability1 to PhpHwRegCppcRequest
 static ULONG PhpHwCpuCppcValid = 0; // 1 << the index into PhpHwCpuCppc
 static PUCHAR PhpHwCpuCppcHighest = NULL; // AMD, per core: CPPC_CAP1 highest performance; 0 when unread
@@ -737,6 +739,9 @@ static VOID PhpHwCpuProbeRead(
             PhpHwCpuPolicyValid |= 1UL << k;
         }
     }
+
+    if (PhpHwCpuClass == PhpHwCpuIntel)
+        PhpHwCpuOcValid = NT_SUCCESS(KphHwOcMailboxRead(PhpHwCpuOc));
 
     for (ULONG k = 0; k < RTL_NUMBER_OF(PhpHwCpuCppc); k++)
     {
@@ -2030,6 +2035,8 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuPp1Index);
     memset(PhpHwCpuPolicy, 0, sizeof(PhpHwCpuPolicy));
     PhpHwCpuPolicyValid = 0;
+    memset(PhpHwCpuOc, 0, sizeof(PhpHwCpuOc));
+    PhpHwCpuOcValid = FALSE;
     memset(PhpHwCpuCppc, 0, sizeof(PhpHwCpuCppc));
     PhpHwCpuCppcValid = 0;
     PhpHwCpuTccOffset = ULONG_MAX;
@@ -2122,6 +2129,53 @@ FLOAT PhpHwCpuQueryPowerUnit(
     )
 {
     return PhpHwCpuPowerUnit;
+}
+
+/**
+ * Appends the overclocking mailbox planes that answered the probe's read; a refused or failed plane is left out.
+ */
+static VOID PhpHwCpuAppendOc(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    static CONST PCWSTR names[MaxKphHwOcPlane] = { L"core", L"GPU", L"cache", L"system agent", L"analog I/O" };
+
+    if (!PhpHwCpuOcValid)
+        return;
+
+    for (ULONG i = 0; i < MaxKphHwOcPlane; i++)
+    {
+        ULONG data = PhpHwCpuOc[i].Data;
+        LONG offset = (LONG)((data >> 21) & 0x7FF);
+
+        if (!NT_SUCCESS(PhpHwCpuOc[i].Status) || PhpHwCpuOc[i].Code)
+            continue;
+
+        if (offset > 0x3FF)
+            offset -= 0x800;
+
+        if (data & (1UL << 20))
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"  OC %s: offset %.1f mV, override %.3f V, max ratio %lu\n",
+                names[i],
+                (FLOAT)offset * 1000.0f / 1024.0f,
+                (FLOAT)((data >> 8) & 0xFFF) / 1024.0f,
+                data & 0xFF
+                );
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"  OC %s: offset %.1f mV, adaptive, max ratio %lu\n",
+                names[i],
+                (FLOAT)offset * 1000.0f / 1024.0f,
+                data & 0xFF
+                );
+        }
+    }
 }
 
 /**
@@ -2384,6 +2438,7 @@ VOID PhpHwCpuDiagnostics(
     if (PhpHwCpuPolicyValid & 0x800)
         PhAppendFormatStringBuilder(Builder, L"  Turbo activation ratio: %lu\n", (ULONG)(PhpHwCpuPolicy[11] & 0xFF));
 
+    PhpHwCpuAppendOc(Builder);
     PhpHwCpuAppendCppc(Builder);
     PhpHwCpuAppendMicrocode(Builder);
 

@@ -1498,6 +1498,7 @@ EXPORTS
     KphHwDellRead
     KphHwGpdReadFan
     KphHwLenovoWsRead
+    KphHwOcMailboxRead
     KphHwPmfRead
     KphHwSuperIoIdentify
     KphHwSuperIoRead

@@ -80,6 +80,9 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="ocmailbox" file="script/ocmailbox.lua" arch="amd64" desc="Intel overclocking mailbox voltage settings">
+        <routine name="read" level="maximum"/>
+    </script>
     <script name="pmf" file="script/pmf.lua" arch="amd64" desc="AMD PMF metrics table">
         <routine name="read" level="maximum"/>
     </script>
