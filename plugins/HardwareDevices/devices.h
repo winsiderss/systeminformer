@@ -1427,6 +1427,16 @@ VOID BatteryUninitialize(
     VOID
     );
 
+// gpusensor.c
+
+VOID GpuSensorInitialize(
+    VOID
+    );
+
+VOID GpuSensorUninitialize(
+    VOID
+    );
+
 // disktemp.c
 
 VOID DiskTemperatureInitialize(
