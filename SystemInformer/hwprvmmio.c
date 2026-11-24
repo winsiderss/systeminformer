@@ -16,7 +16,9 @@
 
 // Collector mmio: the memory windows of the Intel host bridge (MCHBAR) and the processor thermal device (BAR0), one
 // KphHwPciMmioRead per window that has registers left per update. Every register of the table is offered to every
-// window; the items' statuses prune it, and a register one window answers is not asked of a later one.
+// window; the items' statuses prune it, and a register one window answers is not asked of a later one. A server's
+// memory controller functions (one a package, in bus order) add their controllers' free-running read and write
+// counters, each package's own bandwidth.
 
 #define PHP_HW_MMIO_INTEL_VENDOR_ID 0x8086
 #define PHP_HW_MMIO_HOST_BRIDGE_CLASS 0x0600
@@ -24,6 +26,12 @@
 #define PHP_HW_MMIO_MAX_CANDIDATES 16
 #define PHP_HW_MMIO_MAX_WINDOWS (PHP_HW_MMIO_MAX_CANDIDATES * 2)
 #define PHP_HW_MMIO_STRIKE_LIMIT 3 // failures of a register before it leaves the window for the session
+#define PHP_HW_MMIO_MC_DEVICE_ID 0x3451 // Ice Lake-SP/D memory controller function
+#define PHP_HW_MMIO_MC_FIRST_WINDOW 3 // the pcimmio window of controller 0
+#define PHP_HW_MMIO_MC_CONTROLLERS 4
+#define PHP_HW_MMIO_MC_READS 0x2290 // 48-bit free-running counters, 64 bytes a count
+#define PHP_HW_MMIO_MC_WRITES 0x2298
+#define PHP_HW_MMIO_MC_COUNTER_MASK 0xFFFFFFFFFFFFULL
 #define PHP_HW_MMIO_RAPL_LIMITED_ID 1 // named residency sensor id of PACKAGE_RAPL_PERF_STATUS; LPIT S0ix is 0
 #define PHP_HW_MMIO_GT_CLOCK_ID 0x47540000 // named sensor id of the MCHBAR graphics clock
 #define PHP_HW_MMIO_IMC_COUNT_BYTES 64 // bytes per IMC data read/write count
@@ -154,7 +162,24 @@ typedef struct _PHP_HW_MMIO_WINDOW
     PHP_HW_MMIO_REGISTER Registers[PhpHwMmioMaximum];
 } PHP_HW_MMIO_WINDOW, *PPHP_HW_MMIO_WINDOW;
 
+// A server memory controller function: its controllers' counters of the last two passes.
+typedef struct _PHP_HW_MMIO_MC
+{
+    ULONG Locator;
+    ULONG Windows; // bit per controller the function has
+    ULONG Controllers; // bit per controller still read
+    ULONG Valid; // bit per controller read this pass
+    ULONG LastValid;
+    UCHAR Strikes[PHP_HW_MMIO_MC_CONTROLLERS];
+    ULONG64 Reads[PHP_HW_MMIO_MC_CONTROLLERS];
+    ULONG64 Writes[PHP_HW_MMIO_MC_CONTROLLERS];
+    ULONG64 LastReads[PHP_HW_MMIO_MC_CONTROLLERS];
+    ULONG64 LastWrites[PHP_HW_MMIO_MC_CONTROLLERS];
+} PHP_HW_MMIO_MC, *PPHP_HW_MMIO_MC;
+
 static PH_CPU_IDENTITY PhpHwMmioIdentity;
+static PPHP_HW_MMIO_MC PhpHwMmioMcs = NULL; // one a package, or none
+static ULONG PhpHwMmioMcCount = 0;
 static ULONG PhpHwMmioCandidateCount = 0;
 static ULONG PhpHwMmioWindowCount = 0;
 static PPHP_HW_MMIO_WINDOW PhpHwMmioWindows = NULL; // PHP_HW_MMIO_MAX_WINDOWS
@@ -531,6 +556,167 @@ static BOOLEAN PhpHwMmioDecodeBandwidth(
     *ReadBandwidth = readBandwidth;
     *WriteBandwidth = writeBandwidth;
     return TRUE;
+}
+
+/**
+ * Finds the memory controller functions: kept only when there is one a package and each has a controller window.
+ */
+static VOID PhpHwMmioProbeMcs(
+    VOID
+    )
+{
+    static CONST USHORT deviceIds[] = { PHP_HW_MMIO_MC_DEVICE_ID };
+    ULONG locators[PHP_HW_MMIO_MAX_CANDIDATES];
+    ULONG count;
+
+    count = PhpHwEnumeratePciFunctions(
+        PHP_HW_MMIO_INTEL_VENDOR_ID,
+        PHP_HW_MMIO_INTEL_VENDOR_ID,
+        PHP_HW_ANY_CLASS_CODE,
+        deviceIds,
+        RTL_NUMBER_OF(deviceIds),
+        FALSE,
+        locators,
+        RTL_NUMBER_OF(locators)
+        );
+
+    if (count == 0 || count != PhpHwPackageCount)
+        return;
+
+    // Bus order is package order.
+    for (ULONG i = 1; i < count; i++)
+    {
+        for (ULONG j = i; j > 0 && locators[j - 1] > locators[j]; j--)
+        {
+            ULONG locator = locators[j];
+
+            locators[j] = locators[j - 1];
+            locators[j - 1] = locator;
+        }
+    }
+
+    PhpHwMmioMcs = PhAllocateZero(sizeof(PHP_HW_MMIO_MC) * count);
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        KPH_HW_PCI_MMIO device;
+
+        if (!NT_SUCCESS(KphHwPciMmioIdentify(locators[i], &device)))
+            break;
+
+        PhpHwMmioMcs[i].Locator = locators[i];
+        PhpHwMmioMcs[i].Windows = (device.Windows >> (PHP_HW_MMIO_MC_FIRST_WINDOW - 1)) & ((1UL << PHP_HW_MMIO_MC_CONTROLLERS) - 1);
+        PhpHwMmioMcs[i].Controllers = PhpHwMmioMcs[i].Windows;
+
+        if (!PhpHwMmioMcs[i].Controllers)
+            break;
+
+        PhpHwMmioMcCount++;
+    }
+
+    if (PhpHwMmioMcCount != count)
+    {
+        PhFree(PhpHwMmioMcs);
+        PhpHwMmioMcs = NULL;
+        PhpHwMmioMcCount = 0;
+    }
+}
+
+/**
+ * Reads each kept controller's read and write counters, one call a controller.
+ *
+ * eturn TRUE when a call met contention.
+ */
+static BOOLEAN PhpHwMmioReadMcs(
+    VOID
+    )
+{
+    static CONST KPH_HW_WINDOW_ITEM items[2] = { { PHP_HW_MMIO_MC_READS, 8 }, { PHP_HW_MMIO_MC_WRITES, 8 } };
+    BOOLEAN retried = FALSE;
+
+    for (ULONG i = 0; i < PhpHwMmioMcCount; i++)
+    {
+        PPHP_HW_MMIO_MC mc = &PhpHwMmioMcs[i];
+
+        mc->LastValid = mc->Valid;
+        mc->Valid = 0;
+        memcpy(mc->LastReads, mc->Reads, sizeof(mc->Reads));
+        memcpy(mc->LastWrites, mc->Writes, sizeof(mc->Writes));
+
+        for (ULONG c = 0; c < PHP_HW_MMIO_MC_CONTROLLERS; c++)
+        {
+            KPH_HW_VALUE64 values[2];
+            NTSTATUS status;
+
+            if (!(mc->Controllers & (1UL << c)))
+                continue;
+
+            status = KphHwPciMmioRead(mc->Locator, PHP_HW_MMIO_MC_FIRST_WINDOW + c, items, 2, values);
+
+            if (NT_SUCCESS(status) && NT_SUCCESS(values[0].Status) && NT_SUCCESS(values[1].Status))
+            {
+                mc->Strikes[c] = 0;
+                mc->Reads[c] = values[0].Value & PHP_HW_MMIO_MC_COUNTER_MASK;
+                mc->Writes[c] = values[1].Value & PHP_HW_MMIO_MC_COUNTER_MASK;
+                mc->Valid |= 1UL << c;
+                continue;
+            }
+
+            if (NT_SUCCESS(status))
+                status = NT_SUCCESS(values[0].Status) ? values[1].Status : values[0].Status;
+
+            if (status == STATUS_RETRY)
+            {
+                retried = TRUE;
+            }
+            else if (status == STATUS_ACCESS_DENIED || ++mc->Strikes[c] >= PHP_HW_MMIO_STRIKE_LIMIT)
+            {
+                mc->Controllers &= ~(1UL << c);
+                PhTraceInfo("Hardware sensor memory controller 0x%lx:%lu unavailable: 0x%lx", mc->Locator, c, status);
+            }
+        }
+    }
+
+    return retried;
+}
+
+/**
+ * Publishes each package's bandwidth from its controllers read both this pass and the last.
+ *
+ * \param Seconds The time between the passes.
+ */
+static VOID PhpHwMmioPublishMcs(
+    _In_ FLOAT Seconds
+    )
+{
+    for (ULONG i = 0; i < PhpHwMmioMcCount; i++)
+    {
+        PPHP_HW_MMIO_MC mc = &PhpHwMmioMcs[i];
+        PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
+        ULONG both = mc->Valid & mc->LastValid & mc->Controllers;
+        ULONG64 reads = 0;
+        ULONG64 writes = 0;
+        ULONG valid = 0;
+
+        for (ULONG c = 0; c < PHP_HW_MMIO_MC_CONTROLLERS; c++)
+        {
+            if (!(both & (1UL << c)))
+                continue;
+
+            reads += (mc->Reads[c] - mc->LastReads[c]) & PHP_HW_MMIO_MC_COUNTER_MASK;
+            writes += (mc->Writes[c] - mc->LastWrites[c]) & PHP_HW_MMIO_MC_COUNTER_MASK;
+        }
+
+        // Every controller the function has, or no value: a partial sum is not the package's bandwidth.
+        if (both && both == mc->Windows && Seconds > 0.0f && Seconds <= PHP_HW_MMIO_IMC_MAX_INTERVAL)
+        {
+            sensor->MemoryReadBandwidth = (FLOAT)reads * PHP_HW_MMIO_IMC_COUNT_BYTES / Seconds / 1000000.0f;
+            sensor->MemoryWriteBandwidth = (FLOAT)writes * PHP_HW_MMIO_IMC_COUNT_BYTES / Seconds / 1000000.0f;
+            valid = PH_HW_CAP_MEMORY_BANDWIDTH;
+        }
+
+        WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PH_HW_CAP_MEMORY_BANDWIDTH) | valid);
+    }
 }
 
 /**
@@ -950,9 +1136,15 @@ NTSTATUS PhpHwMmioProbe(
     ULONG value;
     FLOAT celsius;
 
-    // The family needs the processor identity of cpu: the window decoders depend on the model.
-    if (!PhpHwCpuQueryIntel(&PhpHwMmioIdentity) || !PhpHwPackageCount)
+    if (!PhpHwPackageCount)
         return STATUS_NOT_SUPPORTED;
+
+    // The script gates the controllers by model; they need no processor identity here.
+    PhpHwMmioProbeMcs();
+
+    // The windows need the processor identity of cpu: their decoders depend on the model.
+    if (!PhpHwCpuQueryIntel(&PhpHwMmioIdentity))
+        return PhpHwMmioMcCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
 
     // The host bridge first; the processor thermal device mirrors part of its MCHBAR.
     PhpHwMmioCandidateCount = PhpHwEnumeratePciFunctions(
@@ -1023,7 +1215,7 @@ NTSTATUS PhpHwMmioProbe(
     }
 
     if (!PhpHwMmioWindowCount)
-        return lastStatus;
+        return PhpHwMmioMcCount ? STATUS_SUCCESS : lastStatus;
 
     // The memory configuration and the timings are read once, through the host bridge's MCHBAR.
     PhpHwMmioTimingsFormat = PhpHwMmioQueryTimingsFormat();
@@ -1149,8 +1341,19 @@ NTSTATUS PhpHwMmioPass(
             answered = TRUE;
     }
 
+    if (PhpHwMmioReadMcs())
+        retried = TRUE;
+    else if (PhpHwMmioMcCount)
+        answered = TRUE;
+
     PhpHwMmioLastSampleTime = PhpHwMmioSampleTime;
     PhpHwMmioSampleTime = PhpHwQueryTime();
+
+    if (PhpHwMmioMcCount)
+    {
+        PhpHwMmioPublishMcs(PhpHwMmioLastSampleTime && PhpHwMmioSampleTime > PhpHwMmioLastSampleTime ?
+            (FLOAT)(PhpHwMmioSampleTime - PhpHwMmioLastSampleTime) / (FLOAT)PHP_HW_SECOND : 0.0f);
+    }
 
     if (PhpHwMmioActive(PhpHwMmioPackageTemperature))
         owned |= PH_HW_CAP_PACKAGE_TEMP;
@@ -1317,6 +1520,13 @@ VOID PhpHwMmioEnd(
         PhpHwMmioWindows = NULL;
     }
 
+    if (PhpHwMmioMcs)
+    {
+        PhFree(PhpHwMmioMcs);
+        PhpHwMmioMcs = NULL;
+    }
+
+    PhpHwMmioMcCount = 0;
     PhpHwMmioCandidateCount = 0;
     PhpHwMmioWindowCount = 0;
     PhpHwMmioUnitWatts = 0.0f;
@@ -1348,6 +1558,9 @@ VOID PhpHwMmioDiagnostics(
     )
 {
     PhAppendFormatStringBuilder(Builder, L"  Candidates: %lu; windows: %lu; power unit %g W\n", PhpHwMmioCandidateCount, PhpHwMmioWindowCount, PhpHwMmioUnitWatts);
+
+    for (ULONG i = 0; i < PhpHwMmioMcCount; i++)
+        PhAppendFormatStringBuilder(Builder, L"  Memory controller function 0x%lx (package %lu): controllers 0x%lx\n", PhpHwMmioMcs[i].Locator, i, PhpHwMmioMcs[i].Controllers);
 
     if (PhpHwMmioWindowCount)
     {

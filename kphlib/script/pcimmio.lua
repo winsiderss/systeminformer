@@ -10,7 +10,9 @@
 
 --
 -- Reads registers behind a memory window of a PCI function: the memory
--- controller hub window whose base a configuration register holds, or a BAR.
+-- controller hub window whose base a configuration register holds, a BAR, or
+-- (windows 3 to 6) a server memory controller's window whose base two
+-- configuration registers hold.
 -- The devices, their windows and the offsets each may be asked for are listed
 -- below; every one but the last is a function of an Intel processor, the last
 -- (the PCH thermal function, a row without family and models) is read on any.
@@ -19,6 +21,70 @@
 local nt = require('nt')
 
 local ROWS = {
+  {
+    family = 0x06,
+    models = { { 0x6a, 0x6a }, { 0x6c, 0x6c } },
+    vendor = 0x8086,
+    devices = { 0x3451 },
+    window = 3,
+    controller = 0,
+    size = 0x4000,
+    align = 0x1000,
+    d0 = false,
+    reads = function()
+      return {
+        { 0x2290, 0x10, 8 },
+      }
+    end,
+  },
+  {
+    family = 0x06,
+    models = { { 0x6a, 0x6a }, { 0x6c, 0x6c } },
+    vendor = 0x8086,
+    devices = { 0x3451 },
+    window = 4,
+    controller = 1,
+    size = 0x4000,
+    align = 0x1000,
+    d0 = false,
+    reads = function()
+      return {
+        { 0x2290, 0x10, 8 },
+      }
+    end,
+  },
+  {
+    family = 0x06,
+    models = { { 0x6a, 0x6a }, { 0x6c, 0x6c } },
+    vendor = 0x8086,
+    devices = { 0x3451 },
+    window = 5,
+    controller = 2,
+    size = 0x4000,
+    align = 0x1000,
+    d0 = false,
+    reads = function()
+      return {
+        { 0x2290, 0x10, 8 },
+      }
+    end,
+  },
+  {
+    family = 0x06,
+    models = { { 0x6a, 0x6a }, { 0x6c, 0x6c } },
+    vendor = 0x8086,
+    devices = { 0x3451 },
+    window = 6,
+    controller = 3,
+    size = 0x4000,
+    align = 0x1000,
+    d0 = false,
+    reads = function()
+      return {
+        { 0x2290, 0x10, 8 },
+      }
+    end,
+  },
   {
     family = 0x06,
     models = { { 0x2a, 0x2a } },
@@ -1251,6 +1317,13 @@ local ROWS = {
 
 local PAGE = 0x1000
 local HUGE_PAGE_END = -PAGE
+local MC_BASE = 0xd0
+local MC_BASE_MASK = 0x1fffffff
+local MC_BASE_SHIFT = 23
+local MC_MEM0 = 0xd8
+local MC_MEM_MASK = 0x7ff
+local MC_MEM_SHIFT = 12
+local WINDOW_LAST = 6
 
 local kept = {}
 
@@ -1617,7 +1690,19 @@ local function derive(s, row, length)
     end
   end
   local base
-  if row.window == 2 then
+  if row.controller then
+    local high = ksi.hw.pci_read(s.device, MC_BASE, 4)
+    local low = ksi.hw.pci_read(s.device, MC_MEM0 + 4 * row.controller, 4)
+    if not high or not low or high == 0xffffffff or low == 0xffffffff then
+      ksi.trace('controller %d base registers not read', row.controller)
+      return nil, nt.STATUS_DEVICE_NOT_READY
+    end
+    base = ((high & MC_BASE_MASK) << MC_BASE_SHIFT) | ((low & MC_MEM_MASK) << MC_MEM_SHIFT)
+    if base == 0 then
+      ksi.trace('controller %d window is not assigned', row.controller)
+      return nil, nt.STATUS_DEVICE_NOT_READY
+    end
+  elseif row.window == 2 then
     local failed
     base, failed = memory_bar(s, 0)
     if not base then
@@ -1657,8 +1742,8 @@ local function derive(s, row, length)
       return nil, nt.STATUS_DEVICE_NOT_READY
     end
   end
-  if base & (row.size - 1) ~= 0 then
-    ksi.trace('window base 0x%x is not aligned to 0x%x', base, row.size)
+  if base & ((row.align or row.size) - 1) ~= 0 then
+    ksi.trace('window base 0x%x is not aligned to 0x%x', base, row.align or row.size)
     return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   return base
@@ -1707,7 +1792,7 @@ function read(input)
     return nt.STATUS_INVALID_PARAMETER
   end
   local locator, window = string.unpack('<I4I4', input)
-  if window ~= 1 and window ~= 2 then
+  if window < 1 or window > WINDOW_LAST then
     ksi.trace('window %d', window)
     return nt.STATUS_INVALID_PARAMETER
   end
