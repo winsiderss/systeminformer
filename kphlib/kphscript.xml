@@ -76,6 +76,7 @@ This file is part of System Informer.
     <script name="ec" file="script/ec.lua" arch="amd64" desc="ACPI embedded controller">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
+        <routine name="sensors" level="maximum"/>
     </script>
     <script name="dell" file="script/dell.lua" arch="amd64" desc="Dell SMM fans and temperatures">
         <routine name="identify" level="maximum"/>

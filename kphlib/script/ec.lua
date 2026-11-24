@@ -30,25 +30,889 @@ local PUT_BACK_ROUNDS = 182
 local GLOBAL_LOCK_MS = 100
 local EVAL_MS = 100
 
--- Each board: the SMBIOS baseboard manufacturer and products, the bank
--- register, and the { bank, first, last } registers it permits.
+-- Sensor kinds the sensors routine gives: a temperature in degrees C (signed),
+-- a voltage in mV, a current in A and a fan or flow in RPM.
+local TEMPERATURE = 1
+local VOLTAGE = 2
+local CURRENT = 3
+local FAN = 4
+
+local BOARD_MANUFACTURER = 'ASUSTeK COMPUTER INC.'
+local BANK_REGISTER = 0xff
+
+-- Each family: sensor -> { kind, size, bank, register, label }; a value of size 2 is big-endian.
+local FAMILIES = {
+  amd_400 = {
+    temp_chipset = { TEMPERATURE, 1, 0, 0x3a, 'Chipset' },
+    temp_cpu = { TEMPERATURE, 1, 0, 0x3b, 'CPU' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x3c, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x3d, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x3e, 'VRM' },
+    in_cpu_core = { VOLTAGE, 2, 0, 0xa2, 'CPU Core' },
+    fan_cpu_opt = { FAN, 2, 0, 0xbc, 'CPU Optional Fan' },
+    fan_vrm_hs = { FAN, 2, 0, 0xb2, 'VRM Heatsink Fan' },
+    fan_water_flow = { FAN, 2, 0, 0xb4, 'Water Flow' },
+    curr_cpu = { CURRENT, 1, 0, 0xf4, 'CPU' },
+    temp_water_in = { TEMPERATURE, 1, 1, 0x0d, 'Water In' },
+    temp_water_out = { TEMPERATURE, 1, 1, 0x0b, 'Water Out' },
+  },
+  amd_500 = {
+    temp_chipset = { TEMPERATURE, 1, 0, 0x3a, 'Chipset' },
+    temp_cpu = { TEMPERATURE, 1, 0, 0x3b, 'CPU' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x3c, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x3d, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x3e, 'VRM' },
+    in_cpu_core = { VOLTAGE, 2, 0, 0xa2, 'CPU Core' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_vrm_hs = { FAN, 2, 0, 0xb2, 'VRM Heatsink Fan' },
+    fan_chipset = { FAN, 2, 0, 0xb4, 'Chipset Fan' },
+    fan_water_flow = { FAN, 2, 0, 0xbc, 'Water Flow' },
+    curr_cpu = { CURRENT, 1, 0, 0xf4, 'CPU' },
+    temp_water_in = { TEMPERATURE, 1, 1, 0x00, 'Water In' },
+    temp_water_out = { TEMPERATURE, 1, 1, 0x01, 'Water Out' },
+    temp_water_block_in = { TEMPERATURE, 1, 1, 0x02, 'Water Block In' },
+    temp_water_block_out = { TEMPERATURE, 1, 1, 0x03, 'Water Block Out' },
+    temp_t_sensor_2 = { TEMPERATURE, 1, 1, 0x0a, 'T Sensor 2' },
+    temp_sensor_extra_1 = { TEMPERATURE, 1, 1, 0x09, 'Extra #1' },
+    temp_sensor_extra_2 = { TEMPERATURE, 1, 1, 0x0b, 'Extra #2' },
+    temp_sensor_extra_3 = { TEMPERATURE, 1, 1, 0x0c, 'Extra #3' },
+  },
+  amd_600 = {
+    temp_cpu = { TEMPERATURE, 1, 0, 0x30, 'CPU' },
+    temp_cpu_package = { TEMPERATURE, 1, 0, 0x31, 'CPU Package' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x32, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x36, 'T Sensor' },
+    temp_t_sensor_alt1 = { TEMPERATURE, 1, 0, 0x37, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x33, 'VRM' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    temp_water_in = { TEMPERATURE, 1, 1, 0x00, 'Water In' },
+    temp_water_out = { TEMPERATURE, 1, 1, 0x01, 'Water Out' },
+  },
+  amd_800 = {
+    temp_cpu = { TEMPERATURE, 1, 0, 0x30, 'CPU' },
+    temp_cpu_package = { TEMPERATURE, 1, 0, 0x31, 'CPU Package' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x32, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x36, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x33, 'VRM' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+  },
+  amd_trx_50 = {
+    temp_cpu = { TEMPERATURE, 1, 0, 0x30, 'CPU' },
+    temp_cpu_package = { TEMPERATURE, 1, 0, 0x31, 'CPU Package' },
+    temp_t_sensor = { TEMPERATURE, 1, 1, 0x04, 'T Sensor' },
+    temp_vrme = { TEMPERATURE, 1, 0, 0x33, 'VRM East' },
+    temp_vrmw = { TEMPERATURE, 1, 0, 0x34, 'VRM West' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_vrme_hs = { FAN, 2, 0, 0xbc, 'VRM West Heatsink Fan' },
+    fan_vrmw_hs = { FAN, 2, 0, 0xb4, 'VRM East Heatsink Fan' },
+  },
+  amd_wrx_90 = {
+    temp_cpu_package = { TEMPERATURE, 1, 0, 0x31, 'CPU Package' },
+    temp_t_sensor = { TEMPERATURE, 1, 1, 0x04, 'T Sensor' },
+    temp_vrme = { TEMPERATURE, 1, 0, 0x33, 'VRM East' },
+    temp_vrmw = { TEMPERATURE, 1, 0, 0x34, 'VRM West' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_vrme_hs = { FAN, 2, 0, 0xbc, 'VRM East Heatsink Fan' },
+    fan_vrmw_hs = { FAN, 2, 0, 0xb4, 'VRM West Heatsink Fan' },
+    fan_usb4 = { FAN, 2, 0, 0xb6, 'USB4 Fan' },
+    fan_m2 = { FAN, 2, 0, 0xbe, 'M.2 Fan' },
+  },
+  intel_200 = {
+    temp_chipset = { TEMPERATURE, 1, 0, 0x3a, 'Chipset' },
+    temp_cpu = { TEMPERATURE, 1, 0, 0x3b, 'CPU' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x3c, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x3d, 'T Sensor' },
+    fan_cpu_opt = { FAN, 2, 0, 0xbc, 'CPU Optional Fan' },
+  },
+  intel_300 = {
+    temp_chipset = { TEMPERATURE, 1, 0, 0x3a, 'Chipset' },
+    temp_cpu = { TEMPERATURE, 1, 0, 0x3b, 'CPU' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x3c, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x3d, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x3e, 'VRM' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_vrm_hs = { FAN, 2, 0, 0xb2, 'VRM Heatsink Fan' },
+    fan_water_flow = { FAN, 2, 0, 0xbc, 'Water Flow' },
+    temp_water_in = { TEMPERATURE, 1, 1, 0x00, 'Water In' },
+    temp_water_out = { TEMPERATURE, 1, 1, 0x01, 'Water Out' },
+  },
+  intel_400 = {
+    temp_chipset = { TEMPERATURE, 1, 0, 0x3a, 'Chipset' },
+    temp_cpu = { TEMPERATURE, 1, 0, 0x3b, 'CPU' },
+    temp_mb = { TEMPERATURE, 1, 0, 0x3c, 'Motherboard' },
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x3d, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x3e, 'VRM' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_vrm_hs = { FAN, 2, 0, 0xb2, 'VRM Heatsink Fan' },
+  },
+  intel_600 = {
+    temp_t_sensor = { TEMPERATURE, 1, 0, 0x3d, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x3e, 'VRM' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_water_flow = { FAN, 2, 0, 0xbe, 'Water Flow' },
+    temp_water_in = { TEMPERATURE, 1, 1, 0x00, 'Water In' },
+    temp_water_out = { TEMPERATURE, 1, 1, 0x01, 'Water Out' },
+    temp_water_block_in = { TEMPERATURE, 1, 1, 0x02, 'Water Block In' },
+  },
+  intel_700 = {
+    temp_t_sensor = { TEMPERATURE, 1, 1, 0x09, 'T Sensor' },
+    temp_vrm = { TEMPERATURE, 1, 0, 0x33, 'VRM' },
+    fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
+    fan_water_flow = { FAN, 2, 0, 0xbc, 'Water Flow' },
+    temp_water_in = { TEMPERATURE, 1, 1, 0x00, 'Water In' },
+    temp_water_out = { TEMPERATURE, 1, 1, 0x01, 'Water Out' },
+    temp_t_sensor_2 = { TEMPERATURE, 1, 1, 0x05, 'T Sensor 2' },
+  },
+}
+
+-- Each board: the SMBIOS baseboard products, the family and the sensors it has.
 local BOARDS = {
   {
-    manufacturer = 'ASUSTeK COMPUTER INC.',
     products = {
+      'ROG CROSSHAIR VIII DARK HERO',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_cpu_opt',
+      'fan_water_flow',
+      'curr_cpu',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR VIII FORMULA',
       'ROG CROSSHAIR VIII HERO',
       'ROG CROSSHAIR VIII HERO (WI-FI)',
-      'ROG CROSSHAIR VIII FORMULA',
     },
-    bank_register = 0xff,
-    allow = {
-      { 0, 0x3a, 0x3e },
-      { 0, 0xa2, 0xa3 },
-      { 0, 0xb0, 0xb1 },
-      { 0, 0xb4, 0xb5 },
-      { 0, 0xbc, 0xbd },
-      { 0, 0xf4, 0xf4 },
-      { 1, 0x00, 0x01 },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_cpu_opt',
+      'fan_chipset',
+      'fan_water_flow',
+      'curr_cpu',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR VIII IMPACT',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_chipset',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR X670E EXTREME',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR X670E GENE',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR X670E HERO',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR X870E HERO',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'MAXIMUS VI HERO',
+    },
+    family = 'intel_300',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+      'fan_water_flow',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG MAXIMUS X HERO',
+    },
+    family = 'intel_300',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG MAXIMUS XI HERO',
+      'ROG MAXIMUS XI HERO (WI-FI)',
+    },
+    family = 'intel_300',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+      'fan_water_flow',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG MAXIMUS Z690 FORMULA',
+    },
+    family = 'intel_600',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_water_flow',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG MAXIMUS Z790 EXTREME',
+    },
+    family = 'intel_700',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_water_flow',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG MAXIMUS Z790 HERO',
+    },
+    family = 'intel_700',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+      'fan_water_flow',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'PRIME X470-PRO',
+    },
+    family = 'amd_400',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_cpu_opt',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'PRIME X570-PRO',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_chipset',
+    },
+  },
+  {
+    products = {
+      'PRIME X670E-PRO WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor_alt1',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'PRIME Z270-A',
+    },
+    family = 'intel_200',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ProArt B550-CREATOR',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ProArt X570-CREATOR WIFI',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_cpu_opt',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ProArt X670E-CREATOR WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ProArt X870E-CREATOR WIFI',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ProArt Z690-CREATOR WIFI',
+    },
+    family = 'intel_600',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'Pro WS TRX50-SAGE WIFI',
+      'Pro WS TRX50-SAGE WIFI A',
+    },
+    family = 'amd_trx_50',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_t_sensor',
+      'temp_vrme',
+      'temp_vrmw',
+      'fan_cpu_opt',
+      'fan_vrme_hs',
+      'fan_vrmw_hs',
+    },
+  },
+  {
+    products = {
+      'Pro WS WRX90E-SAGE SE',
+    },
+    family = 'amd_wrx_90',
+    sensors = {
+      'temp_cpu_package',
+      'temp_t_sensor',
+      'temp_vrme',
+      'temp_vrmw',
+      'fan_cpu_opt',
+      'fan_vrme_hs',
+      'fan_vrmw_hs',
+      'fan_usb4',
+      'fan_m2',
+    },
+  },
+  {
+    products = {
+      'Pro WS X570-ACE',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_chipset',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX B550-E GAMING',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX B550-I GAMING',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_vrm_hs',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX B650E-E GAMING WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX B650E-I GAMING WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX B850-E GAMING WIFI',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX B850-I GAMING WIFI',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X470-F GAMING',
+    },
+    family = 'amd_400',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'in_cpu_core',
+      'fan_cpu_opt',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X470-I GAMING',
+    },
+    family = 'amd_400',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X570-E GAMING',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'in_cpu_core',
+      'fan_chipset',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X570-E GAMING WIFI II',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'in_cpu_core',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X570-F GAMING',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'fan_chipset',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X570-I GAMING',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_vrm_hs',
+      'fan_chipset',
+      'curr_cpu',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X670E-A GAMING WIFI',
+      'ROG STRIX X670E-E GAMING WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X670E-I GAMING WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X870-F GAMING WIFI',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X870-I GAMING WIFI',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X870E-E GAMING WIFI',
+      'ROG STRIX X870E-E GAMING WIFI7 R2',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX X870E-H GAMING WIFI7',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z390-E GAMING',
+      'ROG STRIX Z390-F GAMING',
+    },
+    family = 'intel_300',
+    sensors = {
+      'temp_chipset',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z490-A GAMING',
+      'ROG STRIX Z490-F GAMING',
+    },
+    family = 'intel_400',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+      'fan_vrm_hs',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z690-A GAMING WIFI D4',
+    },
+    family = 'intel_600',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z690-E GAMING WIFI',
+    },
+    family = 'intel_600',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z790-E GAMING WIFI II',
+    },
+    family = 'intel_700',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+      'fan_cpu_opt',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z790-H GAMING WIFI',
+    },
+    family = 'intel_700',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+    },
+  },
+  {
+    products = {
+      'ROG STRIX Z790-I GAMING WIFI',
+    },
+    family = 'intel_700',
+    sensors = {
+      'temp_t_sensor',
+      'temp_vrm',
+      'temp_t_sensor_2',
+    },
+  },
+  {
+    products = {
+      'TUF GAMING X670E-PLUS',
+      'TUF GAMING X670E-PLUS WIFI',
+    },
+    family = 'amd_600',
+    sensors = {
+      'temp_cpu',
+      'temp_cpu_package',
+      'temp_mb',
+      'temp_vrm',
+      'fan_cpu_opt',
+      'temp_water_in',
+      'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG ZENITH II EXTREME',
+      'ROG ZENITH II EXTREME ALPHA',
+    },
+    family = 'amd_500',
+    sensors = {
+      'temp_chipset',
+      'temp_cpu',
+      'temp_mb',
+      'temp_t_sensor',
+      'temp_vrm',
+      'in_cpu_core',
+      'fan_cpu_opt',
+      'fan_vrm_hs',
+      'fan_chipset',
+      'fan_water_flow',
+      'curr_cpu',
+      'temp_water_in',
+      'temp_water_out',
+      'temp_water_block_in',
+      'temp_water_block_out',
+      'temp_t_sensor_2',
+      'temp_sensor_extra_1',
+      'temp_sensor_extra_2',
+      'temp_sensor_extra_3',
     },
   },
 }
@@ -99,18 +963,25 @@ local function baseboard_strings()
   return nil
 end
 
--- The row of this board, or the row of every other board.
+-- The row of this board: its sensors, the bank register and the { bank,
+-- first, last } registers they permit; or the row of every other board.
 local function board()
   if kept.board then
     return kept.board
   end
   local row = ANY_BOARD
   local manufacturer, product = baseboard_strings()
-  for _, b in ipairs(BOARDS) do
-    if manufacturer == b.manufacturer then
+  if manufacturer == BOARD_MANUFACTURER then
+    for _, b in ipairs(BOARDS) do
       for _, p in ipairs(b.products) do
         if product == p then
-          row = b
+          local family = FAMILIES[b.family]
+          row = { bank_register = BANK_REGISTER, sensors = {}, allow = {} }
+          for _, name in ipairs(b.sensors) do
+            local e = family[name]
+            row.sensors[#row.sensors + 1] = e
+            row.allow[#row.allow + 1] = { e[3], e[4], e[4] + e[2] - 1 }
+          end
         end
       end
     end
@@ -298,6 +1169,23 @@ function identify(input)
     s.device:release()
   end
   return nt.STATUS_SUCCESS, output
+end
+
+-- The sensors of this board's row: <I1I1I1I1s1 kind, size, bank, register
+-- and label per sensor; STATUS_NOT_FOUND on a board with no row.
+function sensors(input)
+  if #input ~= 0 then
+    return nt.STATUS_INVALID_PARAMETER
+  end
+  local row = board()
+  if not row.sensors then
+    return nt.STATUS_NOT_FOUND
+  end
+  local output = {}
+  for i, e in ipairs(row.sensors) do
+    output[i] = string.pack('<I1I1I1I1s1', e[1], e[2], e[3], e[4], e[5])
+  end
+  return nt.STATUS_SUCCESS, table.concat(output)
 end
 
 -- Reads bytes of the controller at an ordinal: input <I4 ordinal, then <I4I4
