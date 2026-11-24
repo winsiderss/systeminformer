@@ -535,6 +535,15 @@ KphHwEcSensors(
     _Out_ PULONG Count
     );
 
+#define KPH_HW_GIGABYTE_SENSORS 6
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwGigabyteRead(
+    _Out_writes_(KPH_HW_GIGABYTE_SENSORS) PKPH_HW_VALUE32 Values
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI

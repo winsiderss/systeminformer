@@ -550,3 +550,124 @@ VOID PhpHwBoardEcDiagnostics(
         PhpHwBoardEcEnded ? L", ended" : L""
         );
 }
+
+#define PHP_HW_GIGABYTE_ID_BASE 0x47420000 // named sensor ids of the Gigabyte firmware temperatures
+
+static ULONG PhpHwGigabyteNamedIndex[KPH_HW_GIGABYTE_SENSORS]; // ULONG_MAX when not listed
+static NTSTATUS PhpHwGigabyteStatus = STATUS_NOT_SUPPORTED; // the last read, for the report; not probed until set
+static ULONG PhpHwGigabyteCount = 0;
+static UCHAR PhpHwGigabyteStrikes = 0;
+static BOOLEAN PhpHwGigabyteEnded = FALSE;
+
+/**
+ * Reads the Gigabyte firmware temperatures once a session and lists the sensors that are there (a value other than 0).
+ *
+ * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED on another vendor's board or without the method, or a failed call's
+ * status.
+ */
+NTSTATUS PhpHwGigabyteProbe(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[KPH_HW_GIGABYTE_SENSORS];
+    NTSTATUS status;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwGigabyteNamedIndex); i++)
+        PhpHwGigabyteNamedIndex[i] = ULONG_MAX;
+
+    PhpHwGigabyteCount = 0;
+    status = KphHwGigabyteRead(values);
+    PhpHwGigabyteStatus = status;
+
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_NOT_FOUND)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG i = 0; i < KPH_HW_GIGABYTE_SENSORS; i++)
+    {
+        PPH_STRING name;
+
+        if (!NT_SUCCESS(values[i].Status) || (values[i].Value & 0xFF) == 0)
+            continue;
+
+        name = PhFormatString(L"Board temperature %lu", i + 1);
+        PhpHwGigabyteNamedIndex[i] = PhpHwAddNamedSensor(PhHwNamedSensorAcpiTemperature, 0, PHP_HW_GIGABYTE_ID_BASE + i, name->Buffer);
+        PhDereferenceObject(name);
+        PhpHwGigabyteCount++;
+    }
+
+    return PhpHwGigabyteCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Publishes the listed temperatures from one read: the low byte is signed degrees C, 0 no value. Three failed reads in
+ * a row end the source.
+ *
+ * \return STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwGigabytePass(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[KPH_HW_GIGABYTE_SENSORS];
+    BOOLEAN read;
+
+    if (PhpHwGigabyteEnded || !PhpHwGigabyteCount)
+        return STATUS_NOT_SUPPORTED;
+
+    PhpHwGigabyteStatus = KphHwGigabyteRead(values);
+    read = NT_SUCCESS(PhpHwGigabyteStatus);
+
+    if (read)
+        PhpHwGigabyteStrikes = 0;
+    else if (++PhpHwGigabyteStrikes >= 3)
+        PhpHwGigabyteEnded = TRUE;
+
+    for (ULONG i = 0; i < KPH_HW_GIGABYTE_SENSORS; i++)
+    {
+        SCHAR degrees;
+
+        if (PhpHwGigabyteNamedIndex[i] == ULONG_MAX)
+            continue;
+
+        degrees = read && NT_SUCCESS(values[i].Status) ? (SCHAR)(values[i].Value & 0xFF) : 0;
+        PhpHwSetNamedSensor(PhpHwGigabyteNamedIndex[i], degrees != 0, (FLOAT)degrees);
+    }
+
+    PhpHwFamilies[PhpHwFamilyGigabyte].Capabilities = PhpHwGigabyteEnded ? 0 : PH_HW_CAP_ACPI_TEMP;
+
+    return PhpHwGigabyteEnded ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the temperatures are listed again at the next.
+ */
+VOID PhpHwGigabyteEnd(
+    VOID
+    )
+{
+    PhpHwGigabyteStatus = STATUS_NOT_SUPPORTED;
+    PhpHwGigabyteCount = 0;
+    PhpHwGigabyteStrikes = 0;
+    PhpHwGigabyteEnded = FALSE;
+}
+
+/**
+ * Writes the Gigabyte source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwGigabyteDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  Firmware temperatures: last read 0x%08lx, %lu listed%s\n",
+        PhpHwGigabyteStatus,
+        PhpHwGigabyteCount,
+        PhpHwGigabyteEnded ? L", ended" : L""
+        );
+}

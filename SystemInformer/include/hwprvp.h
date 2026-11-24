@@ -54,6 +54,7 @@ typedef enum _PHP_HW_FAMILY_ID
     PhpHwFamilyVsec,
     PhpHwFamilyCrosEc,
     PhpHwFamilyBoardEc,
+    PhpHwFamilyGigabyte,
     PhpHwFamilySmu,
     PhpHwFamilyHsmp,
     PhpHwFamilySmbus,
@@ -226,6 +227,22 @@ VOID PhpHwBoardEcEnd(
     );
 
 VOID PhpHwBoardEcDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+NTSTATUS PhpHwGigabyteProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwGigabytePass(
+    VOID
+    );
+
+VOID PhpHwGigabyteEnd(
+    VOID
+    );
+
+VOID PhpHwGigabyteDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 

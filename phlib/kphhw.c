@@ -58,6 +58,8 @@ static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell
 static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
 static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\asuswmi.bin");
 static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
+static CONST PH_STRINGREF KphpHwGigabyteFileName = PH_STRINGREF_INIT(L"scripts\\gigabytewmi.bin");
+static KPH_HW_SCRIPT KphpHwGigabyteScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGigabyteFileName };
 static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
 static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
@@ -218,6 +220,7 @@ VOID KphHwSetScriptMode(
         &KphpHwLenovoWsScript,
         &KphpHwDellScript,
         &KphpHwAsusWmiScript,
+        &KphpHwGigabyteScript,
         &KphpHwOcMailboxScript,
     };
 
@@ -1824,6 +1827,48 @@ NTSTATUS KphHwEcSensors(
     }
 
     *Count = count;
+
+    return status;
+}
+
+/**
+ * Reads the six temperatures of a Gigabyte board through its firmware's WMI
+ * method.
+ *
+ * \param Values Receives a status and the method's integer per sensor; its
+ * low byte is signed degrees C, 0 a sensor that is not there.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED on a board that is
+ * not Gigabyte's; STATUS_NOT_FOUND when no device lists the method.
+ */
+NTSTATUS KphHwGigabyteRead(
+    _Out_writes_(KPH_HW_GIGABYTE_SENSORS) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_VALUE32 values[KPH_HW_GIGABYTE_SENSORS];
+    ULONG returnLength = 0;
+
+    status = KphpHwScriptCall(
+        &KphpHwGigabyteScript,
+        &routine,
+        NULL,
+        0,
+        values,
+        sizeof(values),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != sizeof(values))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, sizeof(values));
 
     return status;
 }
