@@ -20,7 +20,7 @@
 #define PHP_HW_COUNTER_MAX_SENSORS (PHP_HW_COUNTER_MAX_ITEMS * 2)
 #define PHP_HW_COUNTER_VALUES 4
 #define PHP_HW_COUNTER_ZONE_MINIMUM 2732 // tenths of a kelvin; at or below 0 C is a placeholder (0, 2330 = -40 C)
-#define PHP_HW_COUNTER_ZONE_MAXIMUM 4500 // tenths of a kelvin; above 177 C is not a temperature (MPTF \_TZ.PSOC, PSYS)
+#define PHP_HW_COUNTER_ZONE_MAXIMUM 4500 // tenths of a kelvin; above 177 C is not a temperature
 #define PHP_HW_COUNTER_ZONE_DUMMY 3000 // 300.0 K, the constant that firmware dummy zones return
 #define PHP_HW_COUNTER_RETRY_TICKS 30 // updates between attempts to open the query after a failure
 
@@ -480,6 +480,19 @@ static ULONG PhpHwCounterZoneId(
  * Orders a RAPL meter by package, then PKG, PP0, PP1, DRAM, PSYS, then RAPL_PackageP_CoreN_CORE by N; other
  * names follow, by discovery.
  */
+/**
+ * Determines whether a thermal zone is an MPTF power participant (\_TZ.PSOC, \_TZ.PSYS), whose temperature counter
+ * carries milliwatts.
+ */
+static BOOLEAN PhpHwCounterZoneIsPower(
+    _In_ PCWSTR Name
+    )
+{
+    SIZE_T length = wcslen(Name);
+
+    return length >= 5 && (_wcsicmp(Name + length - 5, L".PSOC") == 0 || _wcsicmp(Name + length - 5, L".PSYS") == 0);
+}
+
 static ULONG PhpHwCounterMeterId(
     _In_ PCWSTR Name,
     _In_ ULONG Index
@@ -563,6 +576,16 @@ static VOID PhpHwCounterPublish(
         switch (item->Set)
         {
         case PhpHwCounterSetZone:
+            if (PhpHwCounterZoneIsPower(item->Name))
+            {
+                valid = !!(item->Seen & 1);
+                value = (FLOAT)item->Values[0] / 1000.0f;
+
+                if (valid && item->SensorIndex == ULONG_MAX)
+                    item->SensorIndex = PhpHwCounterAddSensor(PhHwNamedSensorMeterPower, PhpHwCounterMeterId(item->Name, i), item->Name);
+                break;
+            }
+
             // 300.0 K is a dummy only until the zone has shown something else; a live zone may read it.
             if ((item->Seen & 1) && item->Values[0] > PHP_HW_COUNTER_ZONE_MINIMUM &&
                 item->Values[0] <= PHP_HW_COUNTER_ZONE_MAXIMUM &&
