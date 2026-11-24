@@ -625,7 +625,7 @@ static VOID PhpHwMmioProbeMcs(
 /**
  * Reads each kept controller's read and write counters, one call a controller.
  *
- * eturn TRUE when a call met contention.
+ * \return TRUE when a call met contention.
  */
 static BOOLEAN PhpHwMmioReadMcs(
     VOID
