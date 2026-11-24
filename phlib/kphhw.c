@@ -62,6 +62,8 @@ static CONST PH_STRINGREF KphpHwGigabyteFileName = PH_STRINGREF_INIT(L"scripts\\
 static KPH_HW_SCRIPT KphpHwGigabyteScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGigabyteFileName };
 static CONST PH_STRINGREF KphpHwAlienwareFileName = PH_STRINGREF_INIT(L"scripts\\alienware.bin");
 static KPH_HW_SCRIPT KphpHwAlienwareScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAlienwareFileName };
+static CONST PH_STRINGREF KphpHwHpFileName = PH_STRINGREF_INIT(L"scripts\\hpwmi.bin");
+static KPH_HW_SCRIPT KphpHwHpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHpFileName };
 static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
 static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
@@ -224,6 +226,7 @@ VOID KphHwSetScriptMode(
         &KphpHwAsusWmiScript,
         &KphpHwGigabyteScript,
         &KphpHwAlienwareScript,
+        &KphpHwHpScript,
         &KphpHwOcMailboxScript,
     };
 
@@ -1914,6 +1917,111 @@ NTSTATUS KphHwAlienwareRead(
         &routine,
         (PVOID)Sensors,
         Count * sizeof(KPH_HW_ALIENWARE_SENSOR),
+        values,
+        Count * sizeof(KPH_HW_VALUE32),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != Count * sizeof(KPH_HW_VALUE32))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
+
+    return status;
+}
+
+/**
+ * Lists the numeric sensors of an HP machine's firmware data block that are a
+ * temperature, voltage, current or fan.
+ *
+ * \param Sensors Receives each sensor's kind, instance and name.
+ * \param Capacity The number of elements in Sensors.
+ * \param Count Receives the number of sensors.
+ * \return Successful or errant status; STATUS_NOT_FOUND when no device lists
+ * the block; STATUS_NOT_SUPPORTED when it has none of those sensors.
+ */
+NTSTATUS KphHwHpIdentify(
+    _Out_writes_to_(Capacity, *Count) PKPH_HW_HP_SENSOR Sensors,
+    _In_ ULONG Capacity,
+    _Out_ PULONG Count
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("identify");
+    NTSTATUS status;
+    KPH_HW_HP_SENSOR sensors[KPH_HW_HP_SENSORS];
+    ULONG returnLength = 0;
+    ULONG count;
+
+    status = KphpHwScriptCall(
+        &KphpHwHpScript,
+        &routine,
+        NULL,
+        0,
+        sensors,
+        sizeof(sensors),
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength % sizeof(KPH_HW_HP_SENSOR) != 0)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    count = returnLength / sizeof(KPH_HW_HP_SENSOR);
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        if (!memchr(sensors[i].Name, 0, sizeof(sensors[i].Name)))
+            return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    if (count > Capacity)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    memcpy(Sensors, sensors, count * sizeof(KPH_HW_HP_SENSOR));
+    *Count = count;
+
+    return status;
+}
+
+/**
+ * Reads numeric sensors of an HP machine's firmware data block.
+ *
+ * \param Items Each sensor's kind and instance.
+ * \param Count The number of sensors.
+ * \param Values Receives a status and the signed value per sensor in its kind's
+ * unit.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwHpRead(
+    _In_reads_(Count) PCKPH_HW_HP_ITEM Items,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_VALUE32 values[KPH_HW_HP_SENSORS];
+    ULONG returnLength = 0;
+
+    if (Count == 0 || Count > RTL_NUMBER_OF(values))
+        return STATUS_INVALID_PARAMETER;
+
+    status = KphpHwScriptCall(
+        &KphpHwHpScript,
+        &routine,
+        (PVOID)Items,
+        Count * sizeof(KPH_HW_HP_ITEM),
         values,
         Count * sizeof(KPH_HW_VALUE32),
         &returnLength

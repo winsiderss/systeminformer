@@ -229,6 +229,31 @@ typedef struct _KPH_HW_ALIENWARE_SENSOR
 } KPH_HW_ALIENWARE_SENSOR, *PKPH_HW_ALIENWARE_SENSOR;
 typedef const KPH_HW_ALIENWARE_SENSOR* PCKPH_HW_ALIENWARE_SENSOR;
 
+#define KPH_HW_HP_SENSORS 32
+#define KPH_HW_HP_NAME_LENGTH 32
+
+typedef enum _KPH_HW_HP_KIND
+{
+    KphHwHpTemperature = 1, // millidegrees C
+    KphHwHpVoltage = 2, // millivolts
+    KphHwHpCurrent = 3, // milliamperes
+    KphHwHpFan = 4, // RPM
+} KPH_HW_HP_KIND;
+
+typedef struct _KPH_HW_HP_SENSOR
+{
+    UCHAR Kind; // KPH_HW_HP_KIND
+    UCHAR Instance;
+    CHAR Name[KPH_HW_HP_NAME_LENGTH]; // null-terminated
+} KPH_HW_HP_SENSOR, *PKPH_HW_HP_SENSOR;
+
+typedef struct _KPH_HW_HP_ITEM
+{
+    UCHAR Kind; // KPH_HW_HP_KIND
+    UCHAR Instance;
+} KPH_HW_HP_ITEM, *PKPH_HW_HP_ITEM;
+typedef const KPH_HW_HP_ITEM* PCKPH_HW_HP_ITEM;
+
 typedef struct _KPH_HW_VSEC
 {
     USHORT Vendor;
@@ -331,6 +356,8 @@ C_ASSERT(sizeof(KPH_HW_EC_REGISTER) == 8);
 C_ASSERT(sizeof(KPH_HW_EC_SENSOR) == 36);
 C_ASSERT(sizeof(KPH_HW_ALIENWARE_IDENTITY) == 34);
 C_ASSERT(sizeof(KPH_HW_ALIENWARE_SENSOR) == 2);
+C_ASSERT(sizeof(KPH_HW_HP_SENSOR) == 34);
+C_ASSERT(sizeof(KPH_HW_HP_ITEM) == 2);
 C_ASSERT(sizeof(KPH_HW_VSEC) == 8);
 C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
@@ -568,6 +595,24 @@ NTSTATUS
 NTAPI
 KphHwAlienwareRead(
     _In_reads_(Count) PCKPH_HW_ALIENWARE_SENSOR Sensors,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwHpIdentify(
+    _Out_writes_to_(Capacity, *Count) PKPH_HW_HP_SENSOR Sensors,
+    _In_ ULONG Capacity,
+    _Out_ PULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwHpRead(
+    _In_reads_(Count) PCKPH_HW_HP_ITEM Items,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );

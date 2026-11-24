@@ -849,3 +849,158 @@ VOID PhpHwAlienwareDiagnostics(
         PhpHwAlienwareEnded ? L", ended" : L""
         );
 }
+
+#define PHP_HW_HP_ID_BASE 0x48500000 // named sensor ids: + kind << 8 + the instance
+
+static KPH_HW_HP_ITEM PhpHwHpItems[KPH_HW_HP_SENSORS];
+static ULONG PhpHwHpNamedIndex[KPH_HW_HP_SENSORS];
+static NTSTATUS PhpHwHpStatus = STATUS_NOT_SUPPORTED; // the last call, for the report; not probed until set
+static ULONG PhpHwHpCount = 0;
+static UCHAR PhpHwHpStrikes = 0;
+static BOOLEAN PhpHwHpEnded = FALSE;
+
+/**
+ * Lists the HP firmware's temperature, voltage and fan sensors once a session; currents are left out (no named sensor
+ * kind for a board current).
+ *
+ * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without the block or its sensors, or a failed call's status.
+ */
+NTSTATUS PhpHwHpProbe(
+    VOID
+    )
+{
+    KPH_HW_HP_SENSOR sensors[KPH_HW_HP_SENSORS];
+    NTSTATUS status;
+    ULONG count = 0;
+
+    PhpHwHpCount = 0;
+    status = KphHwHpIdentify(sensors, RTL_NUMBER_OF(sensors), &count);
+    PhpHwHpStatus = status;
+
+    if (status == STATUS_NOT_SUPPORTED || status == STATUS_NOT_FOUND)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG i = 0; i < count; i++)
+    {
+        PH_HW_NAMED_SENSOR_KIND kind;
+        WCHAR name[KPH_HW_HP_NAME_LENGTH];
+        ULONG j;
+
+        switch (sensors[i].Kind)
+        {
+        case KphHwHpTemperature:
+            kind = PhHwNamedSensorAcpiTemperature;
+            break;
+        case KphHwHpVoltage:
+            kind = PhHwNamedSensorAcpiVoltage;
+            break;
+        case KphHwHpFan:
+            kind = PhHwNamedSensorFanSpeed;
+            break;
+        default:
+            continue;
+        }
+
+        for (j = 0; j < RTL_NUMBER_OF(name) - 1 && sensors[i].Name[j]; j++)
+            name[j] = (WCHAR)(UCHAR)sensors[i].Name[j];
+
+        name[j] = UNICODE_NULL;
+
+        PhpHwHpItems[PhpHwHpCount].Kind = sensors[i].Kind;
+        PhpHwHpItems[PhpHwHpCount].Instance = sensors[i].Instance;
+        PhpHwHpNamedIndex[PhpHwHpCount] = PhpHwAddNamedSensor(
+            kind,
+            0,
+            PHP_HW_HP_ID_BASE + ((ULONG)sensors[i].Kind << 8) + sensors[i].Instance,
+            name
+            );
+        PhpHwHpCount++;
+    }
+
+    return PhpHwHpCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Publishes the listed sensors from one read: temperatures in degrees C, voltages in volts, fans in RPM; a sensor the
+ * firmware fails has no value. Three failed reads in a row end the source.
+ *
+ * \return STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwHpPass(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[KPH_HW_HP_SENSORS];
+    ULONG capabilities = 0;
+    BOOLEAN read;
+
+    if (PhpHwHpEnded || !PhpHwHpCount)
+        return STATUS_NOT_SUPPORTED;
+
+    PhpHwHpStatus = KphHwHpRead(PhpHwHpItems, PhpHwHpCount, values);
+    read = NT_SUCCESS(PhpHwHpStatus);
+
+    if (read)
+        PhpHwHpStrikes = 0;
+    else if (++PhpHwHpStrikes >= 3)
+        PhpHwHpEnded = TRUE;
+
+    for (ULONG i = 0; i < PhpHwHpCount; i++)
+    {
+        BOOLEAN valid = read && NT_SUCCESS(values[i].Status);
+        FLOAT value = 0.0f;
+
+        if (valid)
+        {
+            value = (FLOAT)(LONG)values[i].Value;
+
+            if (PhpHwHpItems[i].Kind == KphHwHpFan)
+                capabilities |= PH_HW_CAP_FAN_SPEED;
+            else
+            {
+                value /= 1000.0f;
+                capabilities |= PH_HW_CAP_ACPI_TEMP;
+            }
+        }
+
+        PhpHwSetNamedSensor(PhpHwHpNamedIndex[i], valid, value);
+    }
+
+    PhpHwFamilies[PhpHwFamilyHp].Capabilities = PhpHwHpEnded ? 0 : capabilities;
+
+    return PhpHwHpEnded ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the sensors are listed again at the next.
+ */
+VOID PhpHwHpEnd(
+    VOID
+    )
+{
+    PhpHwHpStatus = STATUS_NOT_SUPPORTED;
+    PhpHwHpCount = 0;
+    PhpHwHpStrikes = 0;
+    PhpHwHpEnded = FALSE;
+}
+
+/**
+ * Writes the HP source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwHpDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  Firmware sensors: last call 0x%08lx, %lu listed%s\n",
+        PhpHwHpStatus,
+        PhpHwHpCount,
+        PhpHwHpEnded ? L", ended" : L""
+        );
+}
