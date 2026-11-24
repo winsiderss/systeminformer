@@ -2659,6 +2659,362 @@ static CONST MB_BOARD_LABEL AsusTufGamingX570PlusWifiFans[] =
     { 3, L"Chassis Fan #3" }, { 4, L"Chipset Fan" }, { 5, L"AIO Pump" },
 };
 
+static CONST PH_STRINGREF AsrockB550mPro4Products[] =
+{
+    PH_STRINGREF_INIT(L"B550M Pro4"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockB550mPro4Voltages[] =
+{
+    { 0, L"Vcore", 10, 10, 0 },
+    { 1, L"+5V", 2, 1, 0 },
+    { 2, L"AVCC", 10, 10, 0 },
+    { 3, L"+3.3V", 10, 10, 0 },
+    { 4, L"+12V", 56, 10, 0 },
+    { 5, L"SoC", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 11, L"VPPM", 3, 1, 0 },
+    { 14, L"+1.8V", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockB550mPro4Temperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsrockB550mPro4Fans[] =
+{
+    { 0, L"Chassis #3" }, { 1, L"CPU1" }, { 2, L"CPU Pump" }, { 3, L"Chassis #1" },
+    { 4, L"Chassis #2" }, { 6, L"Chassis #4" },
+};
+
+static CONST PH_STRINGREF AsrockB650mCProducts[] =
+{
+    PH_STRINGREF_INIT(L"B650M-CWX"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockB650mCVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+12V", 56, 10, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+5V", 20, 10, 0 },
+    { 5, L"+1.05V ALW", 0, 1, 0 },
+    { 7, L"+3.3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
+    { 10, L"Vcore SoC", 1, 1, 0 },
+    { 11, L"Vcore Misc", 1, 1, 0 },
+    { 13, L"+1.8V", 1, 1, 0 },
+    { 14, L"DIMM", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockB650mCTemperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsrockB650mCFans[] =
+{
+    { 1, L"CPU Fan #1" }, { 0, L"CPU Fan #2" }, { 3, L"Chassis Fan #1" }, { 4, L"Chassis Fan #2" },
+    { 6, L"Chassis Fan #3" },
+};
+
+static CONST PH_STRINGREF AsrockB850mSteelLegendWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"B850M Steel Legend WiFi"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockB850mSteelLegendWifiVoltages[] =
+{
+    { 0, L"Vcore", 10, 10, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockB850mSteelLegendWifiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"CPU" }, { 16, L"CPU Core" },
+};
+
+static CONST MB_BOARD_LABEL AsrockB850mSteelLegendWifiFans[] =
+{
+    { 1, L"CPU Fan #1" }, { 0, L"CPU Fan #2 / Pump" }, { 3, L"Chassis Fan #1" }, { 4, L"Chassis Fan #2" },
+    { 6, L"Chassis Fan #3" },
+};
+
+static CONST PH_STRINGREF AsrockX570PhantomGaming4Products[] =
+{
+    PH_STRINGREF_INIT(L"X570 Phantom Gaming 4"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockX570PhantomGaming4Voltages[] =
+{
+    { 0, L"Vcore", 1, 1, 0 },
+    { 1, L"+5V", 2, 1, 0 },
+    { 2, L"AVCC", 1, 1, 0 },
+    { 3, L"+3.3V", 1, 1, 0 },
+    { 4, L"+12V", 56, 10, 0 },
+    { 5, L"CPU SoC", 0, 1, 0 },
+    { 6, L"DIMM", 0, 1, 0 },
+    { 7, L"+3V Standby", 1, 1, 0 },
+    { 8, L"CMOS Battery", 1, 1, 0 },
+    { 9, L"DIMM Termination", 0, 1, 0 },
+    { 11, L"VPPM", 3, 1, 0 },
+    { 12, L"PREM CPU SoC", 0, 1, 0 },
+    { 13, L"DIMM Write", 0, 1, 0 },
+    { 14, L"+1.8V", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockX570PhantomGaming4Temperatures[] =
+{
+    { 1, L"Motherboard" },
+};
+
+static CONST MB_BOARD_LABEL AsrockX570PhantomGaming4Fans[] =
+{
+    { 0, L"Chassis Fan #3" }, { 1, L"CPU Fan #1" }, { 2, L"CPU Fan #2" }, { 3, L"Chassis Fan #1" },
+    { 4, L"Chassis Fan #2" }, { 5, L"Chipset Fan" },
+};
+
+static CONST PH_STRINGREF AsrockX870eTaichiProducts[] =
+{
+    PH_STRINGREF_INIT(L"X870E Taichi Lite"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE AsrockX870eTaichiVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+12V", 56, 10, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+5V", 20, 10, 0 },
+    { 5, L"+1.05V Always-on", 0, 1, 0 },
+    { 7, L"+3.3V Standby", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 10, L"Vcore SoC", 1, 1, 0 },
+    { 11, L"Vcore Misc", 1, 1, 0 },
+    { 13, L"+1.8V", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL AsrockX870eTaichiTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 5, L"Thermistor Sensor #1" }, { 6, L"Thermistor Sensor #2" },
+};
+
+static CONST MB_BOARD_LABEL AsrockX870eTaichiFans[] =
+{
+    { 1, L"CPU Fan #1" }, { 2, L"CPU Fan #2" }, { 3, L"AIO Pump" }, { 0, L"Chassis Fan #1" },
+    { 4, L"Chassis Fan #2" },
+};
+
+static CONST PH_STRINGREF MsiB360mProVdhProducts[] =
+{
+    PH_STRINGREF_INIT(L"B360M PRO-VDH (MS-7B24)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiB360mProVdhVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 6, L"CPU I/O", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+    { 10, L"CPU System Agent", 0, 1, 0 },
+    { 12, L"Northbridge/SoC", 0, 1, 0 },
+    { 13, L"DIMM", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiB360mProVdhTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"Auxiliary" }, { 16, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL MsiB360mProVdhFans[] =
+{
+    { 1, L"CPU Fan" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+};
+
+static CONST PH_STRINGREF MsiB450aProProducts[] =
+{
+    PH_STRINGREF_INIT(L"B450-A PRO (MS-7B86)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiB450aProVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+    { 10, L"CPU System Agent", 0, 1, 0 },
+    { 12, L"Northbridge/SoC", 0, 1, 0 },
+    { 13, L"DIMM", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiB450aProTemperatures[] =
+{
+    { 1, L"System" }, { 2, L"CPU" }, { 3, L"VRM MOS" },
+    { 5, L"PCH" },
+};
+
+static CONST MB_BOARD_LABEL MsiB450aProFans[] =
+{
+    { 0, L"Pump Fan" }, { 1, L"CPU Fan" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+    { 4, L"System Fan #3" }, { 5, L"System Fan #4" },
+};
+
+static CONST PH_STRINGREF MsiZ270PcMateProducts[] =
+{
+    PH_STRINGREF_INIT(L"Z270 PC MATE (MS-7A72)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiZ270PcMateVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 1, L"+5V", 4, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 4, L"+12V", 11, 1, 0 },
+    { 6, L"CPU I/O", 0, 1, 0 },
+    { 7, L"+3V Standby", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+    { 10, L"CPU System Agent", 0, 1, 0 },
+    { 12, L"PCH", 0, 1, 0 },
+    { 13, L"DIMM", 1, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiZ270PcMateTemperatures[] =
+{
+    { 1, L"Motherboard" }, { 2, L"Auxiliary" }, { 16, L"CPU" },
+};
+
+static CONST MB_BOARD_LABEL MsiZ270PcMateFans[] =
+{
+    { 0, L"Pump Fan" }, { 1, L"CPU Fan" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+    { 4, L"System Fan #3" }, { 5, L"System Fan #4" },
+};
+
+static CONST PH_STRINGREF MsiZ390GamingEdgeAcProducts[] =
+{
+    PH_STRINGREF_INIT(L"MPG Z390 GAMING EDGE AC (MS-7B17)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiZ390GamingEdgeAcVoltages[] =
+{
+    { 0, L"Vcore", 0, 1, 0 },
+    { 2, L"AVCC", 34, 34, 0 },
+    { 3, L"+3.3V", 34, 34, 0 },
+    { 8, L"CMOS Battery", 34, 34, 0 },
+    { 9, L"CPU Termination", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiZ390GamingEdgeAcTemperatures[] =
+{
+    { 1, L"System" }, { 2, L"MOS" }, { 3, L"M.2" },
+    { 4, L"PCI-E" }, { 5, L"CPU Socket" }, { 16, L"CPU Core" },
+};
+
+static CONST MB_BOARD_LABEL MsiZ390GamingEdgeAcFans[] =
+{
+    { 0, L"Pump Fan" }, { 1, L"CPU Fan" }, { 5, L"System Fan #1" }, { 2, L"System Fan #2" },
+    { 4, L"System Fan #3" }, { 3, L"System Fan #4" }, { 6, L"System Fan #5" },
+};
+
+static CONST PH_STRINGREF MsiB650mGamingPlusWifiProducts[] =
+{
+    PH_STRINGREF_INIT(L"B650M GAMING PLUS WIFI (MS-7E24)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiB650mGamingPlusWifiVoltages[] =
+{
+    { 16, L"+12V", 11, 1, 0 },
+    { 17, L"+5V", 4, 1, 0 },
+    { 18, L"CPU Northbridge/SoC", 0, 1, 0 },
+    { 19, L"CPU VDDIO", 1, 1, 0 },
+    { 20, L"Vcore", 0, 1, 0 },
+    { 24, L"+3.3V", 0, 1, 0 },
+    { 27, L"+3V Standby", 0, 1, 0 },
+    { 28, L"AVSB", 0, 1, 0 },
+    { 29, L"CPU Termination", 0, 1, 0 },
+    { 30, L"CMOS Battery", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiB650mGamingPlusWifiTemperatures[] =
+{
+    { 0, L"CPU" }, { 1, L"System" }, { 2, L"VRM MOS" },
+    { 3, L"Chipset" }, { 4, L"CPU Socket" },
+};
+
+static CONST MB_BOARD_LABEL MsiB650mGamingPlusWifiFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"CPU Pump Fan" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+    { 4, L"System Fan #3" },
+};
+
+static CONST PH_STRINGREF MsiZ790GodlikeMaxProducts[] =
+{
+    PH_STRINGREF_INIT(L"MEG Z790 GODLIKE MAX (MS-7D85)"),
+    { 0, NULL }
+};
+
+static CONST MB_BOARD_VOLTAGE MsiZ790GodlikeMaxVoltages[] =
+{
+    { 16, L"+12V", 11, 1, 0 },
+    { 17, L"+5V", 4, 1, 0 },
+    { 18, L"Vcore", 0, 1, 0 },
+    { 20, L"DIMM", 1, 1, 0 },
+    { 21, L"CPU I/O", 0, 1, 0 },
+    { 22, L"CPU System Agent", 0, 1, 0 },
+    { 24, L"AVCC3", 0, 1, 0 },
+    { 27, L"VSB", 0, 1, 0 },
+    { 28, L"AVSB", 0, 1, 0 },
+    { 29, L"CPU Termination", 0, 1, 0 },
+    { 30, L"CMOS Battery", 0, 1, 0 },
+    { 31, L"VRef", 0, 1, 0 },
+};
+
+static CONST MB_BOARD_LABEL MsiZ790GodlikeMaxTemperatures[] =
+{
+    { 0, L"CPU" }, { 1, L"System" }, { 2, L"VRM MOS" },
+    { 3, L"PCH" }, { 4, L"CPU Socket" }, { 5, L"Thermistor Sensor 1" },
+    { 6, L"Thermistor Sensor 2" }, { 7, L"PCIe #1" }, { 8, L"PCIe #2" },
+    { 9, L"M2 #1" }, { 10, L"M2 #4" },
+};
+
+static CONST MB_BOARD_LABEL MsiZ790GodlikeMaxFans[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"Pump Fan #1" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+    { 4, L"System Fan #3" }, { 5, L"System Fan #4" }, { 6, L"System Fan #5" }, { 7, L"System Fan #6" },
+    { 8, L"Pump Fan #2" }, { 9, L"EZ-Connect Fan" },
+};
+
+static CONST MB_BOARD_LABEL MsiZ790GodlikeMaxControls[] =
+{
+    { 0, L"CPU Fan" }, { 1, L"Pump Fan #1" }, { 2, L"System Fan #1" }, { 3, L"System Fan #2" },
+    { 4, L"System Fan #3" }, { 5, L"System Fan #4" }, { 6, L"System Fan #5" }, { 7, L"System Fan #6" },
+};
+
 #define MB_BOARD_ENTRIES(Array) (Array), RTL_NUMBER_OF(Array)
 
 static CONST MB_BOARD SuperIoBoards[] =
@@ -3136,6 +3492,83 @@ static CONST MB_BOARD SuperIoBoards[] =
         MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiTemperatures),
         MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiFans),
         MB_BOARD_ENTRIES(AsusTufGamingX570PlusWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockB550mPro4Products, 0xd420, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockB550mPro4Voltages),
+        MB_BOARD_ENTRIES(AsrockB550mPro4Temperatures),
+        MB_BOARD_ENTRIES(AsrockB550mPro4Fans),
+        MB_BOARD_ENTRIES(AsrockB550mPro4Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockB650mCProducts, 0xd800, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockB650mCVoltages),
+        MB_BOARD_ENTRIES(AsrockB650mCTemperatures),
+        MB_BOARD_ENTRIES(AsrockB650mCFans),
+        MB_BOARD_ENTRIES(AsrockB650mCFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockB850mSteelLegendWifiProducts, 0xd800, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockB850mSteelLegendWifiVoltages),
+        MB_BOARD_ENTRIES(AsrockB850mSteelLegendWifiTemperatures),
+        MB_BOARD_ENTRIES(AsrockB850mSteelLegendWifiFans),
+        MB_BOARD_ENTRIES(AsrockB850mSteelLegendWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockX570PhantomGaming4Products, 0xd420, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockX570PhantomGaming4Voltages),
+        MB_BOARD_ENTRIES(AsrockX570PhantomGaming4Temperatures),
+        MB_BOARD_ENTRIES(AsrockX570PhantomGaming4Fans),
+        MB_BOARD_ENTRIES(AsrockX570PhantomGaming4Fans),
+    },
+    {
+        PH_STRINGREF_INIT(L"ASRock"), AsrockX870eTaichiProducts, 0xd800, 0xfff8,
+        MB_BOARD_ENTRIES(AsrockX870eTaichiVoltages),
+        MB_BOARD_ENTRIES(AsrockX870eTaichiTemperatures),
+        MB_BOARD_ENTRIES(AsrockX870eTaichiFans),
+        MB_BOARD_ENTRIES(AsrockX870eTaichiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiB360mProVdhProducts, 0xd450, 0xfff8,
+        MB_BOARD_ENTRIES(MsiB360mProVdhVoltages),
+        MB_BOARD_ENTRIES(MsiB360mProVdhTemperatures),
+        MB_BOARD_ENTRIES(MsiB360mProVdhFans),
+        MB_BOARD_ENTRIES(MsiB360mProVdhFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiB450aProProducts, 0xd450, 0xfff8,
+        MB_BOARD_ENTRIES(MsiB450aProVoltages),
+        MB_BOARD_ENTRIES(MsiB450aProTemperatures),
+        MB_BOARD_ENTRIES(MsiB450aProFans),
+        MB_BOARD_ENTRIES(MsiB450aProFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiZ270PcMateProducts, 0xd350, 0xfff8,
+        MB_BOARD_ENTRIES(MsiZ270PcMateVoltages),
+        MB_BOARD_ENTRIES(MsiZ270PcMateTemperatures),
+        MB_BOARD_ENTRIES(MsiZ270PcMateFans),
+        MB_BOARD_ENTRIES(MsiZ270PcMateFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiZ390GamingEdgeAcProducts, 0xd450, 0xfff8,
+        MB_BOARD_ENTRIES(MsiZ390GamingEdgeAcVoltages),
+        MB_BOARD_ENTRIES(MsiZ390GamingEdgeAcTemperatures),
+        MB_BOARD_ENTRIES(MsiZ390GamingEdgeAcFans),
+        MB_BOARD_ENTRIES(MsiZ390GamingEdgeAcFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiB650mGamingPlusWifiProducts, 0xd590, 0xfff0,
+        MB_BOARD_ENTRIES(MsiB650mGamingPlusWifiVoltages),
+        MB_BOARD_ENTRIES(MsiB650mGamingPlusWifiTemperatures),
+        MB_BOARD_ENTRIES(MsiB650mGamingPlusWifiFans),
+        MB_BOARD_ENTRIES(MsiB650mGamingPlusWifiFans),
+    },
+    {
+        PH_STRINGREF_INIT(L"Micro-Star International"), MsiZ790GodlikeMaxProducts, 0xd590, 0xfff0,
+        MB_BOARD_ENTRIES(MsiZ790GodlikeMaxVoltages),
+        MB_BOARD_ENTRIES(MsiZ790GodlikeMaxTemperatures),
+        MB_BOARD_ENTRIES(MsiZ790GodlikeMaxFans),
+        MB_BOARD_ENTRIES(MsiZ790GodlikeMaxControls),
     },
 };
 
