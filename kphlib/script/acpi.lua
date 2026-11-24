@@ -173,6 +173,10 @@ local ROWS = {
           max = 0x20,
           require = { 'IBM0068', 'LEN0068', 'LEN0268' },
         },
+        { name = 'FANS', results = 0x1, max = 0x20, require = { 'VPC2004' } },
+        { name = 'FAN0', results = 0x1, max = 0x20, require = { 'VPC2004' } },
+        { name = 'FA1S', results = 0x1, max = 0x20, require = { 'VPC2004' } },
+        { name = 'FA2S', results = 0x1, max = 0x20, require = { 'VPC2004' } },
       }
     end,
   },

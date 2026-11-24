@@ -795,6 +795,75 @@ VOID PhpHwFreeMemoryDevices(
     memset(Devices, 0, sizeof(PHP_HW_MEMORY_DEVICES));
 }
 
+typedef struct _PHP_HW_SYSTEM
+{
+    PPH_STRING Manufacturer;
+    PPH_STRING Product;
+    PPH_STRING Family;
+} PHP_HW_SYSTEM, *PPHP_HW_SYSTEM;
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+static BOOLEAN NTAPI PhpHwSmbiosSystemCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_HW_SYSTEM system = Context;
+
+    UNREFERENCED_PARAMETER(MajorVersion);
+    UNREFERENCED_PARAMETER(MinorVersion);
+
+    if (!system)
+        return TRUE;
+    if (Entry->Header.Type != SMBIOS_SYSTEM_INFORMATION_TYPE)
+        return FALSE;
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Manufacturer))
+        PhGetSMBIOSString(EnumHandle, Entry->System.Manufacturer, &system->Manufacturer);
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, ProductName))
+        PhGetSMBIOSString(EnumHandle, Entry->System.ProductName, &system->Product);
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Family))
+        PhGetSMBIOSString(EnumHandle, Entry->System.Family, &system->Family);
+
+    return TRUE;
+}
+
+/**
+ * Reads the system's manufacturer, product name and family from SMBIOS type 1.
+ *
+ * \param Manufacturer Receives the manufacturer.
+ * \param Product Receives the product name; NULL when the table has none.
+ * \param Family Receives the family (SMBIOS 2.4); NULL when the table has none.
+ * \return TRUE when the manufacturer was read.
+ */
+_Success_(return)
+BOOLEAN PhpHwQuerySystem(
+    _Out_ PPH_STRING* Manufacturer,
+    _Out_ PPH_STRING* Product,
+    _Out_ PPH_STRING* Family
+    )
+{
+    PHP_HW_SYSTEM system;
+
+    memset(&system, 0, sizeof(PHP_HW_SYSTEM));
+    PhEnumSMBIOS(PhpHwSmbiosSystemCallback, &system);
+
+    if (!system.Manufacturer)
+    {
+        PhClearReference(&system.Product);
+        PhClearReference(&system.Family);
+        return FALSE;
+    }
+
+    *Manufacturer = system.Manufacturer;
+    *Product = system.Product;
+    *Family = system.Family;
+    return TRUE;
+}
+
 typedef struct _PHP_HW_BASEBOARD
 {
     PPH_STRING Manufacturer;

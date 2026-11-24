@@ -513,6 +513,22 @@ BOOLEAN PhpHwQueryBaseboard(
     );
 
 _Success_(return)
+BOOLEAN PhpHwQuerySystem(
+    _Out_ PPH_STRING* Manufacturer,
+    _Out_ PPH_STRING* Product,
+    _Out_ PPH_STRING* Family
+    );
+
+_Success_(return)
+BOOLEAN PhpHwAcpiLenovoFans(
+    _In_ PCWSTR Manufacturer,
+    _In_ PCWSTR Product,
+    _In_ PCWSTR Family,
+    _Out_writes_(2) PCSTR* Fields,
+    _Out_ PULONG Multiplier
+    );
+
+_Success_(return)
 BOOLEAN PhpHwQueryLpitFrequency(
     _Out_ PULONG64 Frequency
     );

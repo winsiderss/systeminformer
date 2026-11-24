@@ -32,6 +32,8 @@
 #define PHP_HW_ACPI_TYPE_BATTERY 0xC // DPTF PTYP of a battery
 #define PHP_HW_ACPI_ATK_FIELDS 5 // id, name, limit1, limit2, enable
 #define PHP_HW_ACPI_THINKPAD_SENSORS 8 // TMP0-TMP7
+#define PHP_HW_ACPI_LENOVO_FIELDS 4 // FANS, FAN0, FA1S, FA2S, after TMP0-TMP7
+#define PHP_HW_ACPI_LENOVO_RPM_MAX 30000 // a Lenovo EC fan reading above this is not a speed
 #define PHP_HW_ACPI_DYTC_FC_MMC 27 // DYTC function capabilities: MMC
 #define PHP_HW_ACPI_SYSTEM76_CHANNELS 8 // NFAN and NTMP names, each
 
@@ -57,6 +59,7 @@ typedef struct _PHP_HW_ACPI_VALUE
     ULONG SensorId;
     ULONG Index; // in the named-sensor store
     ULONG ControlIndex; // a fine-grain fan's control
+    ULONG Multiplier; // a Lenovo EC fan's RPM per unit
     WCHAR Label[PH_HW_NAMED_SENSOR_NAME_LENGTH]; // the value's own name; empty for the device's name
     WCHAR Name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
 } PHP_HW_ACPI_VALUE, *PPHP_HW_ACPI_VALUE;
@@ -660,8 +663,113 @@ static NTSTATUS PhpHwAcpiDytcStatic(
 }
 
 /**
- * Reads a ThinkPad EC's TMP0-TMP7: each slot that answers is read after. The row answers STATUS_NOT_FOUND without a
- * ThinkPad hotkey device: then the EC has no reading.
+ * Chooses a Lenovo consumer laptop's EC fan fields and their scale by the system's SMBIOS strings:
+ * the first row whose string the system's family (or product name) contains, the manufacturer
+ * containing LENOVO.
+ *
+ * \param Fields Receives the fan fields in fan order; the second NULL for one fan.
+ * \param Multiplier Receives the RPM per unit: 100 for an 8-bit field, 1 for a 16-bit one.
+ * \return TRUE when a row matches.
+ */
+_Success_(return)
+BOOLEAN PhpHwAcpiLenovoFans(
+    _In_ PCWSTR Manufacturer,
+    _In_ PCWSTR Product,
+    _In_ PCWSTR Family,
+    _Out_writes_(2) PCSTR* Fields,
+    _Out_ PULONG Multiplier
+    )
+{
+    static CONST struct { BOOLEAN Product; PCWSTR Match; PCSTR Fields[2]; ULONG Multiplier; } rows[] =
+    {
+        { FALSE, L"Yoga 740-15IML", { "FANS", NULL }, 100 },
+        { FALSE, L"IdeaPad 3 15ALC6 Ub", { "FANS", "FA2S" }, 100 },
+        { FALSE, L"Yoga 14cACN 2021", { "FANS", NULL }, 100 },
+        { FALSE, L"LOQ 15IAX9", { "FA1S", "FA2S" }, 100 },
+        { FALSE, L"XiaoXinPro-13ARE 2020", { "FANS", "FA2S" }, 100 },
+        { FALSE, L"IdeaPad 3 15ALC6", { "FAN0", NULL }, 100 },
+        { FALSE, L"Legion Pro 7 16AFR10H", { "FANS", "FA2S" }, 100 },
+        { FALSE, L"Yoga Pro 7 14IAH10", { "FANS", NULL }, 100 },
+        { FALSE, L"Yoga 7 16ARP8", { "FANS", "FA2S" }, 100 },
+        { TRUE, L"83DN", { "FANS", "FA2S" }, 100 }, // Yoga Pro 9 16IMH9
+        { FALSE, L"Yoga", { "FANS", NULL }, 100 },
+        { FALSE, L"Legion", { "FANS", "FA2S" }, 1 },
+        { FALSE, L"IdeaPad", { "FAN0", NULL }, 100 },
+    };
+
+    Fields[0] = NULL;
+    Fields[1] = NULL;
+    *Multiplier = 0;
+
+    if (!wcsstr(Manufacturer, L"LENOVO"))
+        return FALSE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(rows); i++)
+    {
+        if (wcsstr(rows[i].Product ? Product : Family, rows[i].Match))
+        {
+            Fields[0] = rows[i].Fields[0];
+            Fields[1] = rows[i].Fields[1];
+            *Multiplier = rows[i].Multiplier;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+/**
+ * Adds a Lenovo consumer laptop's EC fans: the fields its SMBIOS row names whose static record answered an integer.
+ */
+static VOID PhpHwAcpiLenovoFanStatic(
+    _Inout_ PPHP_HW_ACPI_DEVICE Device,
+    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_ ULONG Length
+    )
+{
+    static CONST PCSTR names[PHP_HW_ACPI_LENOVO_FIELDS] = { "FANS", "FAN0", "FA1S", "FA2S" };
+    PPH_STRING manufacturer;
+    PPH_STRING product;
+    PPH_STRING family;
+    PCSTR fields[2];
+    ULONG multiplier;
+    BOOLEAN matched;
+
+    if (!PhpHwQuerySystem(&manufacturer, &product, &family))
+        return;
+
+    matched = PhpHwAcpiLenovoFans(manufacturer->Buffer, PhGetString(product), PhGetString(family), fields, &multiplier);
+    PhDereferenceObject(manufacturer);
+    PhClearReference(&product);
+    PhClearReference(&family);
+
+    for (ULONG f = 0; matched && f < RTL_NUMBER_OF(fields) && fields[f]; f++)
+    {
+        for (ULONG n = 0; n < PHP_HW_ACPI_LENOVO_FIELDS; n++)
+        {
+            ULONG64 value;
+            NTSTATUS status;
+            PPH_STRING label;
+            PPHP_HW_ACPI_VALUE fan;
+
+            if (strcmp(names[n], fields[f]) != 0)
+                continue;
+            if (!PhpHwAcpiRecordInteger(Output, Length, PHP_HW_ACPI_THINKPAD_SENSORS + n, &value, &status))
+                break;
+
+            label = PhFormatString(L"%hs fan %lu", PhpHwAcpiLastSegment(Device->Path), f + 1);
+            fan = PhpHwAcpiAddValue(Device, names[n], (UCHAR)(PHP_HW_ACPI_THINKPAD_SENSORS + f), PhHwNamedSensorFanSpeed, label->Buffer);
+            fan->Multiplier = multiplier;
+            PhDereferenceObject(label);
+            break;
+        }
+    }
+}
+
+/**
+ * Reads a Lenovo EC's TMP0-TMP7 (ThinkPad: each slot that answers is read after) and its fan fields (IdeaPad, Yoga,
+ * Legion: those the system's row names and that answer). The row answers STATUS_NOT_FOUND for the temperatures
+ * without a ThinkPad hotkey device and for the fans without a VPC2004 device: then the EC has no reading.
  */
 static NTSTATUS PhpHwAcpiThinkPadStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
@@ -696,6 +804,8 @@ static NTSTATUS PhpHwAcpiThinkPadStatic(
         PhDereferenceObject(label);
         Device->EcSlots |= (UCHAR)(1 << i);
     }
+
+    PhpHwAcpiLenovoFanStatic(Device, Output, Length);
 
     if (Device->ValueCount)
         return STATUS_SUCCESS;
@@ -816,6 +926,28 @@ static PH_HW_FAN_DECODE PhpHwDecodeSystem76(
 }
 
 /**
+ * Decodes a Lenovo EC fan field: units of Multiplier RPM; a stopped fan reads 0.
+ */
+_Success_(return == PhHwFanDecodeOk)
+static PH_HW_FAN_DECODE PhpHwDecodeLenovoFan(
+    _In_ ULONG Multiplier,
+    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_ ULONG Length,
+    _Out_ PFLOAT Rpm
+    )
+{
+    ULONG64 value;
+
+    if (!PhHwAcpiReadInteger(Buffer, Length, &value))
+        return PhHwFanDecodeMalformed;
+    if (value > PHP_HW_ACPI_LENOVO_RPM_MAX / Multiplier)
+        return PhHwFanDecodeImplausible;
+
+    *Rpm = (FLOAT)(value * Multiplier);
+    return PhHwFanDecodeOk;
+}
+
+/**
  * Decodes a ThinkPad EC TMPn reading: signed degrees C; outside -127 to 127 the sensor is absent.
  */
 _Success_(return == PhHwFanDecodeOk)
@@ -856,7 +988,7 @@ static VOID PhpHwAcpiReadStatic(
     static CONST PCSTR atk[] = { "TSIF", "VSIF", "FSIF" };
     static CONST PCSTR dytc[] = { "DYTC", "DYTC", "DYTC", "DYTC" };
     static CONST ULONG dytcCommands[PH_HW_DYTC_COMMANDS] = { 0x0, 0x2, 0x3, 0x8 }; // query, get, capabilities, MMC get
-    static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7" };
+    static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7", "FANS", "FAN0", "FA1S", "FA2S" };
     static CONST PCSTR system76[] = { "NFAN", "NTMP" };
     const PCSTR* methods;
     ULONG count;
@@ -1282,7 +1414,10 @@ static NTSTATUS PhpHwAcpiReadDevice(
                 decode = PhHwDecodeAtkReading(value->Op, data, dataLength, &reading);
                 break;
             case PhHwAcpiHotkeyTemperature:
-                decode = PhpHwDecodeThinkPadTemperature(data, dataLength, &reading);
+                if (value->Kind == PhHwNamedSensorFanSpeed)
+                    decode = PhpHwDecodeLenovoFan(value->Multiplier, data, dataLength, &reading);
+                else
+                    decode = PhpHwDecodeThinkPadTemperature(data, dataLength, &reading);
                 break;
             case PhHwAcpiSystem76:
                 decode = PhpHwDecodeSystem76(value->Kind, data, dataLength, &reading);
@@ -1474,7 +1609,7 @@ VOID PhpHwAcpiDiagnostics(
     static CONST PCWSTR kindNames[] =
     {
         L"fan", L"DPTF participant", L"power meter", L"DPTF power participant", L"ATK0110", L"ATK0110 sensor", L"DYTC",
-        L"ThinkPad EC temperature", L"System76 EC"
+        L"Lenovo EC", L"System76 EC"
     };
     static CONST PCWSTR dytcNames[PH_HW_DYTC_COMMANDS] = { L"query", L"get", L"capabilities", L"MMC" };
     static CONST PCWSTR tripNames[PH_HW_DPTF_TRIPS] = { L"_PSV", L"_CRT", L"_AC0", L"GTSH" };
