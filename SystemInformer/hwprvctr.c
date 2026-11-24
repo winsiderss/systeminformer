@@ -107,6 +107,8 @@ PH_HW_NAMED_SENSOR PhpHwCounterSensors[PHP_HW_COUNTER_MAX_SENSORS];
 static BOOLEAN PhpHwCounterZoneValid = FALSE; // a zone has a current temperature
 static BOOLEAN PhpHwCounterZoneSeen = FALSE; // a zone had a temperature since the query opened
 static FLOAT PhpHwCounterZoneMaximum = 0.0f; // the hottest current zone, degrees Celsius
+static BOOLEAN PhpHwCounterClusterValid = FALSE; // a CPU_CLUSTER energy meter has a current reading
+static FLOAT PhpHwCounterClusterWatts = 0.0f; // the CPU_CLUSTER energy meters together, watts
 static ULONG PhpHwCounterStatus = ERROR_NOT_READY; // the last open, add or query result, for the report
 static ULONG PhpHwCounterSetsAdded = 0; // bit per PHP_HW_COUNTER_SET with an added counter
 static ULONG PhpHwCounterReportCount = 0;
@@ -125,6 +127,7 @@ static VOID PhpHwCounterClearSensorsLocked(
     PhpHwCounterSensorCount = 0;
     PhpHwCounterZoneValid = FALSE;
     PhpHwCounterZoneSeen = FALSE;
+    PhpHwCounterClusterValid = FALSE;
     PhpHwCounterReportCount = 0;
     PhpHwCounterReportBlockCount = 0;
 }
@@ -545,6 +548,8 @@ static VOID PhpHwCounterPublish(
     FLOAT zoneMaximum = 0.0f;
     BOOLEAN zoneLimitValid = FALSE;
     FLOAT zoneLimit = 0.0f;
+    BOOLEAN clusterValid = FALSE;
+    FLOAT clusterWatts = 0.0f;
 
     for (ULONG i = 0; i < PhpHwCounterItemCount; i++)
     {
@@ -634,8 +639,19 @@ static VOID PhpHwCounterPublish(
         case PhpHwCounterSetMeter:
             if (!PhEqualStringZ(item->Name, L"_Total", TRUE))
             {
+                PH_STRINGREF meterName;
+
                 valid = PhpHwCounterRatio(item, 0, &ratio);
                 value = (FLOAT)(ratio / 1000.0);
+
+                // The Snapdragon cluster rails, the processor's power on ARM64 (no RAPL there).
+                PhInitializeStringRefLongHint(&meterName, item->Name);
+
+                if (valid && PhStartsWithStringRef2(&meterName, L"CPU_CLUSTER", TRUE))
+                {
+                    clusterWatts += value;
+                    clusterValid = TRUE;
+                }
 
                 // A meter appears once it has counted; RAPL DRAM lists on parts that never do.
                 if (valid && item->SensorIndex == ULONG_MAX && ratio > 0.0)
@@ -683,6 +699,8 @@ static VOID PhpHwCounterPublish(
 
     PhpHwCounterZoneValid = zoneValid;
     PhpHwCounterZoneMaximum = zoneMaximum;
+    PhpHwCounterClusterValid = clusterValid;
+    PhpHwCounterClusterWatts = clusterWatts;
     PhpHwCounterZoneSeen |= zoneValid;
     PhpHwCounterReportCount = PhpHwCounterItemCount;
     memcpy(PhpHwCounterReport, PhpHwCounterItems, sizeof(PHP_HW_COUNTER_ITEM) * PhpHwCounterItemCount);
@@ -819,6 +837,31 @@ BOOLEAN PhpHwCounterHottestZone(
 
     if (valid)
         *Celsius = PhpHwCounterZoneMaximum;
+
+    PhReleaseQueuedLockShared(&PhpHwNamedSensorLock);
+
+    return valid;
+}
+
+/**
+ * Retrieves the CPU_CLUSTER energy meters together, the processor power fallback on ARM64.
+ *
+ * \param Watts Receives the power.
+ * \return TRUE when a cluster meter has a current reading.
+ */
+_Success_(return)
+BOOLEAN PhpHwCounterClusterPower(
+    _Out_ PFLOAT Watts
+    )
+{
+    BOOLEAN valid;
+
+    PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
+
+    valid = PhpHwCounterClusterValid;
+
+    if (valid)
+        *Watts = PhpHwCounterClusterWatts;
 
     PhReleaseQueuedLockShared(&PhpHwNamedSensorLock);
 

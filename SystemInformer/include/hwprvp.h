@@ -364,6 +364,11 @@ BOOLEAN PhpHwCounterZoneEverSeen(
     VOID
     );
 
+_Success_(return)
+BOOLEAN PhpHwCounterClusterPower(
+    _Out_ PFLOAT Watts
+    );
+
 VOID PhpHwWriteCounterDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
