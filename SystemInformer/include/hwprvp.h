@@ -281,6 +281,48 @@ VOID PhpHwHpDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
+typedef enum _PHP_HW_PMBUS_FAMILY
+{
+    PhpHwPmbusFamilyNone,
+    PhpHwPmbusFamilyInfineonXdpe122, // VOUT in VID, the scheme in VOUT_MODE; the rest LINEAR11
+    PhpHwPmbusFamilyTiVid, // TPS53679, TPS53681: VOUT in VID, the scheme in VOUT_MODE; the rest LINEAR11
+    PhpHwPmbusFamilyTiLinear, // TPS53676, TPS53685, TPS536C7: LINEAR16 VOUT, the rest LINEAR11
+    PhpHwPmbusFamilyRenesasRaa, // ISL68xxx, ISL69xxx, RAA: DIRECT with fixed coefficients
+    PhpHwPmbusFamilyIr35221, // LINEAR16 VOUT, the rest LINEAR11
+    PhpHwPmbusFamilyMps // MP2975, MP2973: VIN alone (the rest needs vendor page 2)
+} PHP_HW_PMBUS_FAMILY;
+
+typedef enum _PHP_HW_PMBUS_QUANTITY
+{
+    PhpHwPmbusVin, // READ_VIN 88h
+    PhpHwPmbusVout, // READ_VOUT 8Bh
+    PhpHwPmbusIin, // READ_IIN 89h
+    PhpHwPmbusIout, // READ_IOUT 8Ch
+    PhpHwPmbusPin, // READ_PIN 97h
+    PhpHwPmbusPout, // READ_POUT 96h
+    PhpHwPmbusTemperature, // READ_TEMPERATURE_1 8Dh
+    PhpHwPmbusQuantityMaximum
+} PHP_HW_PMBUS_QUANTITY;
+
+_Success_(return)
+BOOLEAN PhpHwPmbusDecode(
+    _In_ PHP_HW_PMBUS_FAMILY Family,
+    _In_ PHP_HW_PMBUS_QUANTITY Quantity,
+    _In_ UCHAR VoutMode,
+    _In_ USHORT Raw,
+    _Out_ PDOUBLE Value
+    );
+
+PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
+    _In_ UCHAR Revision,
+    _In_reads_bytes_(MfrIdLength) const UCHAR* MfrId,
+    _In_ ULONG MfrIdLength,
+    _In_reads_bytes_(ModelLength) const UCHAR* Model,
+    _In_ ULONG ModelLength,
+    _In_reads_bytes_(DeviceIdLength) const UCHAR* DeviceId,
+    _In_ ULONG DeviceIdLength
+    );
+
 NTSTATUS PhpHwProm21Probe(
     VOID
     );
