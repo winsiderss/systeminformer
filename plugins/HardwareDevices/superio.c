@@ -1284,7 +1284,7 @@ static CONST MB_BOARD_VOLTAGE GigabyteB560mAorusEliteVoltages[] =
     { 6, L"DIMM", 0, 1, 0 },
     { 7, L"+3V Standby", 10, 10, 0 },
     { 8, L"CMOS Battery", 10, 10, 0 },
-    { 9, L"AVCC3", 59.9f, 9.8f, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteB560mAorusEliteTemperatures[] =
@@ -1473,7 +1473,7 @@ static CONST MB_BOARD_VOLTAGE GigabyteX470AorusGaming7Voltages[] =
     { 6, L"DIMM A/B", 0, 1, 0 },
     { 7, L"+3V Standby", 10, 10, 0 },
     { 8, L"CMOS Battery", 10, 10, 0 },
-    { 9, L"AVCC3", 54, 10, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteX470AorusGaming7Temperatures[] =
@@ -1500,7 +1500,7 @@ static CONST MB_BOARD_VOLTAGE GigabyteX399AorusGaming7Voltages[] =
     { 6, L"DIMM A/B", 0, 1, 0 },
     { 7, L"+3V Standby", 10, 10, 0 },
     { 8, L"CMOS Battery", 10, 10, 0 },
-    { 9, L"AVCC3", 54, 10, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteX399AorusGaming7Temperatures[] =
@@ -1527,7 +1527,7 @@ static CONST MB_BOARD_VOLTAGE GigabyteAx370GamingVoltages[] =
     { 6, L"DIMM", 0, 1, 0 },
     { 7, L"+3V Standby", 10, 10, 0 },
     { 8, L"CMOS Battery", 10, 10, 0 },
-    { 9, L"AVCC3", 7.53f, 1, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteAx370GamingTemperatures[] =
@@ -1612,7 +1612,7 @@ static CONST MB_BOARD_VOLTAGE GigabyteZ170nWifiVoltages[] =
     { 6, L"DIMM A/B", 0, 1, 0 },
     { 7, L"+3V Standby", 10, 10, 0 },
     { 8, L"CMOS Battery", 10, 10, 0 },
-    { 9, L"AVCC3", 54, 10, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteZ170nWifiTemperatures[] =
