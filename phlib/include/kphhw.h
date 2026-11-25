@@ -663,6 +663,33 @@ KphHwProm21Read(
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
 
+#define KPH_HW_USB_DISKS 16
+#define KPH_HW_USB_DISK_ID 200
+#define KPH_HW_USB_DISK_ATA 1 // Data is the ATA SMART data
+#define KPH_HW_USB_DISK_NVME 2 // Data is the NVMe SMART / health log
+
+typedef struct _KPH_HW_USB_DISK
+{
+    NTSTATUS Status; // STATUS_NOT_SUPPORTED: a bridge not known; STATUS_DEVICE_POWERED_OFF: a drive in standby
+    USHORT VendorId; // the bridge's
+    USHORT ProductId;
+    UCHAR PowerCount; // the ATA count register of CHECK POWER MODE
+    UCHAR Kind; // KPH_HW_USB_DISK_*, 0 none
+    UCHAR Reserved[2];
+    WCHAR ParentId[KPH_HW_USB_DISK_ID]; // the parent USB device's instance ID, zero-padded
+    UCHAR Data[512]; // valid when Status is STATUS_SUCCESS
+} KPH_HW_USB_DISK, *PKPH_HW_USB_DISK;
+
+C_ASSERT(sizeof(KPH_HW_USB_DISK) == 924);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwUsbDiskRead(
+    _Out_writes_to_(KPH_HW_USB_DISKS, *Count) PKPH_HW_USB_DISK Disks,
+    _Out_ PULONG Count
+    );
+
 #define KPH_HW_GIGABYTE_SENSORS 6
 
 PHLIBAPI

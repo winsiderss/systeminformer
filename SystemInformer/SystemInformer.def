@@ -1502,6 +1502,7 @@ EXPORTS
     KphHwOcMailboxRead
     KphHwSuperIoIdentify
     KphHwSuperIoRead
+    KphHwUsbDiskRead
     KphOpenDevice
     KphOpenDeviceBaseDevice
     KphOpenDeviceDriver

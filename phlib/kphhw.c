@@ -68,6 +68,8 @@ static CONST PH_STRINGREF KphpHwProm21FileName = PH_STRINGREF_INIT(L"scripts\\pr
 static KPH_HW_SCRIPT KphpHwProm21Script = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwProm21FileName };
 static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
 static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
+static CONST PH_STRINGREF KphpHwUsbDiskFileName = PH_STRINGREF_INIT(L"scripts\\usbdisk.bin");
+static KPH_HW_SCRIPT KphpHwUsbDiskScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwUsbDiskFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -231,6 +233,7 @@ VOID KphHwSetScriptMode(
         &KphpHwHpScript,
         &KphpHwProm21Script,
         &KphpHwOcMailboxScript,
+        &KphpHwUsbDiskScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -355,6 +358,7 @@ typedef enum _KPH_HW_BUS
     KphHwBusIntelOcMailbox,
     KphHwBusEc,
     KphHwBusDimm,
+    KphHwBusJMicronSmart,
     KphHwBusMaximum
 } KPH_HW_BUS;
 
@@ -368,10 +372,11 @@ static CONST PH_STRINGREF KphpHwBusNames[KphHwBusMaximum] =
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_Intel_OC_Mailbox"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_EC"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_DIMM"),
+    PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_JMicron_SMART"),
 };
-static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
-static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL, NULL, NULL };
-static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
+static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
+static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
 
 /**
  * Creates or opens a mutant hardware monitors share to serialize a bus.
@@ -2207,6 +2212,57 @@ NTSTATUS KphHwProm21Read(
         return STATUS_INFO_LENGTH_MISMATCH;
 
     memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
+
+    return status;
+}
+
+/**
+ * Reads the SMART data of the drives behind USB bridges.
+ *
+ * \param Disks Receives a record per disk of the USB storage drivers.
+ * \param Count Receives the number of records.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bridges.
+ */
+NTSTATUS KphHwUsbDiskRead(
+    _Out_writes_to_(KPH_HW_USB_DISKS, *Count) PKPH_HW_USB_DISK Disks,
+    _Out_ PULONG Count
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    PKPH_HW_USB_DISK disks;
+    ULONG returnLength = 0;
+
+    disks = PhAllocate(KPH_HW_USB_DISKS * sizeof(KPH_HW_USB_DISK));
+
+    if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusJMicronSmart, KPH_HW_BUS_TIMEOUT)))
+    {
+        status = KphpHwScriptCall(
+            &KphpHwUsbDiskScript,
+            &routine,
+            NULL,
+            0,
+            disks,
+            KPH_HW_USB_DISKS * sizeof(KPH_HW_USB_DISK),
+            &returnLength
+            );
+
+        KphpHwReleaseBus(KphHwBusJMicronSmart);
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+            status = STATUS_INFO_LENGTH_MISMATCH;
+        else if (NT_SUCCESS(status) && returnLength % sizeof(KPH_HW_USB_DISK))
+            status = STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(Disks, disks, returnLength);
+        *Count = returnLength / sizeof(KPH_HW_USB_DISK);
+    }
+
+    PhFree(disks);
 
     return status;
 }
