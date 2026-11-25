@@ -10,10 +10,10 @@
 
 --
 -- Reads the power budget page of the NVIDIA N1X: words the SoC's power
--- firmware keeps current with its rails' power and energy, its temperatures
--- and its power limits. A part is found by processor 0's MIDR and by the DSDT
--- reading the page itself; the page of a part that is not listed is never
--- mapped. Nothing is written.
+-- firmware keeps current with its rails' power, energy and voltage, its
+-- temperatures and its power limits. A part is found by processor 0's MIDR and
+-- by the DSDT reading the page itself; the page of a part that is not listed
+-- is never mapped. Nothing is written.
 --
 
 local nt = require('nt')
@@ -42,15 +42,16 @@ local POWER = {
   cpu_gpu = 2,
   cpu_p = 3,
   cpu_e = 4,
-  rail_a = 5,
+  memory_a = 5,
   dc_input = 6,
   gpu = 7,
-  rail_b = 8,
+  memory_b = 8,
   package_average = 9,
   system_average = 10,
   system_short_average = 11,
+  memory_c = 12,
 }
-local POWER_MAX = 12
+local POWER_MAX = 13
 
 local ENERGY = {
   package = 0,
@@ -69,8 +70,16 @@ local LIMIT = {
 }
 local LIMIT_MAX = 4
 
+local VOLTAGE = {
+  cpu_p = 0,
+  cpu_e = 1,
+  memory_c = 2,
+}
+local VOLTAGE_MAX = 3
+
 -- A temperature word is tenths of a kelvin ('dk') or whole degrees Celsius
--- ('c'); powers and limits are milliwatts, energies millijoules.
+-- ('c'); powers and limits are milliwatts, energies millijoules, voltages
+-- millivolts.
 local ROWS = {
   {
     implementer = 0x41,
@@ -94,13 +103,14 @@ local ROWS = {
       [POWER.cpu_gpu] = 0x308,
       [POWER.cpu_p] = 0x30c,
       [POWER.cpu_e] = 0x310,
-      [POWER.rail_a] = 0x314,
+      [POWER.memory_a] = 0x314,
       [POWER.dc_input] = 0x31c,
       [POWER.gpu] = 0x324,
-      [POWER.rail_b] = 0x338,
+      [POWER.memory_b] = 0x338,
       [POWER.package_average] = 0x800,
       [POWER.system_average] = 0x80c,
       [POWER.system_short_average] = 0x810,
+      [POWER.memory_c] = 0x398,
     },
     energies = {
       [ENERGY.package] = 0x344,
@@ -114,6 +124,11 @@ local ROWS = {
       [LIMIT.pl2] = 0x164,
       [LIMIT.pl1_request] = 0x100,
       [LIMIT.pl2_request] = 0x104,
+    },
+    voltages = {
+      [VOLTAGE.cpu_p] = 0x38c,
+      [VOLTAGE.cpu_e] = 0x394,
+      [VOLTAGE.memory_c] = 0x39c,
     },
   },
 }
@@ -225,10 +240,11 @@ local function temperature(m, at)
   return value * 100 - 273150
 end
 
--- Returns one sample: <I4> masks of the temperature, power, energy and limit
--- channels the row has, then <i4> per temperature channel (milli-degrees
--- Celsius), <I4> per power channel (milliwatts), <I4> per energy channel
--- (millijoules, a count that wraps) and <I4> per limit channel (milliwatts).
+-- Returns one sample: <I4> masks of the temperature, power, energy, limit and
+-- voltage channels the row has, then <i4> per temperature channel
+-- (milli-degrees Celsius), <I4> per power channel (milliwatts), <I4> per
+-- energy channel (millijoules, a count that wraps), <I4> per limit channel
+-- (milliwatts) and <I4> per voltage channel (millivolts).
 function read(input)
   if not ksi.hw.map or not ksi.hw.sysreg_read or not ksi.hw.firmware_table then
     ksi.trace('no map, system register or firmware table functions')
@@ -252,11 +268,12 @@ function read(input)
   local pm, p = channels(m, row.powers, POWER_MAX, word)
   local em, e = channels(m, row.energies, ENERGY_MAX, word)
   local lm, l = channels(m, row.limits, LIMIT_MAX, word)
-  local out = { string.pack('<I4I4I4I4', tm, pm, em, lm) }
+  local vm, v = channels(m, row.voltages, VOLTAGE_MAX, word)
+  local out = { string.pack('<I4I4I4I4I4', tm, pm, em, lm, vm) }
   for _, v in ipairs(t) do
     out[#out + 1] = string.pack('<i4', v)
   end
-  for _, list in ipairs({ p, e, l }) do
+  for _, list in ipairs({ p, e, l, v }) do
     for _, v in ipairs(list) do
       out[#out + 1] = string.pack('<I4', v)
     end

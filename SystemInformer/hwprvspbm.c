@@ -51,11 +51,19 @@ static CONST PHP_HW_SPBM_NAMED PhpHwSpbmPowers[] =
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerGpu, L"GPU" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerCpuGpu, L"CPU + GPU" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerDcInput, L"DC input" },
-    { PhHwNamedSensorRaplPower, KphHwSpbmPowerRailA, L"Rail A" },
-    { PhHwNamedSensorRaplPower, KphHwSpbmPowerRailB, L"Rail B" },
+    { PhHwNamedSensorRaplPower, KphHwSpbmPowerMemoryA, L"Memory rail A" },
+    { PhHwNamedSensorRaplPower, KphHwSpbmPowerMemoryB, L"Memory rail B" },
+    { PhHwNamedSensorRaplPower, KphHwSpbmPowerMemoryC, L"Memory rail C" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerPackageAverage, L"Package average" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerSystemAverage, L"System average" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerSystemShortAverage, L"System short average" },
+};
+
+static CONST PHP_HW_SPBM_NAMED PhpHwSpbmVoltages[] =
+{
+    { PhHwNamedSensorSmuVoltage, KphHwSpbmVoltageCpuP, L"CPU P-cluster" },
+    { PhHwNamedSensorSmuVoltage, KphHwSpbmVoltageCpuE, L"CPU E-cluster" },
+    { PhHwNamedSensorSmuVoltage, KphHwSpbmVoltageMemoryC, L"Memory rail C" },
 };
 
 static CONST PHP_HW_SPBM_NAMED PhpHwSpbmLimits[] =
@@ -72,13 +80,14 @@ static CONST ULONG PhpHwSpbmPowerEnergy[KphHwSpbmPowerMaximum] =
     KphHwSpbmEnergyMaximum, // CpuGpu
     KphHwSpbmEnergyCpuP, // CpuP
     KphHwSpbmEnergyCpuE, // CpuE
-    KphHwSpbmEnergyMaximum, // RailA
+    KphHwSpbmEnergyMaximum, // MemoryA
     KphHwSpbmEnergyMaximum, // DcInput
     KphHwSpbmEnergyGpu, // Gpu
-    KphHwSpbmEnergyMaximum, // RailB
+    KphHwSpbmEnergyMaximum, // MemoryB
     KphHwSpbmEnergyMaximum, // PackageAverage
     KphHwSpbmEnergyMaximum, // SystemAverage
     KphHwSpbmEnergyMaximum, // SystemShortAverage
+    KphHwSpbmEnergyMaximum, // MemoryC
 };
 
 static KPH_HW_SPBM_SAMPLE PhpHwSpbmSample; // the last read, for the report
@@ -88,6 +97,7 @@ static NTSTATUS PhpHwSpbmStatus = STATUS_NOT_SUPPORTED; // the last read; STATUS
 static ULONG PhpHwSpbmTemperatureIndex[RTL_NUMBER_OF(PhpHwSpbmTemperatures)];
 static ULONG PhpHwSpbmPowerIndex[RTL_NUMBER_OF(PhpHwSpbmPowers)];
 static ULONG PhpHwSpbmLimitIndex[RTL_NUMBER_OF(PhpHwSpbmLimits)];
+static ULONG PhpHwSpbmVoltageIndex[RTL_NUMBER_OF(PhpHwSpbmVoltages)];
 static UCHAR PhpHwSpbmStrikes = 0;
 static BOOLEAN PhpHwSpbmEnded = FALSE;
 static BOOLEAN PhpHwSpbmListed = FALSE; // the first read succeeded and the named sensors are listed
@@ -106,6 +116,8 @@ static VOID PhpHwSpbmClearIndexes(
         PhpHwSpbmPowerIndex[i] = ULONG_MAX;
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSpbmLimitIndex); i++)
         PhpHwSpbmLimitIndex[i] = ULONG_MAX;
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSpbmVoltageIndex); i++)
+        PhpHwSpbmVoltageIndex[i] = ULONG_MAX;
 }
 
 /**
@@ -156,6 +168,7 @@ static NTSTATUS PhpHwSpbmRead(
         PhpHwSpbmAddNamed(PhpHwSpbmTemperatures, RTL_NUMBER_OF(PhpHwSpbmTemperatures), PhpHwSpbmSample.TemperatureMask, PhpHwSpbmTemperatureIndex);
         PhpHwSpbmAddNamed(PhpHwSpbmPowers, RTL_NUMBER_OF(PhpHwSpbmPowers), PhpHwSpbmSample.PowerMask, PhpHwSpbmPowerIndex);
         PhpHwSpbmAddNamed(PhpHwSpbmLimits, RTL_NUMBER_OF(PhpHwSpbmLimits), PhpHwSpbmSample.LimitMask, PhpHwSpbmLimitIndex);
+        PhpHwSpbmAddNamed(PhpHwSpbmVoltages, RTL_NUMBER_OF(PhpHwSpbmVoltages), PhpHwSpbmSample.VoltageMask, PhpHwSpbmVoltageIndex);
         PhpHwSpbmListed = TRUE;
     }
 
@@ -300,6 +313,11 @@ NTSTATUS PhpHwSpbmPass(
         PhpHwSetNamedSensor(PhpHwSpbmLimitIndex[i], read, (FLOAT)PhpHwSpbmSample.Limit[PhpHwSpbmLimits[i].Channel] / 1000.0f);
     }
 
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSpbmVoltages); i++)
+    {
+        PhpHwSetNamedSensor(PhpHwSpbmVoltageIndex[i], read, (FLOAT)PhpHwSpbmSample.Voltage[PhpHwSpbmVoltages[i].Channel] / 1000.0f);
+    }
+
     if (read)
     {
         LONG hottest = PhpHwSpbmSample.Temperature[KphHwSpbmTemperatureHottest];
@@ -387,13 +405,15 @@ VOID PhpHwSpbmDiagnostics(
 
     PhAppendFormatStringBuilder(
         Builder,
-        L"  Page: last read 0x%08lx%s; channels: temperatures 0x%lx, powers 0x%lx, energies 0x%lx, limits 0x%lx\n",
+        L"  Page: last read 0x%08lx%s; channels: temperatures 0x%lx, powers 0x%lx, energies 0x%lx, limits 0x%lx, "
+        L"voltages 0x%lx\n",
         PhpHwSpbmStatus,
         PhpHwSpbmEnded ? L", ended" : L"",
         PhpHwSpbmSample.TemperatureMask,
         PhpHwSpbmSample.PowerMask,
         PhpHwSpbmSample.EnergyMask,
-        PhpHwSpbmSample.LimitMask
+        PhpHwSpbmSample.LimitMask,
+        PhpHwSpbmSample.VoltageMask
         );
 
     PhAppendStringBuilder2(Builder, L"  Temperatures (milli-C):");
@@ -411,6 +431,10 @@ VOID PhpHwSpbmDiagnostics(
     PhAppendStringBuilder2(Builder, L"\n  Limits (mW):");
     for (ULONG i = 0; i < KphHwSpbmLimitMaximum; i++)
         PhAppendFormatStringBuilder(Builder, L" %lu", PhpHwSpbmSample.Limit[i]);
+
+    PhAppendStringBuilder2(Builder, L"\n  Voltages (mV):");
+    for (ULONG i = 0; i < KphHwSpbmVoltageMaximum; i++)
+        PhAppendFormatStringBuilder(Builder, L" %lu", PhpHwSpbmSample.Voltage[i]);
 
     PhAppendStringBuilder2(Builder, L"\n");
 }

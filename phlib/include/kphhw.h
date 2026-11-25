@@ -357,13 +357,14 @@ typedef enum _KPH_HW_SPBM_POWER
     KphHwSpbmPowerCpuGpu,
     KphHwSpbmPowerCpuP,
     KphHwSpbmPowerCpuE,
-    KphHwSpbmPowerRailA,
+    KphHwSpbmPowerMemoryA,
     KphHwSpbmPowerDcInput,
     KphHwSpbmPowerGpu,
-    KphHwSpbmPowerRailB,
+    KphHwSpbmPowerMemoryB,
     KphHwSpbmPowerPackageAverage,
     KphHwSpbmPowerSystemAverage,
     KphHwSpbmPowerSystemShortAverage,
+    KphHwSpbmPowerMemoryC,
     KphHwSpbmPowerMaximum
 } KPH_HW_SPBM_POWER;
 
@@ -386,16 +387,26 @@ typedef enum _KPH_HW_SPBM_LIMIT
     KphHwSpbmLimitMaximum
 } KPH_HW_SPBM_LIMIT;
 
+typedef enum _KPH_HW_SPBM_VOLTAGE
+{
+    KphHwSpbmVoltageCpuP,
+    KphHwSpbmVoltageCpuE,
+    KphHwSpbmVoltageMemoryC,
+    KphHwSpbmVoltageMaximum
+} KPH_HW_SPBM_VOLTAGE;
+
 typedef struct _KPH_HW_SPBM_SAMPLE
 {
     ULONG TemperatureMask; // the channels the part has
     ULONG PowerMask;
     ULONG EnergyMask;
     ULONG LimitMask;
+    ULONG VoltageMask;
     LONG Temperature[KphHwSpbmTemperatureMaximum]; // milli-degrees Celsius
     ULONG Power[KphHwSpbmPowerMaximum]; // milliwatts
     ULONG Energy[KphHwSpbmEnergyMaximum]; // millijoules, a count that wraps
     ULONG Limit[KphHwSpbmLimitMaximum]; // milliwatts
+    ULONG Voltage[KphHwSpbmVoltageMaximum]; // millivolts
 } KPH_HW_SPBM_SAMPLE, *PKPH_HW_SPBM_SAMPLE;
 
 #define KPH_HW_VSEC_DISCOVERY_PMT 2
@@ -450,7 +461,7 @@ C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
 C_ASSERT(sizeof(KPH_HW_TSENS_CONTROLLER) == 72);
 C_ASSERT(sizeof(KPH_HW_TSENS_IDENTITY) == 580);
-C_ASSERT(sizeof(KPH_HW_SPBM_SAMPLE) == 136);
+C_ASSERT(sizeof(KPH_HW_SPBM_SAMPLE) == 156);
 
 PHLIBAPI
 NTSTATUS

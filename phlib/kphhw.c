@@ -3234,8 +3234,8 @@ NTSTATUS KphHwTsensRead(
 }
 
 /**
- * Reads the NVIDIA N1X power budget page: its temperatures, powers, energies
- * and power limits.
+ * Reads the NVIDIA N1X power budget page: its temperatures, powers, energies,
+ * power limits and voltages.
  *
  * \param Sample Receives the sample.
  * \return Successful or errant status; STATUS_NOT_SUPPORTED when the script
