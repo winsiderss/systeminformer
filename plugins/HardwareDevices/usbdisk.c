@@ -265,13 +265,20 @@ static VOID NTAPI UsbDiskSourceDiagnostics(
     for (ULONG i = 0; i < context->Count; i++)
     {
         PUB_DISK disk = &context->Disks[i];
+        PCWSTR kind = L"ATA";
+        PCWSTR presence = L"gone";
+
+        if (disk->Kind == KPH_HW_USB_DISK_NVME)
+            kind = L"NVMe";
+        if (disk->Present)
+            presence = L"present";
 
         PhAppendFormatStringBuilder(
             Builder,
             L"  %s: %s, %s, status 0x%08lx",
             disk->Name->Buffer,
-            disk->Kind == KPH_HW_USB_DISK_NVME ? L"NVMe" : L"ATA",
-            disk->Present ? L"present" : L"gone",
+            kind,
+            presence,
             disk->LastStatus
             );
 

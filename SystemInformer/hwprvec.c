@@ -543,11 +543,22 @@ VOID PhpHwBoardEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR globalLock = L"";
+    PCWSTR banked = L"";
+    PCWSTR ended = L"";
+
     if (PhpHwBoardEcListStatus == STATUS_NOT_SUPPORTED)
     {
         PhAppendStringBuilder2(Builder, L"  Board EC: not listed\n");
         return;
     }
+
+    if (PhpHwBoardEcIdentity.Flags & KPH_HW_EC_GLOBAL_LOCK)
+        globalLock = L", Global Lock";
+    if (PhpHwBoardEcIdentity.Flags & KPH_HW_EC_BANKED)
+        banked = L", banked";
+    if (PhpHwBoardEcEnded)
+        ended = L", ended";
 
     PhAppendFormatStringBuilder(
         Builder,
@@ -556,11 +567,11 @@ VOID PhpHwBoardEcDiagnostics(
         PhpHwBoardEcCount,
         PhpHwBoardEcIdentity.DataPort,
         PhpHwBoardEcIdentity.CommandPort,
-        (PhpHwBoardEcIdentity.Flags & KPH_HW_EC_GLOBAL_LOCK) ? L", Global Lock" : L"",
-        (PhpHwBoardEcIdentity.Flags & KPH_HW_EC_BANKED) ? L", banked" : L"",
+        globalLock,
+        banked,
         PhpHwBoardEcStatus,
         PhpHwBoardEcRegisterCount,
-        PhpHwBoardEcEnded ? L", ended" : L""
+        ended
         );
 }
 
@@ -676,12 +687,17 @@ VOID PhpHwGigabyteDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
+    if (PhpHwGigabyteEnded)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  Firmware temperatures: last read 0x%08lx, %lu listed%s\n",
         PhpHwGigabyteStatus,
         PhpHwGigabyteCount,
-        PhpHwGigabyteEnded ? L", ended" : L""
+        ended
         );
 }
 
@@ -779,9 +795,13 @@ NTSTATUS PhpHwAlienwareProbe(
         BOOLEAN temperature = sensor->Kind == KPH_HW_ALIENWARE_TEMPERATURE;
         ULONG ordinal = temperature ? i + 1 : i - PhpHwAlienwareIdentity.TemperatureCount + 1;
         PPH_STRING name = PhpHwAlienwareName(sensor->Kind, sensor->Id, ordinal);
+        PH_HW_NAMED_SENSOR_KIND kind = PhHwNamedSensorFanSpeed;
+
+        if (temperature)
+            kind = PhHwNamedSensorAcpiTemperature;
 
         PhpHwAlienwareNamedIndex[i] = PhpHwAddNamedSensor(
-            temperature ? PhHwNamedSensorAcpiTemperature : PhHwNamedSensorFanSpeed,
+            kind,
             0,
             PHP_HW_ALIENWARE_ID_BASE + ((ULONG)sensor->Kind << 8) + sensor->Id,
             name->Buffer
@@ -820,8 +840,12 @@ NTSTATUS PhpHwAlienwarePass(
     for (ULONG i = 0; i < PhpHwAlienwareCount; i++)
     {
         BOOLEAN valid = read && NT_SUCCESS(values[i].Status);
+        FLOAT value = 0.0f;
 
-        PhpHwSetNamedSensor(PhpHwAlienwareNamedIndex[i], valid, valid ? (FLOAT)values[i].Value : 0.0f);
+        if (valid)
+            value = (FLOAT)values[i].Value;
+
+        PhpHwSetNamedSensor(PhpHwAlienwareNamedIndex[i], valid, value);
 
         if (valid)
             capabilities |= PhpHwAlienwareSensors[i].Kind == KPH_HW_ALIENWARE_FAN ? PH_HW_CAP_FAN_SPEED : PH_HW_CAP_ACPI_TEMP;
@@ -854,12 +878,17 @@ VOID PhpHwAlienwareDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
+    if (PhpHwAlienwareEnded)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  Firmware thermal: last call 0x%08lx, %lu listed%s\n",
         PhpHwAlienwareStatus,
         PhpHwAlienwareCount,
-        PhpHwAlienwareEnded ? L", ended" : L""
+        ended
         );
 }
 
@@ -1009,11 +1038,16 @@ VOID PhpHwHpDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
+    if (PhpHwHpEnded)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  Firmware sensors: last call 0x%08lx, %lu listed%s\n",
         PhpHwHpStatus,
         PhpHwHpCount,
-        PhpHwHpEnded ? L", ended" : L""
+        ended
         );
 }

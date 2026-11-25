@@ -199,8 +199,11 @@ static VOID HidDevicesPoll(
     // Another tool holds the devices: the next callback tries again.
     if (status != STATUS_RETRY)
     {
+        if (!NT_SUCCESS(status))
+            count = 0;
+
         Context->LastTime[Source] = Now;
-        HidDevicesMerge(Context, Source, records, NT_SUCCESS(status) ? count : 0);
+        HidDevicesMerge(Context, Source, records, count);
     }
 
     PhFree(records);
@@ -294,12 +297,16 @@ static VOID NTAPI HidDevicesSourceDiagnostics(
     for (ULONG i = 0; i < context->Count; i++)
     {
         PHD_DEVICE device = &context->Devices[i];
+        PCWSTR presence = L"gone";
+
+        if (device->Present)
+            presence = L"present";
 
         PhAppendFormatStringBuilder(
             Builder,
             L"  %s: %s, status 0x%08lx, %lu values\n",
             device->Name->Buffer,
-            device->Present ? L"present" : L"gone",
+            presence,
             device->LastStatus,
             device->Count
             );

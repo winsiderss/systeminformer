@@ -1062,12 +1062,17 @@ VOID PhpHwProm21Diagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
+    if (PhpHwProm21Ended)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  Chipset dies: last read 0x%08lx, %lu found%s\n",
         PhpHwProm21Status,
         PhpHwProm21Count,
-        PhpHwProm21Ended ? L", ended" : L""
+        ended
         );
 }
 
@@ -1151,8 +1156,12 @@ NTSTATUS PhpHwAqtionPass(
     for (ULONG i = 0; i < PhpHwAqtionCount; i++)
     {
         BOOLEAN valid = read && NT_SUCCESS(values[i].Status);
+        FLOAT celsius = 0.0f;
 
-        PhpHwSetNamedSensor(PhpHwAqtionNamedIndex[i], valid, valid ? (FLOAT)(LONG)values[i].Value / 1000.0f : 0.0f);
+        if (valid)
+            celsius = (FLOAT)(LONG)values[i].Value / 1000.0f;
+
+        PhpHwSetNamedSensor(PhpHwAqtionNamedIndex[i], valid, celsius);
 
         if (valid)
             capabilities |= PH_HW_CAP_ACPI_TEMP;
@@ -1185,11 +1194,16 @@ VOID PhpHwAqtionDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
+    if (PhpHwAqtionEnded)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  Network controllers: last read 0x%08lx, %lu found%s\n",
         PhpHwAqtionStatus,
         PhpHwAqtionCount,
-        PhpHwAqtionEnded ? L", ended" : L""
+        ended
         );
 }

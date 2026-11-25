@@ -452,7 +452,12 @@ NTSTATUS PhpHwVrmPass(
                 BOOLEAN valid = read && NT_SUCCESS(values[at + 1 + q].Status) && (q != 0 || modeRead) &&
                     PhpHwPmbusDecode(vrm->Family, quantities[q], (UCHAR)values[at].Value, (USHORT)values[at + 1 + q].Value, &value);
 
-                PhpHwSetNamedSensor(vrm->Named[page][q], valid, valid ? (FLOAT)value : 0.0f);
+                FLOAT published = 0.0f;
+
+                if (valid)
+                    published = (FLOAT)value;
+
+                PhpHwSetNamedSensor(vrm->Named[page][q], valid, published);
 
                 if (valid)
                     capabilities |= q == 2 ? PH_HW_CAP_ACPI_POWER : PH_HW_CAP_ACPI_TEMP;
@@ -487,14 +492,22 @@ VOID PhpHwVrmDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+    PCWSTR rowBoard = L"";
+
+    if (PhpHwVrmEnded)
+        ended = L", ended";
+    if (PhpHwVrmRowBoard)
+        rowBoard = L", the board's row (no discovery)";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  VR controllers: last read 0x%08lx, %lu found, %lu unidentified%s%s\n",
         PhpHwVrmStatus,
         PhpHwVrmCount,
         PhpHwVrmUnidentified,
-        PhpHwVrmEnded ? L", ended" : L"",
-        PhpHwVrmRowBoard ? L", the board's row (no discovery)" : L""
+        ended,
+        rowBoard
         );
 
     for (ULONG i = 0; i < PhpHwVrmCount; i++)
@@ -665,23 +678,36 @@ NTSTATUS PhpHwSch5027Pass(
     {
         ULONG reading = read ? ((values[i].Value & 0xFF) << 8) | ((values[10 + PhpHwSch5027InLsb[i]].Value << PhpHwSch5027InShift[i]) & 0xF0) : 0;
 
-        PhpHwSetNamedSensor(PhpHwSch5027Named[i], read, read ? (FLOAT)reading * PhpHwSch5027Nominal[i] / 49152.0f / 1000.0f : 0.0f);
+        FLOAT volts = 0.0f;
+
+        if (read)
+            volts = (FLOAT)reading * PhpHwSch5027Nominal[i] / 49152.0f / 1000.0f;
+
+        PhpHwSetNamedSensor(PhpHwSch5027Named[i], read, volts);
     }
 
     for (ULONG i = 0; i < 3; i++)
     {
         SHORT reading = read ? (SHORT)(((values[7 + i].Value & 0xFF) << 8) | ((values[10 + PhpHwSch5027TempLsb[i]].Value << PhpHwSch5027TempShift[i]) & 0xF0)) : 0;
         BOOLEAN valid = read && (values[7 + i].Value & 0xFF) != 0x80;
+        FLOAT celsius = 0.0f;
 
-        PhpHwSetNamedSensor(PhpHwSch5027Named[7 + i], valid, valid ? reading / 256.0f : 0.0f);
+        if (valid)
+            celsius = reading / 256.0f;
+
+        PhpHwSetNamedSensor(PhpHwSch5027Named[7 + i], valid, celsius);
     }
 
     for (ULONG i = 0; i < 4; i++)
     {
         ULONG count = read ? (values[16 + i * 2].Value & 0xFF) | ((values[17 + i * 2].Value & 0xFF) << 8) : 0;
         BOOLEAN valid = read && count != 0 && count != 0xFFFF;
+        FLOAT rpm = 0.0f;
 
-        PhpHwSetNamedSensor(PhpHwSch5027Named[10 + i], valid, valid ? 5400000.0f / count : 0.0f);
+        if (valid)
+            rpm = 5400000.0f / count;
+
+        PhpHwSetNamedSensor(PhpHwSch5027Named[10 + i], valid, rpm);
 
         if (valid)
             capabilities |= PH_HW_CAP_FAN_SPEED;
@@ -717,11 +743,19 @@ VOID PhpHwSch5027Diagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR found = L"not found";
+    PCWSTR ended = L"";
+
+    if (PhpHwSch5027Found)
+        found = L"found";
+    if (PhpHwSch5027Ended)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  SCH5027: last read 0x%08lx, %s%s\n",
         PhpHwSch5027Status,
-        PhpHwSch5027Found ? L"found" : L"not found",
-        PhpHwSch5027Ended ? L", ended" : L""
+        found,
+        ended
         );
 }

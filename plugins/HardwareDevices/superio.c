@@ -6510,6 +6510,7 @@ static VOID SuperIoDecodeSch56(
     PCMB_REGISTERS registers = Context->Registers;
     UCHAR value8;
     USHORT value;
+    FLOAT rpm;
 
     if (variant->StartRegister && (!SuperIoRead8(registers, variant->StartRegister, &value8) || !(value8 & 0x01)))
         return;
@@ -6561,7 +6562,12 @@ static VOID SuperIoDecodeSch56(
         if (!SuperIoRead16Le(registers, variant->FanRegisters[i], &value) || value == 0)
             continue;
 
-        SuperIoAddFan(Context, i, value != 0xffff ? 5400540.0f / value : 0, present);
+        rpm = 0;
+
+        if (value != 0xffff)
+            rpm = 5400540.0f / value;
+
+        SuperIoAddFan(Context, i, rpm, present);
     }
 }
 
