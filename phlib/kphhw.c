@@ -35,6 +35,22 @@ static CONST PH_STRINGREF KphpHwPlatformFileName = PH_STRINGREF_INIT(L"scripts\\
 static CONST PH_STRINGREF KphpHwPciConfigFileName = PH_STRINGREF_INIT(L"scripts\\pciconfig.bin");
 static CONST PH_STRINGREF KphpHwCrosEcFileName = PH_STRINGREF_INIT(L"scripts\\crosec.bin");
 static CONST PH_STRINGREF KphpHwVsecFileName = PH_STRINGREF_INIT(L"scripts\\vsec.bin");
+static CONST PH_STRINGREF KphpHwEcFileName = PH_STRINGREF_INIT(L"scripts\\ec.bin");
+static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
+static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.bin");
+static CONST PH_STRINGREF KphpHwLenovoWsFileName = PH_STRINGREF_INIT(L"scripts\\lenovows.bin");
+static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell.bin");
+static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\asuswmi.bin");
+static CONST PH_STRINGREF KphpHwGigabyteFileName = PH_STRINGREF_INIT(L"scripts\\gigabytewmi.bin");
+static CONST PH_STRINGREF KphpHwAlienwareFileName = PH_STRINGREF_INIT(L"scripts\\alienware.bin");
+static CONST PH_STRINGREF KphpHwHpFileName = PH_STRINGREF_INIT(L"scripts\\hpwmi.bin");
+static CONST PH_STRINGREF KphpHwProm21FileName = PH_STRINGREF_INIT(L"scripts\\prom21.bin");
+static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
+static CONST PH_STRINGREF KphpHwUsbDiskFileName = PH_STRINGREF_INIT(L"scripts\\usbdisk.bin");
+static CONST PH_STRINGREF KphpHwHidFileName = PH_STRINGREF_INIT(L"scripts\\hid.bin");
+static CONST PH_STRINGREF KphpHwAxiFileName = PH_STRINGREF_INIT(L"scripts\\axi.bin");
+static CONST PH_STRINGREF KphpHwAqtionFileName = PH_STRINGREF_INIT(L"scripts\\aqtion.bin");
+
 static KPH_HW_SCRIPT KphpHwCpuScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCpuFileName };
 static KPH_HW_SCRIPT KphpHwSuperIoScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwSuperIoFileName };
 static KPH_HW_SCRIPT KphpHwAcpiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAcpiFileName };
@@ -46,35 +62,22 @@ static KPH_HW_SCRIPT KphpHwHsmpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_
 static KPH_HW_SCRIPT KphpHwPlatformScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPlatformFileName };
 static KPH_HW_SCRIPT KphpHwPciConfigScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwPciConfigFileName };
 static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwCrosEcFileName };
-static CONST PH_STRINGREF KphpHwEcFileName = PH_STRINGREF_INIT(L"scripts\\ec.bin");
-static KPH_HW_SCRIPT KphpHwEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwEcFileName };
 static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwVsecFileName };
-static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
-static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.bin");
-static KPH_HW_SCRIPT KphpHwGpdScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGpdFileName };
-static CONST PH_STRINGREF KphpHwLenovoWsFileName = PH_STRINGREF_INIT(L"scripts\\lenovows.bin");
-static KPH_HW_SCRIPT KphpHwLenovoWsScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwLenovoWsFileName };
-static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell.bin");
-static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
-static CONST PH_STRINGREF KphpHwAsusWmiFileName = PH_STRINGREF_INIT(L"scripts\\asuswmi.bin");
-static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
-static CONST PH_STRINGREF KphpHwGigabyteFileName = PH_STRINGREF_INIT(L"scripts\\gigabytewmi.bin");
-static KPH_HW_SCRIPT KphpHwGigabyteScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGigabyteFileName };
-static CONST PH_STRINGREF KphpHwAlienwareFileName = PH_STRINGREF_INIT(L"scripts\\alienware.bin");
-static KPH_HW_SCRIPT KphpHwAlienwareScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAlienwareFileName };
-static CONST PH_STRINGREF KphpHwHpFileName = PH_STRINGREF_INIT(L"scripts\\hpwmi.bin");
-static KPH_HW_SCRIPT KphpHwHpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHpFileName };
-static CONST PH_STRINGREF KphpHwProm21FileName = PH_STRINGREF_INIT(L"scripts\\prom21.bin");
-static KPH_HW_SCRIPT KphpHwProm21Script = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwProm21FileName };
-static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\\ocmailbox.bin");
-static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
-static CONST PH_STRINGREF KphpHwUsbDiskFileName = PH_STRINGREF_INIT(L"scripts\\usbdisk.bin");
-static KPH_HW_SCRIPT KphpHwUsbDiskScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwUsbDiskFileName };
-static CONST PH_STRINGREF KphpHwHidFileName = PH_STRINGREF_INIT(L"scripts\\hid.bin");
-static KPH_HW_SCRIPT KphpHwHidScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHidFileName };
-static CONST PH_STRINGREF KphpHwAxiFileName = PH_STRINGREF_INIT(L"scripts\\axi.bin");
-static KPH_HW_SCRIPT KphpHwAxiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAxiFileName };
+static KPH_HW_SCRIPT KphpHwEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwEcFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
+static KPH_HW_SCRIPT KphpHwGpdScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGpdFileName };
+static KPH_HW_SCRIPT KphpHwLenovoWsScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwLenovoWsFileName };
+static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
+static KPH_HW_SCRIPT KphpHwAsusWmiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAsusWmiFileName };
+static KPH_HW_SCRIPT KphpHwGigabyteScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGigabyteFileName };
+static KPH_HW_SCRIPT KphpHwAlienwareScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAlienwareFileName };
+static KPH_HW_SCRIPT KphpHwHpScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHpFileName };
+static KPH_HW_SCRIPT KphpHwProm21Script = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwProm21FileName };
+static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
+static KPH_HW_SCRIPT KphpHwUsbDiskScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwUsbDiskFileName };
+static KPH_HW_SCRIPT KphpHwHidScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHidFileName };
+static KPH_HW_SCRIPT KphpHwAxiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAxiFileName };
+static KPH_HW_SCRIPT KphpHwAqtionScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAqtionFileName };
 
 /**
  * Retrieves the handle of a script, loading the script on first use.
@@ -240,6 +243,7 @@ VOID KphHwSetScriptMode(
         &KphpHwUsbDiskScript,
         &KphpHwHidScript,
         &KphpHwAxiScript,
+        &KphpHwAqtionScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -1368,8 +1372,8 @@ NTSTATUS KphHwSmbusRead(
 }
 
 /**
- * Reads what a PMBus controller answers to identify itself: its revision and
- * its MFR_ID, MFR_MODEL and IC_DEVICE_ID blocks.
+ * Reads a PMBus controller's revision and its MFR_ID, MFR_MODEL and
+ * IC_DEVICE_ID blocks.
  *
  * \param Locator The SMBus host's location.
  * \param Port The host's port.
@@ -1899,8 +1903,7 @@ NTSTATUS KphHwEcIdentify(
 }
 
 /**
- * Lists the sensors of the board's embedded controller: where each is and how
- * its bytes read.
+ * Lists the sensors of the board's embedded controller.
  *
  * \param Sensors Receives the sensors.
  * \param Capacity The number of elements in Sensors.
@@ -2225,8 +2228,7 @@ NTSTATUS KphHwProm21Read(
 }
 
 /**
- * Calls a routine of a script that reads every listed device into device
- * records, holding Bus around the call unless it is KphHwBusMaximum.
+ * Calls a script routine that fills a record per device.
  *
  * \param Script The script.
  * \param Routine The routine.
@@ -2283,8 +2285,8 @@ static NTSTATUS KphpHwHidCall(
 }
 
 /**
- * Reads the coolers that push their status as HID input reports. Each read
- * waits for the device's next report.
+ * Reads the coolers that push their status as HID input reports; each waits
+ * for its next report.
  *
  * \param Devices Receives a record per device.
  * \param Count Receives the number of records.
@@ -2388,6 +2390,60 @@ NTSTATUS KphHwUsbDiskRead(
 }
 
 /**
+ * Reads the temperature of AQtion network controllers through their firmware.
+ *
+ * \param Locators Each controller's location: (segment << 16) | (bus << 8) |
+ * (device << 3) | function.
+ * \param Count The number of controllers.
+ * \param Values Receives a status and the temperature in millidegrees C (signed)
+ * per controller.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bus.
+ */
+NTSTATUS KphHwAqtionRead(
+    _In_reads_(Count) const ULONG* Locators,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_VALUE32 values[KPH_HW_AQTION_CONTROLLERS];
+    ULONG returnLength = 0;
+
+    if (Count == 0 || Count > RTL_NUMBER_OF(values))
+        return STATUS_INVALID_PARAMETER;
+
+    if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwAqtionScript,
+        &routine,
+        (PVOID)Locators,
+        Count * sizeof(ULONG),
+        values,
+        Count * sizeof(KPH_HW_VALUE32),
+        &returnLength
+        );
+
+    KphpHwReleaseBus(KphHwBusPci);
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength != Count * sizeof(KPH_HW_VALUE32))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
+
+    return status;
+}
+
+/**
  * Reads the six temperatures of a Gigabyte board through its firmware's WMI
  * method.
  *
@@ -2430,9 +2486,7 @@ NTSTATUS KphHwGigabyteRead(
 }
 
 /**
- * Reads registers of an ACPI embedded controller. The script permits the
- * banks and registers of the board's row; a bank it selects is put back before
- * it returns.
+ * Reads registers of an ACPI embedded controller.
  *
  * \param Ordinal The controller, an ordinal of the PNP0C09 devices.
  * \param Registers The bank and register of each byte to read.

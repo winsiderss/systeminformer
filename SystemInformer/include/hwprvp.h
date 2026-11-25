@@ -58,6 +58,7 @@ typedef enum _PHP_HW_FAMILY_ID
     PhpHwFamilyAlienware,
     PhpHwFamilyHp,
     PhpHwFamilyProm21,
+    PhpHwFamilyAqtion,
     PhpHwFamilyVrm,
     PhpHwFamilySch5027,
     PhpHwFamilySmu,
@@ -370,6 +371,22 @@ VOID PhpHwProm21End(
     );
 
 VOID PhpHwProm21Diagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+NTSTATUS PhpHwAqtionProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwAqtionPass(
+    VOID
+    );
+
+VOID PhpHwAqtionEnd(
+    VOID
+    );
+
+VOID PhpHwAqtionDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 

@@ -85,6 +85,7 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
     { L"alienware", 2 * PHP_HW_SECOND, PhpHwAlienwareProbe, PhpHwAlienwarePass, PhpHwAlienwareEnd, PhpHwAlienwareDiagnostics },
     { L"hp", 2 * PHP_HW_SECOND, PhpHwHpProbe, PhpHwHpPass, PhpHwHpEnd, PhpHwHpDiagnostics },
     { L"prom21", 2 * PHP_HW_SECOND, PhpHwProm21Probe, PhpHwProm21Pass, PhpHwProm21End, PhpHwProm21Diagnostics },
+    { L"aqtion", 5 * PHP_HW_SECOND, PhpHwAqtionProbe, PhpHwAqtionPass, PhpHwAqtionEnd, PhpHwAqtionDiagnostics },
     { L"vrm", 2 * PHP_HW_SECOND, PhpHwVrmProbe, PhpHwVrmPass, PhpHwVrmEnd, PhpHwVrmDiagnostics },
     { L"sch5027", 2 * PHP_HW_SECOND, PhpHwSch5027Probe, PhpHwSch5027Pass, PhpHwSch5027End, PhpHwSch5027Diagnostics },
     { L"smu", PHP_HW_SECOND, PhpHwSmuProbe, PhpHwSmuPass, PhpHwSmuEnd, PhpHwSmuDiagnostics },

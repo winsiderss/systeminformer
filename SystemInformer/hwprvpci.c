@@ -1070,3 +1070,126 @@ VOID PhpHwProm21Diagnostics(
         PhpHwProm21Ended ? L", ended" : L""
         );
 }
+
+#define PHP_HW_AQTION_ID_BASE 0x41510000 // named sensor ids of AQtion network controllers: + controller
+
+static CONST USHORT PhpHwAqtionDevices[] =
+{
+    0x07B1, 0x08B1, 0x09B1, 0x87B1, 0x88B1, 0x89B1, // first generation
+    0x00C0, 0x04C0, 0x94C0, 0x93C0, 0x14C0, 0x34C0, 0x12C0, 0x11C0, // second generation
+};
+static ULONG PhpHwAqtionLocators[KPH_HW_AQTION_CONTROLLERS];
+static ULONG PhpHwAqtionNamedIndex[KPH_HW_AQTION_CONTROLLERS];
+static ULONG PhpHwAqtionCount = 0;
+static NTSTATUS PhpHwAqtionStatus = STATUS_NOT_SUPPORTED; // the last read, for the report
+static UCHAR PhpHwAqtionStrikes = 0;
+static BOOLEAN PhpHwAqtionEnded = FALSE;
+
+/**
+ * Finds the AQtion network controllers, sorted by location, each a named temperature.
+ *
+ * \return STATUS_SUCCESS, or STATUS_NOT_SUPPORTED when there is none.
+ */
+NTSTATUS PhpHwAqtionProbe(
+    VOID
+    )
+{
+    PhpHwAqtionCount = PhpHwEnumeratePciFunctions(
+        0x1D6A,
+        0x1D6A,
+        0x0200,
+        PhpHwAqtionDevices,
+        RTL_NUMBER_OF(PhpHwAqtionDevices),
+        FALSE,
+        PhpHwAqtionLocators,
+        RTL_NUMBER_OF(PhpHwAqtionLocators)
+        );
+
+    if (!PhpHwAqtionCount)
+        return STATUS_NOT_SUPPORTED;
+
+    for (ULONG i = 0; i < PhpHwAqtionCount; i++)
+    {
+        PPH_STRING name = PhFormatString(L"Network controller %lu", i + 1);
+
+        PhpHwAqtionNamedIndex[i] = PhpHwAddNamedSensor(PhHwNamedSensorAcpiTemperature, 0, PHP_HW_AQTION_ID_BASE + i, name->Buffer);
+        PhDereferenceObject(name);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Publishes one read of every controller: millidegrees C, a controller whose read failed no value. Three failed
+ * reads in a row end the source; a bus another tool holds is a retry.
+ *
+ * \return STATUS_RETRY when another tool holds the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwAqtionPass(
+    VOID
+    )
+{
+    KPH_HW_VALUE32 values[KPH_HW_AQTION_CONTROLLERS];
+    ULONG capabilities = 0;
+    BOOLEAN read;
+
+    if (PhpHwAqtionEnded || !PhpHwAqtionCount)
+        return STATUS_NOT_SUPPORTED;
+
+    PhpHwAqtionStatus = KphHwAqtionRead(PhpHwAqtionLocators, PhpHwAqtionCount, values);
+
+    if (PhpHwAqtionStatus == STATUS_RETRY)
+        return STATUS_RETRY;
+
+    read = NT_SUCCESS(PhpHwAqtionStatus);
+
+    if (read)
+        PhpHwAqtionStrikes = 0;
+    else if (++PhpHwAqtionStrikes >= 3)
+        PhpHwAqtionEnded = TRUE;
+
+    for (ULONG i = 0; i < PhpHwAqtionCount; i++)
+    {
+        BOOLEAN valid = read && NT_SUCCESS(values[i].Status);
+
+        PhpHwSetNamedSensor(PhpHwAqtionNamedIndex[i], valid, valid ? (FLOAT)(LONG)values[i].Value / 1000.0f : 0.0f);
+
+        if (valid)
+            capabilities |= PH_HW_CAP_ACPI_TEMP;
+    }
+
+    PhpHwFamilies[PhpHwFamilyAqtion].Capabilities = PhpHwAqtionEnded ? 0 : capabilities;
+
+    return PhpHwAqtionEnded ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the controllers are found again at the next.
+ */
+VOID PhpHwAqtionEnd(
+    VOID
+    )
+{
+    PhpHwAqtionStatus = STATUS_NOT_SUPPORTED;
+    PhpHwAqtionCount = 0;
+    PhpHwAqtionStrikes = 0;
+    PhpHwAqtionEnded = FALSE;
+}
+
+/**
+ * Writes the AQtion source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwAqtionDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  Network controllers: last read 0x%08lx, %lu found%s\n",
+        PhpHwAqtionStatus,
+        PhpHwAqtionCount,
+        PhpHwAqtionEnded ? L", ended" : L""
+        );
+}

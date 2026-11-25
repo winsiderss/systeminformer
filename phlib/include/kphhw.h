@@ -141,23 +141,23 @@ typedef struct _KPH_HW_SMBUS_ITEM
 
 typedef const KPH_HW_SMBUS_ITEM* PCKPH_HW_SMBUS_ITEM;
 
-#define KPH_HW_SMBUS_BYTE 0 // a byte read
-#define KPH_HW_SMBUS_WORD 1 // a word read
-#define KPH_HW_SMBUS_BLOCK 2 // a block read (KphHwPmbusIdentify)
-#define KPH_HW_SMBUS_PAGED_WORD 3 // a word read on the page in Reserved (PMBus), the page put back
-#define KPH_HW_SMBUS_PAGED_BYTE 4 // a byte read on the page in Reserved (PMBus), the page put back
+#define KPH_HW_SMBUS_BYTE 0
+#define KPH_HW_SMBUS_WORD 1
+#define KPH_HW_SMBUS_BLOCK 2
+#define KPH_HW_SMBUS_PAGED_WORD 3
+#define KPH_HW_SMBUS_PAGED_BYTE 4
 
 #define KPH_HW_PMBUS_BLOCK 32
 
 typedef struct _KPH_HW_PMBUS_IDENTITY
 {
-    UCHAR Revision; // PMBUS_REVISION
-    UCHAR MfrIdLength; // 0 when the block was not read
+    UCHAR Revision;
+    UCHAR MfrIdLength;
     UCHAR ModelLength;
     UCHAR DeviceIdLength;
-    UCHAR MfrId[KPH_HW_PMBUS_BLOCK]; // MFR_ID
-    UCHAR Model[KPH_HW_PMBUS_BLOCK]; // MFR_MODEL
-    UCHAR DeviceId[KPH_HW_PMBUS_BLOCK]; // IC_DEVICE_ID
+    UCHAR MfrId[KPH_HW_PMBUS_BLOCK];
+    UCHAR Model[KPH_HW_PMBUS_BLOCK];
+    UCHAR DeviceId[KPH_HW_PMBUS_BLOCK];
 } KPH_HW_PMBUS_IDENTITY, *PKPH_HW_PMBUS_IDENTITY;
 
 typedef struct _KPH_HW_PCI_MMIO
@@ -193,8 +193,8 @@ typedef struct _KPH_HW_CROSEC_IDENTITY
     UCHAR HostCommandFlags;
 } KPH_HW_CROSEC_IDENTITY, *PKPH_HW_CROSEC_IDENTITY;
 
-#define KPH_HW_EC_GLOBAL_LOCK 0x1 // read with the ACPI Global Lock held (its _GLK is 1)
-#define KPH_HW_EC_BANKED 0x2 // the board's controller has banks the script may select
+#define KPH_HW_EC_GLOBAL_LOCK 0x1
+#define KPH_HW_EC_BANKED 0x2
 
 typedef struct _KPH_HW_EC_IDENTITY
 {
@@ -212,43 +212,43 @@ typedef const KPH_HW_EC_REGISTER* PCKPH_HW_EC_REGISTER;
 
 typedef enum _KPH_HW_EC_KIND
 {
-    KphHwEcTemperature = 1, // degrees C, signed
-    KphHwEcVoltage = 2, // mV
-    KphHwEcCurrent = 3, // A
-    KphHwEcFan = 4, // RPM
-    KphHwEcPower = 5, // W
+    KphHwEcTemperature = 1,
+    KphHwEcVoltage = 2,
+    KphHwEcCurrent = 3,
+    KphHwEcFan = 4,
+    KphHwEcPower = 5
 } KPH_HW_EC_KIND;
 
-#define KPH_HW_EC_LITTLE_ENDIAN 0x10 // the bytes are little-endian
-#define KPH_HW_EC_SHIFT_MASK 0x0F // the value is 2^-n of the kind's unit
+#define KPH_HW_EC_LITTLE_ENDIAN 0x10
+#define KPH_HW_EC_SHIFT_MASK 0x0F
 
 #define KPH_HW_EC_LABEL_LENGTH 32
 
 typedef struct _KPH_HW_EC_SENSOR
 {
-    UCHAR Kind; // KPH_HW_EC_KIND
-    UCHAR Size; // bytes, big-endian when 2
+    UCHAR Kind;
+    UCHAR Size;
     UCHAR Bank;
     UCHAR Register;
-    UCHAR Form; // KPH_HW_EC_LITTLE_ENDIAN, KPH_HW_EC_SHIFT_MASK
-    CHAR Label[KPH_HW_EC_LABEL_LENGTH]; // null-terminated
+    UCHAR Form;
+    CHAR Label[KPH_HW_EC_LABEL_LENGTH];
 } KPH_HW_EC_SENSOR, *PKPH_HW_EC_SENSOR;
 
-#define KPH_HW_ALIENWARE_RESOURCES 16 // fans or temperature sensors at most
-#define KPH_HW_ALIENWARE_TEMPERATURE 1 // degrees C
-#define KPH_HW_ALIENWARE_FAN 2 // RPM
+#define KPH_HW_ALIENWARE_RESOURCES 16
+#define KPH_HW_ALIENWARE_TEMPERATURE 1
+#define KPH_HW_ALIENWARE_FAN 2
 
 typedef struct _KPH_HW_ALIENWARE_IDENTITY
 {
     UCHAR FanCount;
     UCHAR TemperatureCount;
-    UCHAR Fans[KPH_HW_ALIENWARE_RESOURCES]; // ids
-    UCHAR Temperatures[KPH_HW_ALIENWARE_RESOURCES]; // ids
+    UCHAR Fans[KPH_HW_ALIENWARE_RESOURCES];
+    UCHAR Temperatures[KPH_HW_ALIENWARE_RESOURCES];
 } KPH_HW_ALIENWARE_IDENTITY, *PKPH_HW_ALIENWARE_IDENTITY;
 
 typedef struct _KPH_HW_ALIENWARE_SENSOR
 {
-    UCHAR Kind; // KPH_HW_ALIENWARE_TEMPERATURE or KPH_HW_ALIENWARE_FAN
+    UCHAR Kind;
     UCHAR Id;
 } KPH_HW_ALIENWARE_SENSOR, *PKPH_HW_ALIENWARE_SENSOR;
 typedef const KPH_HW_ALIENWARE_SENSOR* PCKPH_HW_ALIENWARE_SENSOR;
@@ -258,17 +258,17 @@ typedef const KPH_HW_ALIENWARE_SENSOR* PCKPH_HW_ALIENWARE_SENSOR;
 
 typedef enum _KPH_HW_HP_KIND
 {
-    KphHwHpTemperature = 1, // millidegrees C
-    KphHwHpVoltage = 2, // millivolts
-    KphHwHpCurrent = 3, // milliamperes
-    KphHwHpFan = 4, // RPM
+    KphHwHpTemperature = 1,
+    KphHwHpVoltage = 2,
+    KphHwHpCurrent = 3,
+    KphHwHpFan = 4,
 } KPH_HW_HP_KIND;
 
 typedef struct _KPH_HW_HP_SENSOR
 {
     UCHAR Kind; // KPH_HW_HP_KIND
     UCHAR Instance;
-    CHAR Name[KPH_HW_HP_NAME_LENGTH]; // null-terminated
+    CHAR Name[KPH_HW_HP_NAME_LENGTH];
 } KPH_HW_HP_SENSOR, *PKPH_HW_HP_SENSOR;
 
 typedef struct _KPH_HW_HP_ITEM
@@ -665,19 +665,19 @@ KphHwProm21Read(
 
 #define KPH_HW_USB_DISKS 16
 #define KPH_HW_USB_DISK_ID 200
-#define KPH_HW_USB_DISK_ATA 1 // Data is the ATA SMART data
-#define KPH_HW_USB_DISK_NVME 2 // Data is the NVMe SMART / health log
+#define KPH_HW_USB_DISK_ATA 1
+#define KPH_HW_USB_DISK_NVME 2
 
 typedef struct _KPH_HW_USB_DISK
 {
-    NTSTATUS Status; // STATUS_NOT_SUPPORTED: a bridge not known; STATUS_DEVICE_POWERED_OFF: a drive in standby
-    USHORT VendorId; // the bridge's
+    NTSTATUS Status;
+    USHORT VendorId;
     USHORT ProductId;
-    UCHAR PowerCount; // the ATA count register of CHECK POWER MODE
-    UCHAR Kind; // KPH_HW_USB_DISK_*, 0 none
+    UCHAR PowerCount;
+    UCHAR Kind; // KPH_HW_USB_DISK_*
     UCHAR Reserved[2];
-    WCHAR ParentId[KPH_HW_USB_DISK_ID]; // the parent USB device's instance ID, zero-padded
-    UCHAR Data[512]; // valid when Status is STATUS_SUCCESS
+    WCHAR ParentId[KPH_HW_USB_DISK_ID];
+    UCHAR Data[512];
 } KPH_HW_USB_DISK, *PKPH_HW_USB_DISK;
 
 C_ASSERT(sizeof(KPH_HW_USB_DISK) == 924);
@@ -692,17 +692,17 @@ KphHwUsbDiskRead(
 
 #define KPH_HW_HID_DEVICES 8
 #define KPH_HW_HID_VALUES 24
-#define KPH_HW_HID_TEMPERATURE 1 // millidegrees C
-#define KPH_HW_HID_FAN 2 // RPM
-#define KPH_HW_HID_FLOW 3 // dL/h
-#define KPH_HW_HID_VOLTAGE 4 // mV
-#define KPH_HW_HID_CURRENT 5 // mA
-#define KPH_HW_HID_POWER 6 // mW
+#define KPH_HW_HID_TEMPERATURE 1
+#define KPH_HW_HID_FAN 2
+#define KPH_HW_HID_FLOW 3
+#define KPH_HW_HID_VOLTAGE 4
+#define KPH_HW_HID_CURRENT 5
+#define KPH_HW_HID_POWER 6
 
 typedef struct _KPH_HW_HID_VALUE
 {
     UCHAR Kind; // KPH_HW_HID_*
-    UCHAR Index; // the sensor's number among those of its kind
+    UCHAR Index;
     UCHAR Reserved[2];
     LONG Value;
 } KPH_HW_HID_VALUE, *PKPH_HW_HID_VALUE;
@@ -712,7 +712,7 @@ typedef struct _KPH_HW_HID_DEVICE
     NTSTATUS Status;
     USHORT VendorId;
     USHORT ProductId;
-    UCHAR Count; // valid entries of Values
+    UCHAR Count;
     UCHAR Reserved[3];
     KPH_HW_HID_VALUE Values[KPH_HW_HID_VALUES];
 } KPH_HW_HID_DEVICE, *PKPH_HW_HID_DEVICE;
@@ -741,6 +741,17 @@ NTAPI
 KphHwAxiRead(
     _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
     _Out_ PULONG Count
+    );
+
+#define KPH_HW_AQTION_CONTROLLERS 8
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwAqtionRead(
+    _In_reads_(Count) const ULONG* Locators,
+    _In_ ULONG Count,
+    _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
 
 #define KPH_HW_GIGABYTE_SENSORS 6
