@@ -9,11 +9,9 @@
 --
 
 --
--- Reads the SMART data of SATA drives behind USB bridges known to translate
--- ATA PASS-THROUGH, through the SCSI pass-through of each disk the USB storage
--- drivers enumerate. The bridge is named by the disk's parent USB device; a
--- disk behind any other bridge is sent nothing. CHECK POWER MODE runs first
--- and a drive in standby is not woken.
+-- Reads SMART data of drives behind listed USB bridges through SCSI
+-- pass-through (ATA PASS-THROUGH, or the bridge's own NVMe command); a SATA
+-- drive in standby is not woken.
 --
 
 local nt = require('nt')
@@ -30,11 +28,27 @@ local DISKS_MAX = 16
 local MILLISECONDS = 10000
 local SECONDS = 5
 
+local DATA_OUT = 0
 local DATA_IN = 1
 local DATA_NONE = 2
 
--- The bridges by vendor << 16 | product; a vendor's entry with an except list
--- takes every product but those.
+local KIND_ATA = 1
+local KIND_NVME = 2
+
+local LOG_CDW10 = ((SECTOR // 4 - 1) << 16) | 0x02
+local JMICRON_SIGNATURE = 0x454d564e
+
+-- The NVMe bridges by vendor << 16 | product, and their command family.
+local NVME = {
+  [0x174c2362] = 'asmedia',
+  [0x174c2364] = 'asmedia',
+  [0x0bda9210] = 'realtek',
+  [0x152d0583] = 'jmicron',
+  [0x152da583] = 'jmicron',
+}
+
+-- SATA bridges by vendor << 16 | product; a SAT_VENDORS entry takes every
+-- product but those listed.
 local SAT = {
   [0x152d0561] = true,
   [0x152d0565] = true,
@@ -97,8 +111,8 @@ local function hex4(text, at)
   return n
 end
 
--- The parent's instance ID (UTF-16) and its vendor and product, read from a
--- USB\VID_xxxx&PID_xxxx prefix; nil and a status when there is none.
+-- The parent's instance ID (UTF-16) and its USB vendor and product, or nil and
+-- a status.
 local function parent(device)
   local bytes, kind = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_Parent)
   if not bytes then
@@ -135,8 +149,42 @@ local function translates(vendor, product)
   return except ~= nil and not except[product]
 end
 
--- One ATA command in an ATA PASS-THROUGH (12) CDB: the SCSI status, the sense
--- and the data; nil and a status when the request fails.
+-- One CDB (12 or 16 bytes) moving Length bytes: the SCSI status, sense and data
+-- read, or nil and a status.
+local function pass(device, cdb, dataIn, length, data)
+  local header = string.pack(
+    '<I2BBBBBBBxxxI4I4xxxxI8I4c16xxxx',
+    HEADER,
+    0,
+    0,
+    0,
+    0,
+    #cdb,
+    SENSE,
+    dataIn,
+    length,
+    SECONDS,
+    length > 0 and DATA_AT or 0,
+    SENSE_AT,
+    cdb .. string.rep('\0', 16 - #cdb)
+  )
+  local input = header .. string.rep('\0', SENSE) .. (data or string.rep('\0', length))
+  local output, status = ksi.hw.device_control(device, PASS_THROUGH, input, #input, MILLISECONDS)
+  if not output then
+    ksi.trace('pass-through 0x%x failed: 0x%x', string.byte(cdb, 1), status)
+    return nil, status
+  end
+  if #output < HEADER then
+    return nil, nt.STATUS_DEVICE_PROTOCOL_ERROR
+  end
+  local _, scsiStatus, _, _, _, _, senseLength, _, transferred =
+    string.unpack('<I2BBBBBBBxxxI4', output)
+  return scsiStatus,
+    string.sub(output, SENSE_AT + 1, SENSE_AT + math.min(senseLength, SENSE)),
+    string.sub(output, DATA_AT + 1, DATA_AT + math.min(transferred, length))
+end
+
+-- One ATA command in an ATA PASS-THROUGH (12) CDB, as pass.
 local function ata(device, protocol, flags, features, count, mid, high, command, dataIn, length)
   local cdb = string.pack(
     'BBBBBBBBBBBB',
@@ -152,41 +200,76 @@ local function ata(device, protocol, flags, features, count, mid, high, command,
     command,
     0,
     0
-  ) .. string.rep('\0', 4)
-  local header = string.pack(
-    '<I2BBBBBBBxxxI4I4xxxxI8I4c16xxxx',
-    HEADER,
-    0,
-    0,
-    0,
-    0,
-    12,
-    SENSE,
-    dataIn,
-    length,
-    SECONDS,
-    length > 0 and DATA_AT or 0,
-    SENSE_AT,
-    cdb
   )
-  local input = header .. string.rep('\0', SENSE + length)
-  local output, status = ksi.hw.device_control(device, PASS_THROUGH, input, #input, MILLISECONDS)
-  if not output then
-    ksi.trace('pass-through 0x%x failed: 0x%x', command, status)
-    return nil, status
-  end
-  if #output < HEADER then
-    return nil, nt.STATUS_DEVICE_PROTOCOL_ERROR
-  end
-  local _, scsiStatus, _, _, _, _, senseLength, _, transferred =
-    string.unpack('<I2BBBBBBBxxxI4', output)
-  return scsiStatus,
-    string.sub(output, SENSE_AT + 1, SENSE_AT + math.min(senseLength, SENSE)),
-    string.sub(output, DATA_AT + 1, DATA_AT + math.min(transferred, length))
+  return pass(device, cdb, dataIn, length)
 end
 
--- The ATA status and count registers the bridge returned in the sense data,
--- descriptor or fixed format; nil when there are none.
+-- 512 bytes read by a CDB, or nil and a status.
+local function sector_in(device, cdb)
+  local scsiStatus, sense, data = pass(device, cdb, DATA_IN, SECTOR)
+  if not scsiStatus then
+    return nil, sense
+  end
+  if scsiStatus ~= 0 or #data ~= SECTOR then
+    ksi.trace('0x%x: SCSI status 0x%x, %d bytes', string.byte(cdb, 1), scsiStatus, #data)
+    return nil, nt.STATUS_IO_DEVICE_ERROR
+  end
+  return data
+end
+
+-- A JMicron NVMe phase CDB: ATA PASS-THROUGH (12) with the admin flag, protocol
+-- and 24-bit length.
+local function jmicron_cdb(protocol, length)
+  return string.pack('>BBBI3', 0xa1, 0x80 | protocol, 0, length) .. string.rep('\0', 6)
+end
+
+-- The NVMe SMART / health log (512 bytes) through the bridge's own command, or
+-- nil and a status.
+local function nvme_log(device, bridge)
+  if bridge == 'asmedia' then
+    return sector_in(
+      device,
+      string.pack('>BBBBBBI2I4I4', 0xe6, 0x02, 0, LOG_CDW10 & 0xff, 0, 0, LOG_CDW10 >> 16, 0, 0)
+    )
+  elseif bridge == 'realtek' then
+    return sector_in(
+      device,
+      string.pack('<BI2BB', 0xe4, SECTOR, 0x02, LOG_CDW10 & 0xff) .. string.rep('\0', 11)
+    )
+  end
+  local block = string.pack('<I4I4I4I4', JMICRON_SIGNATURE, 0, 0x02, 0xffffffff)
+    .. string.rep('\0', 32)
+    .. string.pack('<I4I4I4I4I4I4', LOG_CDW10, 0, 0, 0, 0, 0)
+  block = block .. string.rep('\0', SECTOR - #block)
+  local scsiStatus, failed = pass(device, jmicron_cdb(0x0, SECTOR), DATA_OUT, SECTOR, block)
+  if not scsiStatus then
+    return nil, failed
+  end
+  if scsiStatus ~= 0 then
+    return nil, nt.STATUS_IO_DEVICE_ERROR
+  end
+  local data, dataFailed = sector_in(device, jmicron_cdb(0x2, SECTOR))
+  local reply, replyFailed = sector_in(device, jmicron_cdb(0xf, SECTOR))
+  if not data then
+    return nil, dataFailed
+  end
+  if not reply then
+    return nil, replyFailed
+  end
+  if string.unpack('<I4', reply) ~= JMICRON_SIGNATURE then
+    ksi.trace('the reply has no signature')
+    return nil, nt.STATUS_DEVICE_PROTOCOL_ERROR
+  end
+  local completion = string.unpack('<I4', reply, 21) >> 17
+  if completion ~= 0 then
+    ksi.trace('NVMe status 0x%x', completion)
+    return nil, nt.STATUS_IO_DEVICE_ERROR
+  end
+  return data
+end
+
+-- The ATA status and count registers from descriptor or fixed sense data, or
+-- nil.
 local function registers(sense)
   local code = string.byte(sense, 1)
   if not code then
@@ -213,8 +296,8 @@ local function registers(sense)
   return nil
 end
 
--- STATUS_SUCCESS and the count register (00h is standby) when the drive
--- answered CHECK POWER MODE, a status otherwise.
+-- STATUS_SUCCESS and the count register (00h is standby) from CHECK POWER MODE,
+-- or a status.
 local function power_mode(device)
   local scsiStatus, sense = ata(device, 3, 0x20, 0, 0, 0, 0, 0xe5, DATA_NONE, 0)
   if not scsiStatus then
@@ -233,47 +316,53 @@ end
 
 -- SMART READ DATA: 512 bytes, or nil and a status.
 local function smart(device)
-  local scsiStatus, sense, data = ata(device, 4, 0x0e, 0xd0, 1, 0x4f, 0xc2, 0xb0, DATA_IN, SECTOR)
-  if not scsiStatus then
-    return nil, sense
-  end
-  if scsiStatus ~= 0 or #data ~= SECTOR then
-    ksi.trace('SMART READ DATA: SCSI status 0x%x, %d bytes', scsiStatus, #data)
-    return nil, nt.STATUS_IO_DEVICE_ERROR
-  end
-  return data
+  return sector_in(
+    device,
+    string.pack('BBBBBBBBBBBB', 0xa1, 4 << 1, 0x0e, 0xd0, 1, 0, 0x4f, 0xc2, 0, 0xb0, 0, 0)
+  )
+end
+
+local function record(status, vendor, product, count, kind)
+  return string.pack('<i4I2I2BBxx', status, vendor, product, count, kind)
 end
 
 local function disk(device)
   local id, vendor, product = parent(device)
   if not id then
     local failed = vendor
-    return string.pack('<i4I2I2Bxxx', failed, 0, 0, 0), '', ''
+    return record(failed, 0, 0, 0, 0), '', ''
+  end
+  local bridge = NVME[(vendor << 16) | product]
+  if bridge then
+    local data, failed = nvme_log(device, bridge)
+    if not data then
+      return record(failed, vendor, product, 0, KIND_NVME), id, ''
+    end
+    return record(nt.STATUS_SUCCESS, vendor, product, 0, KIND_NVME), id, data
   end
   if not translates(vendor, product) then
     ksi.trace('%04x:%04x is not a listed bridge', vendor, product)
-    return string.pack('<i4I2I2Bxxx', nt.STATUS_NOT_SUPPORTED, vendor, product, 0), id, ''
+    return record(nt.STATUS_NOT_SUPPORTED, vendor, product, 0, 0), id, ''
   end
   local status, count = power_mode(device)
   if not nt.NT_SUCCESS(status) then
-    return string.pack('<i4I2I2Bxxx', status, vendor, product, 0), id, ''
+    return record(status, vendor, product, 0, KIND_ATA), id, ''
   end
   if count == 0 then
-    return string.pack('<i4I2I2Bxxx', nt.STATUS_DEVICE_POWERED_OFF, vendor, product, 0), id, ''
+    return record(nt.STATUS_DEVICE_POWERED_OFF, vendor, product, 0, KIND_ATA), id, ''
   end
   local data, failed = smart(device)
   if not data then
-    return string.pack('<i4I2I2Bxxx', failed, vendor, product, count), id, ''
+    return record(failed, vendor, product, count, KIND_ATA), id, ''
   end
-  return string.pack('<i4I2I2Bxxx', nt.STATUS_SUCCESS, vendor, product, count), id, data
+  return record(nt.STATUS_SUCCESS, vendor, product, count, KIND_ATA), id, data
 end
 
 -- Reads every disk of the USB storage drivers; no input. Returns a status and
--- per disk: a status, the bridge's vendor and product (2 bytes each), the
--- power mode's count register (1 byte, then 3 reserved), the parent's
--- instance ID (UTF-16, 400 bytes, zero-padded) and the SMART data (512 bytes,
--- zero unless the status is STATUS_SUCCESS). STATUS_NOT_SUPPORTED is a bridge
--- not listed and STATUS_DEVICE_POWERED_OFF a drive in standby.
+-- per disk: status, bridge vendor and product (2 bytes each), power mode count
+-- (1), kind (1, KIND_* or 0; 2 reserved), parent instance ID (UTF-16, 400
+-- bytes) and data (512 bytes, zero unless STATUS_SUCCESS); STATUS_NOT_SUPPORTED
+-- is a bridge not listed, STATUS_DEVICE_POWERED_OFF a drive in standby.
 function read(input)
   if not ksi.hw.devices or not ksi.hw.device_control or not ksi.hw.device_property_data then
     ksi.trace('no device functions')
