@@ -22,6 +22,7 @@
 #define PHP_HW_CPU_STRIKE_LIMIT 3 // failures of a register before it leaves the plan for the session
 #define PHP_HW_CPU_BUS_MHZ 100.0f
 #define PHP_HW_CPU_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
+#define PHP_HW_CPU_MAX_INTERVAL 10.0f // seconds; a longer interval is a gap
 #define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE | PH_HW_CAP_RAPL_DRAM | PH_HW_CAP_RAPL_PSYS | \
     PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_POWER_LIMIT2) // package bits this collector always owns
 #define PHP_HW_CPU_ENERGY_IDLE_TICKS 5 // samples a DRAM or platform counter may stay still before it leaves the plan
@@ -1583,9 +1584,27 @@ static VOID PhpHwCpuPublish(
     FLOAT seconds = 0.0f;
     ULONG capabilities = 0;
     ULONG index;
+    BOOLEAN restarted;
 
     if (PhpHwCpuLastSampleTime && PhpHwCpuSampleTime > PhpHwCpuLastSampleTime)
         seconds = (FLOAT)(PhpHwCpuSampleTime - PhpHwCpuLastSampleTime) / (FLOAT)PHP_HW_SECOND;
+
+    // After a gap or a counter restart (a resume) the pass is a first sample.
+    restarted = seconds > PHP_HW_CPU_MAX_INTERVAL;
+
+    for (ULONG i = 0; i < PhpHwProcessorCount && !restarted; i++)
+    {
+        PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[i];
+
+        if ((sample->Valid & sample->LastValid & (1ULL << PhpHwRegAperf)) && sample->Value[PhpHwRegAperf] < sample->LastValue[PhpHwRegAperf])
+            restarted = TRUE;
+    }
+
+    if (restarted)
+    {
+        for (ULONG i = 0; i < PhpHwProcessorCount; i++)
+            PhpHwCpuSamples[i].LastValid = 0;
+    }
 
     for (ULONG i = 0; i < PhpHwPackageCount; i++)
     {
