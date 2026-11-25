@@ -246,7 +246,18 @@ static CONST UCHAR PhpHwVrmAddresses[] =
 {
     0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
 };
+// Boards whose VRM telemetry is read elsewhere (the board's embedded controller): no discovery on them.
+static CONST struct
+{
+    PCWSTR Manufacturer;
+    PCWSTR Product;
+} PhpHwVrmBoardRows[] =
+{
+    { L"ASUSTeK COMPUTER INC.", L"ROG CROSSHAIR X870E APEX" },
+};
+
 static PHP_HW_VRM PhpHwVrms[PHP_HW_VRM_MAX];
+static BOOLEAN PhpHwVrmRowBoard = FALSE; // the board has a row: discovery does not run
 static ULONG PhpHwVrmCount = 0;
 static ULONG PhpHwVrmHost = 0;
 static ULONG PhpHwVrmUnidentified = 0; // devices that answered and were not identified
@@ -278,10 +289,38 @@ static VOID PhpHwVrmList(
 }
 
 /**
- * Finds the PMBus controllers once a session: each SMBus host's port 0 is asked at every address of the range, and a
- * device is kept only when its answers identify a family SI decodes; the first host with one is the host.
+ * Whether the board has a row: its VRM telemetry is read elsewhere.
+ */
+static BOOLEAN PhpHwVrmBoardHasRow(
+    VOID
+    )
+{
+    PPH_STRING manufacturer;
+    PPH_STRING product;
+    BOOLEAN found = FALSE;
+
+    if (!PhpHwQueryBaseboard(&manufacturer, &product))
+        return FALSE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwVrmBoardRows) && !found; i++)
+    {
+        found = PhEqualString2(manufacturer, PhpHwVrmBoardRows[i].Manufacturer, TRUE) &&
+            PhEqualString2(product, PhpHwVrmBoardRows[i].Product, TRUE);
+    }
+
+    PhDereferenceObject(manufacturer);
+    PhDereferenceObject(product);
+
+    return found;
+}
+
+/**
+ * Finds the PMBus controllers once a session on a board without a row: each SMBus host's port 0 is asked at every
+ * address of the range, and a device is kept only when its answers identify a family SI decodes; the first host with
+ * one is the host.
  *
- * \return STATUS_SUCCESS, STATUS_RETRY when another tool held the bus, or STATUS_NOT_SUPPORTED when none is found.
+ * \return STATUS_SUCCESS, STATUS_RETRY when another tool held the bus, or STATUS_NOT_SUPPORTED when none is found or
+ * the board has a row.
  */
 NTSTATUS PhpHwVrmProbe(
     VOID
@@ -292,6 +331,11 @@ NTSTATUS PhpHwVrmProbe(
 
     PhpHwVrmCount = 0;
     PhpHwVrmUnidentified = 0;
+    PhpHwVrmRowBoard = PhpHwVrmBoardHasRow();
+
+    if (PhpHwVrmRowBoard)
+        return STATUS_NOT_SUPPORTED;
+
     hostCount = PhpHwEnumeratePciFunctions(
         PHP_HW_ANY_VENDOR_ID,
         PHP_HW_ANY_VENDOR_ID,
@@ -445,11 +489,12 @@ VOID PhpHwVrmDiagnostics(
 {
     PhAppendFormatStringBuilder(
         Builder,
-        L"  VR controllers: last read 0x%08lx, %lu found, %lu unidentified%s\n",
+        L"  VR controllers: last read 0x%08lx, %lu found, %lu unidentified%s%s\n",
         PhpHwVrmStatus,
         PhpHwVrmCount,
         PhpHwVrmUnidentified,
-        PhpHwVrmEnded ? L", ended" : L""
+        PhpHwVrmEnded ? L", ended" : L"",
+        PhpHwVrmRowBoard ? L", the board's row (no discovery)" : L""
         );
 
     for (ULONG i = 0; i < PhpHwVrmCount; i++)
