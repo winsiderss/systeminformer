@@ -59,6 +59,7 @@ typedef enum _PHP_HW_FAMILY_ID
     PhpHwFamilyHp,
     PhpHwFamilyProm21,
     PhpHwFamilyVrm,
+    PhpHwFamilySch5027,
     PhpHwFamilySmu,
     PhpHwFamilyHsmp,
     PhpHwFamilySmbus,
@@ -322,6 +323,22 @@ PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
     _In_ ULONG ModelLength,
     _In_reads_bytes_(DeviceIdLength) const UCHAR* DeviceId,
     _In_ ULONG DeviceIdLength
+    );
+
+NTSTATUS PhpHwSch5027Probe(
+    VOID
+    );
+
+NTSTATUS PhpHwSch5027Pass(
+    VOID
+    );
+
+VOID PhpHwSch5027End(
+    VOID
+    );
+
+VOID PhpHwSch5027Diagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
     );
 
 NTSTATUS PhpHwVrmProbe(

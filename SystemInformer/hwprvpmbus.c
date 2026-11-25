@@ -500,3 +500,228 @@ VOID PhpHwVrmDiagnostics(
     for (ULONG i = 0; i < PhpHwVrmCount; i++)
         PhAppendFormatStringBuilder(Builder, L"    %02Xh: family %d\n", PhpHwVrms[i].Address, PhpHwVrms[i].Family);
 }
+
+// Collector sch5027: an SCH5027 hardware monitor on an Intel SMBus host at 2Ch-2Eh, accepted on its company and stepping;
+// voltages, temperatures and fans read in one SMBus read an update (the high bytes before the low-bit registers, which
+// latch when the high bytes are read).
+
+#define PHP_HW_SCH5027_ID_BASE 0x53430000 // named sensor ids: + kind << 8 + index
+#define PHP_HW_SCH5027_ITEMS 24
+
+static CONST UCHAR PhpHwSch5027Commands[PHP_HW_SCH5027_ITEMS] =
+{
+    0x20, 0x21, 0x22, 0x23, 0x24, 0x99, 0x9A, // in0-in6
+    0x25, 0x26, 0x27, // temperatures 1-3
+    0x84, 0x85, 0x86, 0x87, 0x88, 0x89, // low bits
+    0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F, // fans 1-4, low byte first
+};
+static CONST USHORT PhpHwSch5027Nominal[7] = { 5000, 2250, 3300, 1125, 1125, 3300, 3300 }; // mV at full scale
+static CONST UCHAR PhpHwSch5027InLsb[7] = { 3, 4, 4, 3, 2, 0, 0 }; // low-bit register (84h + n) of in0-in6
+static CONST UCHAR PhpHwSch5027InShift[7] = { 4, 4, 0, 0, 0, 0, 4 };
+static CONST UCHAR PhpHwSch5027TempLsb[3] = { 1, 2, 1 };
+static CONST UCHAR PhpHwSch5027TempShift[3] = { 4, 4, 0 };
+
+static ULONG PhpHwSch5027Host = 0;
+static UCHAR PhpHwSch5027Address = 0;
+static ULONG PhpHwSch5027Named[7 + 3 + 4];
+static NTSTATUS PhpHwSch5027Status = STATUS_NOT_SUPPORTED; // the last read, for the report
+static UCHAR PhpHwSch5027Strikes = 0;
+static BOOLEAN PhpHwSch5027Ended = FALSE;
+static BOOLEAN PhpHwSch5027Found = FALSE;
+
+/**
+ * Finds an SCH5027 once a session: each Intel SMBus host's port 0 is asked at 2Ch-2Eh for the identification bytes,
+ * and the chip is accepted only on company 5Ch and stepping 69h.
+ *
+ * \return STATUS_SUCCESS, STATUS_RETRY when another tool held the bus, or STATUS_NOT_SUPPORTED when there is none.
+ */
+NTSTATUS PhpHwSch5027Probe(
+    VOID
+    )
+{
+    static CONST UCHAR addresses[3] = { 0x2C, 0x2D, 0x2E };
+    ULONG hosts[PHP_HW_VRM_MAX_HOSTS];
+    ULONG hostCount;
+
+    PhpHwSch5027Found = FALSE;
+    hostCount = PhpHwEnumeratePciFunctions(0x8086, 0x8086, 0x0C05, NULL, 0, FALSE, hosts, RTL_NUMBER_OF(hosts));
+
+    for (ULONG h = 0; h < hostCount && !PhpHwSch5027Found; h++)
+    {
+        KPH_HW_SMBUS_ITEM items[9];
+        KPH_HW_VALUE32 values[9];
+        NTSTATUS status;
+
+        for (ULONG i = 0; i < 9; i++)
+        {
+            items[i].Address = addresses[i / 3];
+            items[i].Command = (UCHAR)(0x3D + i % 3);
+            items[i].Protocol = KPH_HW_SMBUS_BYTE;
+            items[i].Reserved = 0;
+        }
+
+        status = KphHwSmbusRead(hosts[h], 0, items, RTL_NUMBER_OF(items), values);
+
+        if (status == STATUS_RETRY)
+            return STATUS_RETRY;
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        for (ULONG a = 0; a < 3 && !PhpHwSch5027Found; a++)
+        {
+            PKPH_HW_VALUE32 id = &values[a * 3];
+
+            if (NT_SUCCESS(id[1].Status) && NT_SUCCESS(id[2].Status) && id[1].Value == 0x5C && id[2].Value == 0x69)
+            {
+                PhpHwSch5027Host = hosts[h];
+                PhpHwSch5027Address = addresses[a];
+                PhpHwSch5027Found = TRUE;
+            }
+        }
+    }
+
+    if (!PhpHwSch5027Found)
+        return STATUS_NOT_SUPPORTED;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSch5027Named); i++)
+    {
+        PH_HW_NAMED_SENSOR_KIND kind;
+        PPH_STRING name;
+        ULONG index;
+
+        if (i < 7)
+        {
+            kind = PhHwNamedSensorAcpiVoltage;
+            index = i;
+            name = PhFormatString(L"SCH5027 in%lu", index);
+        }
+        else if (i < 10)
+        {
+            kind = PhHwNamedSensorAcpiTemperature;
+            index = i - 7;
+            name = PhFormatString(L"SCH5027 temperature %lu", index + 1);
+        }
+        else
+        {
+            kind = PhHwNamedSensorFanSpeed;
+            index = i - 10;
+            name = PhFormatString(L"SCH5027 fan %lu", index + 1);
+        }
+
+        PhpHwSch5027Named[i] = PhpHwAddNamedSensor(kind, 0, PHP_HW_SCH5027_ID_BASE + ((ULONG)kind << 8) + index, name->Buffer);
+        PhDereferenceObject(name);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Reads and publishes the monitor: a voltage is its 12-bit reading of the input's nominal full scale, a temperature
+ * the 12-bit two's complement degrees C (-128 no value), a fan 5400000 / count RPM (0 and FFFFh no value). Three
+ * failed reads in a row end the source; another tool holding the bus is a retry.
+ *
+ * \return STATUS_RETRY when another tool held the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwSch5027Pass(
+    VOID
+    )
+{
+    KPH_HW_SMBUS_ITEM items[PHP_HW_SCH5027_ITEMS];
+    KPH_HW_VALUE32 values[PHP_HW_SCH5027_ITEMS];
+    ULONG capabilities = 0;
+    BOOLEAN read;
+
+    if (PhpHwSch5027Ended || !PhpHwSch5027Found)
+        return STATUS_NOT_SUPPORTED;
+
+    for (ULONG i = 0; i < PHP_HW_SCH5027_ITEMS; i++)
+    {
+        items[i].Address = PhpHwSch5027Address;
+        items[i].Command = PhpHwSch5027Commands[i];
+        items[i].Protocol = KPH_HW_SMBUS_BYTE;
+        items[i].Reserved = 0;
+    }
+
+    PhpHwSch5027Status = KphHwSmbusRead(PhpHwSch5027Host, 0, items, PHP_HW_SCH5027_ITEMS, values);
+
+    if (PhpHwSch5027Status == STATUS_RETRY)
+        return STATUS_RETRY;
+
+    read = NT_SUCCESS(PhpHwSch5027Status);
+
+    if (read)
+        PhpHwSch5027Strikes = 0;
+    else if (++PhpHwSch5027Strikes >= 3)
+        PhpHwSch5027Ended = TRUE;
+
+    for (ULONG i = 0; i < PHP_HW_SCH5027_ITEMS; i++)
+    {
+        if (read && !NT_SUCCESS(values[i].Status))
+            read = FALSE;
+    }
+
+    for (ULONG i = 0; i < 7; i++)
+    {
+        ULONG reading = read ? ((values[i].Value & 0xFF) << 8) | ((values[10 + PhpHwSch5027InLsb[i]].Value << PhpHwSch5027InShift[i]) & 0xF0) : 0;
+
+        PhpHwSetNamedSensor(PhpHwSch5027Named[i], read, read ? (FLOAT)reading * PhpHwSch5027Nominal[i] / 49152.0f / 1000.0f : 0.0f);
+    }
+
+    for (ULONG i = 0; i < 3; i++)
+    {
+        SHORT reading = read ? (SHORT)(((values[7 + i].Value & 0xFF) << 8) | ((values[10 + PhpHwSch5027TempLsb[i]].Value << PhpHwSch5027TempShift[i]) & 0xF0)) : 0;
+        BOOLEAN valid = read && (values[7 + i].Value & 0xFF) != 0x80;
+
+        PhpHwSetNamedSensor(PhpHwSch5027Named[7 + i], valid, valid ? reading / 256.0f : 0.0f);
+    }
+
+    for (ULONG i = 0; i < 4; i++)
+    {
+        ULONG count = read ? (values[16 + i * 2].Value & 0xFF) | ((values[17 + i * 2].Value & 0xFF) << 8) : 0;
+        BOOLEAN valid = read && count != 0 && count != 0xFFFF;
+
+        PhpHwSetNamedSensor(PhpHwSch5027Named[10 + i], valid, valid ? 5400000.0f / count : 0.0f);
+
+        if (valid)
+            capabilities |= PH_HW_CAP_FAN_SPEED;
+    }
+
+    if (read)
+        capabilities |= PH_HW_CAP_ACPI_TEMP;
+
+    PhpHwFamilies[PhpHwFamilySch5027].Capabilities = PhpHwSch5027Ended ? 0 : capabilities;
+
+    return PhpHwSch5027Ended ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the monitor is found again at the next.
+ */
+VOID PhpHwSch5027End(
+    VOID
+    )
+{
+    PhpHwSch5027Status = STATUS_NOT_SUPPORTED;
+    PhpHwSch5027Found = FALSE;
+    PhpHwSch5027Strikes = 0;
+    PhpHwSch5027Ended = FALSE;
+}
+
+/**
+ * Writes the SCH5027 source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwSch5027Diagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  SCH5027: last read 0x%08lx, %s%s\n",
+        PhpHwSch5027Status,
+        PhpHwSch5027Found ? L"found" : L"not found",
+        PhpHwSch5027Ended ? L", ended" : L""
+        );
+}
