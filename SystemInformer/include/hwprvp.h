@@ -439,6 +439,10 @@ VOID PhpHwVsecDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
+ULONG PhpHwVsecPackageCaps(
+    _In_ ULONG PackageIndex
+    );
+
 NTSTATUS PhpHwAcpiProbe(
     VOID
     );
@@ -535,6 +539,10 @@ BOOLEAN PhpHwCpuEnergyPlanned(
 
 FLOAT PhpHwCpuQueryPowerUnit(
     VOID
+    );
+
+ULONG PhpHwCpuPackageValid(
+    _In_ ULONG PackageIndex
     );
 
 // TRUE during an update that serves a report request (D11): each pass ends with its report-only reads.
@@ -658,6 +666,10 @@ VOID PhpHwPciEnd(
 
 VOID PhpHwPciDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
+    );
+
+ULONG PhpHwPciPackageCaps(
+    _In_ ULONG PackageIndex
     );
 
 _Success_(return)

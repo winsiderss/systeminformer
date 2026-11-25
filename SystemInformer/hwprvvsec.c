@@ -1230,6 +1230,28 @@ VOID PhpHwVsecEnd(
 }
 
 /**
+ * \return The package bits the collector owns for the package (its last pass's energy kinds), 0 without one.
+ */
+ULONG PhpHwVsecPackageCaps(
+    _In_ ULONG PackageIndex
+    )
+{
+    ULONG owned = 0;
+
+    if (!PhpHwVsecPackages || PackageIndex >= PhpHwPackageCount)
+        return 0;
+
+    if (PhpHwVsecPackages[PackageIndex].Required[PhpHwVsecPackageEnergy])
+        owned |= PH_HW_CAP_RAPL_PACKAGE;
+    if (PhpHwVsecPackages[PackageIndex].Required[PhpHwVsecDramEnergy])
+        owned |= PH_HW_CAP_RAPL_DRAM;
+    if (PhpHwVsecPackages[PackageIndex].Required[PhpHwVsecPlatformEnergy])
+        owned |= PH_HW_CAP_RAPL_PSYS;
+
+    return owned;
+}
+
+/**
  * Writes the collector's section of the hardware report: the functions and the regions read.
  *
  * \param Builder The report.

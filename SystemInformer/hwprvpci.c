@@ -534,6 +534,10 @@ NTSTATUS PhpHwPciPass(
             sensor->PackagePower = watts;
             WriteULongRelease(&sensor->Valid, ReadULongAcquire(&sensor->Valid) | PH_HW_CAP_RAPL_PACKAGE);
         }
+        else
+        {
+            WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PH_HW_CAP_RAPL_PACKAGE) | (PhpHwCpuPackageValid(i) & PH_HW_CAP_RAPL_PACKAGE));
+        }
     }
 
     PhpHwFamilies[PhpHwFamilyPciConfig].Capabilities = capabilities;
@@ -566,6 +570,19 @@ VOID PhpHwPciEnd(
     PhpHwPciMiscNodeCount = 0;
     PhpHwPciLinkNodeCount = 0;
     PhpHwPciIdentifiedCount = 0;
+}
+
+/**
+ * \return PH_HW_CAP_RAPL_PACKAGE when the package's power is the collector's running average, else 0.
+ */
+ULONG PhpHwPciPackageCaps(
+    _In_ ULONG PackageIndex
+    )
+{
+    if (!PhpHwPciPackages || PackageIndex >= PhpHwPackageCount || !PhpHwPciPackages[PackageIndex].RunningAverage.Enabled)
+        return 0;
+
+    return PH_HW_CAP_RAPL_PACKAGE;
 }
 
 /**

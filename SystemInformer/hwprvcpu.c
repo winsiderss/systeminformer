@@ -1783,6 +1783,7 @@ static VOID PhpHwCpuPublish(
         PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
         ULONG valid = PhpHwCpuTickValid[i];
+        ULONG owned;
         FLOAT watts;
         FLOAT limit;
 
@@ -1922,7 +1923,10 @@ static VOID PhpHwCpuPublish(
             }
         }
 
-        WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PhpHwCpuPackageCaps) | (valid & PhpHwCpuPackageCaps));
+        // A bit another family owns for the package is that family's to clear or set.
+        owned = PhpHwCpuPackageCaps & ~(PhpHwVsecPackageCaps(i) | PhpHwPciPackageCaps(i));
+        PhpHwCpuTickValid[i] = valid;
+        WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~owned) | (valid & owned));
     }
 
     PhpHwFamilies[PhpHwFamilyCpu].Capabilities = capabilities;
@@ -2136,6 +2140,19 @@ BOOLEAN PhpHwCpuEnergyPlanned(
     static CONST PHP_HW_REG registers[] = { PhpHwRegPackageEnergy, PhpHwRegDramEnergy, PhpHwRegPlatformEnergy };
 
     return Kind < RTL_NUMBER_OF(registers) && PhpHwCpuRegisterActive(registers[Kind]);
+}
+
+/**
+ * \return The PH_HW_CAP_* bits cpu decoded for the package in its last pass, 0 without a pass.
+ */
+ULONG PhpHwCpuPackageValid(
+    _In_ ULONG PackageIndex
+    )
+{
+    if (!PhpHwCpuTickValid || PackageIndex >= PhpHwPackageCount)
+        return 0;
+
+    return PhpHwCpuTickValid[PackageIndex];
 }
 
 /**
