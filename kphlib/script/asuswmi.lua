@@ -42,7 +42,8 @@ local ARGUMENT_BUFFER = 2
 local ARGUMENT_PACKAGE = 3
 
 local MANUFACTURER = 'ASUSTEK COMPUTER INC.'
--- The boards by product name, each with the lowest interface version its firmware may be called at.
+-- The boards by product name, each with the lowest interface version its
+-- firmware may be called at.
 local BOARDS = {
   ['PRIME X399-A'] = 2,
   ['PRIME X470-PRO'] = 2,
@@ -64,7 +65,8 @@ local BOARDS = {
 
 local kept = {}
 
--- The bytes of an SMBIOS string trimmed of spaces and tabs, with a to z made upper case.
+-- The bytes of an SMBIOS string trimmed of spaces and tabs, with a to z made
+-- upper case.
 local function normalized(text)
   local first, last = 1, #text
   while first <= last and (string.byte(text, first) == 0x20 or string.byte(text, first) == 0x09) do

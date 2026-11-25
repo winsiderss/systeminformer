@@ -38,7 +38,8 @@ local I2EC_VALUE = 0x12
 
 local kept = {}
 
--- The bytes of an SMBIOS string trimmed of spaces and tabs, with a to z made upper case.
+-- The bytes of an SMBIOS string trimmed of spaces and tabs, with a to z made
+-- upper case.
 local function normalized(text)
   local first, last = 1, #text
   while first <= last and (string.byte(text, first) == 0x20 or string.byte(text, first) == 0x09) do
