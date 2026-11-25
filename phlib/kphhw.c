@@ -296,9 +296,6 @@ NTSTATUS KphHwCpuIdentify(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -349,7 +346,7 @@ NTSTATUS KphHwCpuRead(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != outputLength)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -573,9 +570,6 @@ NTSTATUS KphHwSuperIoIdentify(
 
     KphpHwReleaseBus(KphHwBusIsa);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -642,7 +636,7 @@ NTSTATUS KphHwSuperIoRead(
 
         KphpHwReleaseBus(KphHwBusIsa);
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -689,9 +683,6 @@ NTSTATUS KphHwSmnIdentify(
         );
 
     KphpHwReleaseBus(KphHwBusPci);
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -760,7 +751,7 @@ NTSTATUS KphHwSmnRead(
 
         KphpHwReleaseBus(KphHwBusPci);
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -808,9 +799,6 @@ NTSTATUS KphHwSmuIdentify(
         );
 
     KphpHwReleaseBus(KphHwBusPci);
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -952,7 +940,7 @@ NTSTATUS KphHwSmuCommand(
 
         KphpHwReleaseBus(KphHwBusPci);
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -1006,9 +994,6 @@ NTSTATUS KphHwHsmpIdentify(
         );
 
     KphpHwReleaseBus(KphHwBusPci);
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1081,7 +1066,7 @@ NTSTATUS KphHwHsmpCommand(
 
         KphpHwReleaseBus(KphHwBusPci);
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -1131,9 +1116,7 @@ NTSTATUS KphHwHsmpReadMetrics(
 
     KphpHwReleaseBus(KphHwBusPci);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        status = STATUS_INFO_LENGTH_MISMATCH;
-    else if (NT_SUCCESS(status) && returnLength != KPH_HW_HSMP_METRICS_SIZE)
+    if (NT_SUCCESS(status) && returnLength != KPH_HW_HSMP_METRICS_SIZE)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -1274,9 +1257,6 @@ NTSTATUS KphHwSmbusIdentify(
 
     KphpHwReleaseSmbus(FALSE, isa);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -1358,7 +1338,7 @@ NTSTATUS KphHwSmbusRead(
 
         KphpHwReleaseSmbus(dimm, isa);
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -1434,9 +1414,6 @@ NTSTATUS KphHwPmbusIdentify(
 
     KphpHwReleaseSmbus(FALSE, isa);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -1511,9 +1488,6 @@ NTSTATUS KphHwPciMmioIdentify(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -1578,7 +1552,7 @@ NTSTATUS KphHwPciMmioRead(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != outputLength)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -1619,9 +1593,6 @@ NTSTATUS KphHwPciConfigIdentify(
         sizeof(device),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1685,7 +1656,7 @@ NTSTATUS KphHwPciConfigRead(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != outputLength)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -1736,7 +1707,7 @@ NTSTATUS KphHwPciConfigReadBlock(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != Length) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != Length)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -1778,9 +1749,6 @@ NTSTATUS KphHwCrosEcIdentify(
         );
 
     KphpHwReleaseEc();
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1842,7 +1810,7 @@ NTSTATUS KphHwCrosEcRead(
 
         KphpHwReleaseEc();
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -1888,9 +1856,6 @@ NTSTATUS KphHwEcIdentify(
 
     KphpHwReleaseEc();
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -1933,9 +1898,6 @@ NTSTATUS KphHwEcSensors(
         sizeof(output),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -1996,9 +1958,6 @@ NTSTATUS KphHwAlienwareIdentify(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2053,9 +2012,6 @@ NTSTATUS KphHwAlienwareRead(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2098,9 +2054,6 @@ NTSTATUS KphHwHpIdentify(
         sizeof(sensors),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2158,9 +2111,6 @@ NTSTATUS KphHwHpRead(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2213,9 +2163,6 @@ NTSTATUS KphHwProm21Read(
 
     KphpHwReleaseBus(KphHwBusPci);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2267,9 +2214,7 @@ static NTSTATUS KphpHwHidCall(
         if (Bus != KphHwBusMaximum)
             KphpHwReleaseBus(Bus);
 
-        if (status == STATUS_BUFFER_TOO_SMALL)
-            status = STATUS_INFO_LENGTH_MISMATCH;
-        else if (NT_SUCCESS(status) && returnLength % sizeof(KPH_HW_HID_DEVICE))
+        if (NT_SUCCESS(status) && returnLength % sizeof(KPH_HW_HID_DEVICE))
             status = STATUS_INFO_LENGTH_MISMATCH;
     }
 
@@ -2372,9 +2317,7 @@ NTSTATUS KphHwUsbDiskRead(
 
         KphpHwReleaseBus(KphHwBusJMicronSmart);
 
-        if (status == STATUS_BUFFER_TOO_SMALL)
-            status = STATUS_INFO_LENGTH_MISMATCH;
-        else if (NT_SUCCESS(status) && returnLength % sizeof(KPH_HW_USB_DISK))
+        if (NT_SUCCESS(status) && returnLength % sizeof(KPH_HW_USB_DISK))
             status = STATUS_INFO_LENGTH_MISMATCH;
     }
 
@@ -2429,9 +2372,6 @@ NTSTATUS KphHwAqtionRead(
 
     KphpHwReleaseBus(KphHwBusPci);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2470,9 +2410,6 @@ NTSTATUS KphHwGigabyteRead(
         sizeof(values),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2538,7 +2475,7 @@ NTSTATUS KphHwEcRead(
 
         KphpHwReleaseEc();
 
-        if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+        if (NT_SUCCESS(status) && returnLength != outputLength)
             status = STATUS_INFO_LENGTH_MISMATCH;
 
         if (NT_SUCCESS(status))
@@ -2581,9 +2518,6 @@ NTSTATUS KphHwGpdReadFan(
         );
 
     KphpHwReleaseEc();
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2636,9 +2570,6 @@ NTSTATUS KphHwLenovoWsRead(
 
     KphpHwReleaseEc();
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (NT_SUCCESS(status))
         *ReturnLength = returnLength;
 
@@ -2672,9 +2603,6 @@ NTSTATUS KphHwDellIdentify(
         sizeof(identity),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2723,9 +2651,6 @@ NTSTATUS KphHwDellRead(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2766,9 +2691,6 @@ NTSTATUS KphHwAsusWmiIdentify(
         sizeof(KPH_HW_ASUSWMI_IDENTITY),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2819,9 +2741,6 @@ NTSTATUS KphHwAsusWmiRead(
         &returnLength
         );
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2865,9 +2784,6 @@ NTSTATUS KphHwOcMailboxRead(
 
     KphpHwReleaseBus(KphHwBusIntelOcMailbox);
 
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
-
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2909,9 +2825,6 @@ NTSTATUS KphHwVsecIdentify(
         sizeof(device),
         &returnLength
         );
-
-    if (status == STATUS_BUFFER_TOO_SMALL)
-        return STATUS_INFO_LENGTH_MISMATCH;
 
     if (!NT_SUCCESS(status))
         return status;
@@ -3046,7 +2959,7 @@ NTSTATUS KphHwVsecRead(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != outputLength)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -3108,7 +3021,7 @@ NTSTATUS KphHwPlatformRead(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != outputLength) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != outputLength)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status))
@@ -3266,11 +3179,11 @@ NTSTATUS KphHwTsensIdentify(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != sizeof(identity)) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != sizeof(identity))
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     if (NT_SUCCESS(status) && identity.Count > KPH_HW_TSENS_CONTROLLERS)
-        status = STATUS_INFO_LENGTH_MISMATCH;
+        status = STATUS_DEVICE_PROTOCOL_ERROR;
 
     if (NT_SUCCESS(status))
         *Identity = identity;
@@ -3311,7 +3224,7 @@ NTSTATUS KphHwTsensRead(
         &returnLength
         );
 
-    if ((NT_SUCCESS(status) && returnLength != length) || status == STATUS_BUFFER_TOO_SMALL)
+    if (NT_SUCCESS(status) && returnLength != length)
         status = STATUS_INFO_LENGTH_MISMATCH;
 
     return status;
