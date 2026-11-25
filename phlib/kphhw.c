@@ -1355,6 +1355,117 @@ NTSTATUS KphHwSmbusRead(
 }
 
 /**
+ * Reads what a PMBus controller answers to identify itself: its revision and
+ * its MFR_ID, MFR_MODEL and IC_DEVICE_ID blocks.
+ *
+ * \param Locator The SMBus host's location.
+ * \param Port The host's port.
+ * \param Address The device's 7-bit address.
+ * \param Identity Receives the revision and the blocks read (a block not read
+ * has length 0).
+ * \return Successful or errant status; STATUS_NO_SUCH_DEVICE when nothing
+ * answers; STATUS_ACCESS_DENIED for an address the script does not permit.
+ */
+NTSTATUS KphHwPmbusIdentify(
+    _In_ ULONG Locator,
+    _In_ ULONG Port,
+    _In_ UCHAR Address,
+    _Out_ PKPH_HW_PMBUS_IDENTITY Identity
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    static const UCHAR commands[4] = { 0x98, 0x99, 0x9A, 0xAD };
+    NTSTATUS status;
+    struct
+    {
+        ULONG Locator;
+        ULONG Port;
+        KPH_HW_SMBUS_ITEM Items[4];
+    } input;
+    UCHAR output[4 * sizeof(KPH_HW_VALUE32) + 3 * KPH_HW_PMBUS_BLOCK];
+    KPH_HW_VALUE32 records[4];
+    KPH_HW_PMBUS_IDENTITY identity;
+    PUCHAR blocks[3];
+    PUCHAR lengths[3];
+    ULONG returnLength = 0;
+    ULONG at = sizeof(records);
+    BOOLEAN isa;
+
+    input.Locator = Locator;
+    input.Port = Port;
+
+    for (ULONG i = 0; i < 4; i++)
+    {
+        input.Items[i].Address = Address;
+        input.Items[i].Command = commands[i];
+        input.Items[i].Protocol = i ? KPH_HW_SMBUS_BLOCK : KPH_HW_SMBUS_BYTE;
+        input.Items[i].Reserved = 0;
+    }
+
+    if (!NT_SUCCESS(status = KphpHwAcquireSmbus(FALSE, &isa)))
+        return status;
+
+    status = KphpHwScriptCall(
+        &KphpHwSmbusScript,
+        &routine,
+        &input,
+        sizeof(input),
+        output,
+        sizeof(output),
+        &returnLength
+        );
+
+    KphpHwReleaseSmbus(FALSE, isa);
+
+    if (status == STATUS_BUFFER_TOO_SMALL)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (returnLength < sizeof(records))
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    memcpy(records, output, sizeof(records));
+
+    if (!NT_SUCCESS(records[0].Status))
+        return records[0].Status;
+
+    memset(&identity, 0, sizeof(identity));
+    identity.Revision = (UCHAR)records[0].Value;
+    blocks[0] = identity.MfrId;
+    blocks[1] = identity.Model;
+    blocks[2] = identity.DeviceId;
+    lengths[0] = &identity.MfrIdLength;
+    lengths[1] = &identity.ModelLength;
+    lengths[2] = &identity.DeviceIdLength;
+
+    for (ULONG i = 0; i < 3; i++)
+    {
+        ULONG length;
+
+        if (!NT_SUCCESS(records[i + 1].Status))
+            continue;
+
+        length = records[i + 1].Value;
+
+        if (length == 0 || length > KPH_HW_PMBUS_BLOCK || returnLength - at < length)
+            return STATUS_INFO_LENGTH_MISMATCH;
+
+        memcpy(blocks[i], output + at, length);
+        *lengths[i] = (UCHAR)length;
+        at += length;
+    }
+
+    if (at != returnLength)
+        return STATUS_INFO_LENGTH_MISMATCH;
+
+    *Identity = identity;
+
+    return status;
+}
+
+/**
  * Identifies the PCI function at a location and the memory windows it has.
  *
  * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |

@@ -10,6 +10,7 @@
  */
 
 #include <hwprvp.h>
+#include <kphhw.h>
 #include <math.h>
 
 // PMBus voltage regulator controllers: the families SI decodes and how each one's readings decode. LINEAR11 is a 5-bit
@@ -224,4 +225,233 @@ PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
     }
 
     return PhpHwPmbusFamilyNone;
+}
+
+// Collector vrm: PMBus controllers found on an SMBus host's port 0 by what they answer (the script permits only its
+// identification range), each page's output voltage, temperature and output power read in one paged read an update.
+
+#define PHP_HW_VRM_MAX_HOSTS 4
+#define PHP_HW_VRM_MAX 8 // controllers
+#define PHP_HW_VRM_PAGES 2
+#define PHP_HW_VRM_ID_BASE 0x56520000 // named sensor ids: + controller << 8 + page << 4 + quantity
+
+typedef struct _PHP_HW_VRM
+{
+    UCHAR Address;
+    PHP_HW_PMBUS_FAMILY Family;
+    ULONG Named[PHP_HW_VRM_PAGES][3]; // voltage, temperature, power
+} PHP_HW_VRM, *PPHP_HW_VRM;
+
+static CONST UCHAR PhpHwVrmAddresses[] =
+{
+    0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x60, 0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67,
+};
+static PHP_HW_VRM PhpHwVrms[PHP_HW_VRM_MAX];
+static ULONG PhpHwVrmCount = 0;
+static ULONG PhpHwVrmHost = 0;
+static ULONG PhpHwVrmUnidentified = 0; // devices that answered and were not identified
+static NTSTATUS PhpHwVrmStatus = STATUS_NOT_SUPPORTED; // the last read, for the report
+static UCHAR PhpHwVrmStrikes = 0;
+static BOOLEAN PhpHwVrmEnded = FALSE;
+
+/**
+ * Lists a controller's sensors: per page its output voltage, temperature and output power.
+ */
+static VOID PhpHwVrmList(
+    _In_ ULONG Index
+    )
+{
+    static CONST PH_HW_NAMED_SENSOR_KIND kinds[3] = { PhHwNamedSensorAcpiVoltage, PhHwNamedSensorAcpiTemperature, PhHwNamedSensorAcpiPower };
+    static CONST PCWSTR quantities[3] = { L"voltage", L"temperature", L"power" };
+    PPHP_HW_VRM vrm = &PhpHwVrms[Index];
+
+    for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++)
+    {
+        for (ULONG q = 0; q < 3; q++)
+        {
+            PPH_STRING name = PhFormatString(L"VR %02Xh rail %lu %s", vrm->Address, page + 1, quantities[q]);
+
+            vrm->Named[page][q] = PhpHwAddNamedSensor(kinds[q], 0, PHP_HW_VRM_ID_BASE + (Index << 8) + (page << 4) + q, name->Buffer);
+            PhDereferenceObject(name);
+        }
+    }
+}
+
+/**
+ * Finds the PMBus controllers once a session: each SMBus host's port 0 is asked at every address of the range, and a
+ * device is kept only when its answers identify a family SI decodes; the first host with one is the host.
+ *
+ * \return STATUS_SUCCESS, STATUS_RETRY when another tool held the bus, or STATUS_NOT_SUPPORTED when none is found.
+ */
+NTSTATUS PhpHwVrmProbe(
+    VOID
+    )
+{
+    ULONG hosts[PHP_HW_VRM_MAX_HOSTS];
+    ULONG hostCount;
+
+    PhpHwVrmCount = 0;
+    PhpHwVrmUnidentified = 0;
+    hostCount = PhpHwEnumeratePciFunctions(
+        PHP_HW_ANY_VENDOR_ID,
+        PHP_HW_ANY_VENDOR_ID,
+        0x0C05,
+        NULL,
+        0,
+        FALSE,
+        hosts,
+        RTL_NUMBER_OF(hosts)
+        );
+
+    for (ULONG h = 0; h < hostCount && !PhpHwVrmCount; h++)
+    {
+        for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwVrmAddresses) && PhpHwVrmCount < PHP_HW_VRM_MAX; i++)
+        {
+            KPH_HW_PMBUS_IDENTITY identity;
+            PHP_HW_PMBUS_FAMILY family;
+            NTSTATUS status;
+
+            status = KphHwPmbusIdentify(hosts[h], 0, PhpHwVrmAddresses[i], &identity);
+
+            if (status == STATUS_RETRY)
+                return STATUS_RETRY;
+
+            if (!NT_SUCCESS(status))
+                continue;
+
+            family = PhpHwPmbusIdentify(
+                identity.Revision,
+                identity.MfrId,
+                identity.MfrIdLength,
+                identity.Model,
+                identity.ModelLength,
+                identity.DeviceId,
+                identity.DeviceIdLength
+                );
+
+            if (family == PhpHwPmbusFamilyNone || family == PhpHwPmbusFamilyMps)
+            {
+                PhpHwVrmUnidentified++;
+                continue;
+            }
+
+            PhpHwVrms[PhpHwVrmCount].Address = PhpHwVrmAddresses[i];
+            PhpHwVrms[PhpHwVrmCount].Family = family;
+            PhpHwVrmHost = hosts[h];
+            PhpHwVrmList(PhpHwVrmCount);
+            PhpHwVrmCount++;
+        }
+    }
+
+    return PhpHwVrmCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Reads every controller's pages in one paged read and publishes what decodes. Three failed reads in a row end the
+ * source; another tool holding the bus is a retry.
+ *
+ * \return STATUS_RETRY when another tool held the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
+ */
+NTSTATUS PhpHwVrmPass(
+    VOID
+    )
+{
+    static CONST UCHAR commands[4] = { 0x20, 0x8B, 0x8D, 0x96 }; // VOUT_MODE, READ_VOUT, READ_TEMPERATURE_1, READ_POUT
+    KPH_HW_SMBUS_ITEM items[PHP_HW_VRM_MAX * PHP_HW_VRM_PAGES * 4];
+    KPH_HW_VALUE32 values[RTL_NUMBER_OF(items)];
+    ULONG count = 0;
+    ULONG capabilities = 0;
+    BOOLEAN read;
+
+    if (PhpHwVrmEnded || !PhpHwVrmCount)
+        return STATUS_NOT_SUPPORTED;
+
+    for (ULONG i = 0; i < PhpHwVrmCount; i++)
+    {
+        for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++)
+        {
+            for (ULONG c = 0; c < 4; c++)
+            {
+                items[count].Address = PhpHwVrms[i].Address;
+                items[count].Command = commands[c];
+                items[count].Protocol = c ? KPH_HW_SMBUS_PAGED_WORD : KPH_HW_SMBUS_PAGED_BYTE;
+                items[count].Reserved = (UCHAR)page;
+                count++;
+            }
+        }
+    }
+
+    PhpHwVrmStatus = KphHwSmbusRead(PhpHwVrmHost, 0, items, count, values);
+
+    if (PhpHwVrmStatus == STATUS_RETRY)
+        return STATUS_RETRY;
+
+    read = NT_SUCCESS(PhpHwVrmStatus);
+
+    if (read)
+        PhpHwVrmStrikes = 0;
+    else if (++PhpHwVrmStrikes >= 3)
+        PhpHwVrmEnded = TRUE;
+
+    for (ULONG i = 0, at = 0; i < PhpHwVrmCount; i++)
+    {
+        PPHP_HW_VRM vrm = &PhpHwVrms[i];
+
+        for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++, at += 4)
+        {
+            static CONST PHP_HW_PMBUS_QUANTITY quantities[3] = { PhpHwPmbusVout, PhpHwPmbusTemperature, PhpHwPmbusPout };
+            BOOLEAN modeRead = read && NT_SUCCESS(values[at].Status);
+
+            for (ULONG q = 0; q < 3; q++)
+            {
+                DOUBLE value = 0;
+                BOOLEAN valid = read && NT_SUCCESS(values[at + 1 + q].Status) && (q != 0 || modeRead) &&
+                    PhpHwPmbusDecode(vrm->Family, quantities[q], (UCHAR)values[at].Value, (USHORT)values[at + 1 + q].Value, &value);
+
+                PhpHwSetNamedSensor(vrm->Named[page][q], valid, valid ? (FLOAT)value : 0.0f);
+
+                if (valid)
+                    capabilities |= q == 2 ? PH_HW_CAP_ACPI_POWER : PH_HW_CAP_ACPI_TEMP;
+            }
+        }
+    }
+
+    PhpHwFamilies[PhpHwFamilyVrm].Capabilities = PhpHwVrmEnded ? 0 : capabilities;
+
+    return PhpHwVrmEnded ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
+}
+
+/**
+ * Ends the session: the controllers are found again at the next.
+ */
+VOID PhpHwVrmEnd(
+    VOID
+    )
+{
+    PhpHwVrmStatus = STATUS_NOT_SUPPORTED;
+    PhpHwVrmCount = 0;
+    PhpHwVrmStrikes = 0;
+    PhpHwVrmEnded = FALSE;
+}
+
+/**
+ * Writes the VRM source's section of the hardware report.
+ *
+ * \param Builder The report.
+ */
+VOID PhpHwVrmDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
+    )
+{
+    PhAppendFormatStringBuilder(
+        Builder,
+        L"  VR controllers: last read 0x%08lx, %lu found, %lu unidentified%s\n",
+        PhpHwVrmStatus,
+        PhpHwVrmCount,
+        PhpHwVrmUnidentified,
+        PhpHwVrmEnded ? L", ended" : L""
+        );
+
+    for (ULONG i = 0; i < PhpHwVrmCount; i++)
+        PhAppendFormatStringBuilder(Builder, L"    %02Xh: family %d\n", PhpHwVrms[i].Address, PhpHwVrms[i].Family);
 }

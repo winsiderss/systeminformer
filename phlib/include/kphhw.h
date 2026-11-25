@@ -141,6 +141,25 @@ typedef struct _KPH_HW_SMBUS_ITEM
 
 typedef const KPH_HW_SMBUS_ITEM* PCKPH_HW_SMBUS_ITEM;
 
+#define KPH_HW_SMBUS_BYTE 0 // a byte read
+#define KPH_HW_SMBUS_WORD 1 // a word read
+#define KPH_HW_SMBUS_BLOCK 2 // a block read (KphHwPmbusIdentify)
+#define KPH_HW_SMBUS_PAGED_WORD 3 // a word read on the page in Reserved (PMBus), the page put back
+#define KPH_HW_SMBUS_PAGED_BYTE 4 // a byte read on the page in Reserved (PMBus), the page put back
+
+#define KPH_HW_PMBUS_BLOCK 32
+
+typedef struct _KPH_HW_PMBUS_IDENTITY
+{
+    UCHAR Revision; // PMBUS_REVISION
+    UCHAR MfrIdLength; // 0 when the block was not read
+    UCHAR ModelLength;
+    UCHAR DeviceIdLength;
+    UCHAR MfrId[KPH_HW_PMBUS_BLOCK]; // MFR_ID
+    UCHAR Model[KPH_HW_PMBUS_BLOCK]; // MFR_MODEL
+    UCHAR DeviceId[KPH_HW_PMBUS_BLOCK]; // IC_DEVICE_ID
+} KPH_HW_PMBUS_IDENTITY, *PKPH_HW_PMBUS_IDENTITY;
+
 typedef struct _KPH_HW_PCI_MMIO
 {
     USHORT Vendor;
@@ -347,6 +366,7 @@ C_ASSERT(sizeof(KPH_HW_HSMP_RESULT) == 40);
 C_ASSERT(sizeof(KPH_HW_ACPI_DEVICE) == 144);
 C_ASSERT(sizeof(KPH_HW_SMBUS_HOST) == 16);
 C_ASSERT(sizeof(KPH_HW_SMBUS_ITEM) == 4);
+C_ASSERT(sizeof(KPH_HW_PMBUS_IDENTITY) == 100);
 C_ASSERT(sizeof(KPH_HW_PCI_MMIO) == 8);
 C_ASSERT(sizeof(KPH_HW_WINDOW_ITEM) == 8);
 C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
@@ -615,6 +635,16 @@ KphHwHpRead(
     _In_reads_(Count) PCKPH_HW_HP_ITEM Items,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwPmbusIdentify(
+    _In_ ULONG Locator,
+    _In_ ULONG Port,
+    _In_ UCHAR Address,
+    _Out_ PKPH_HW_PMBUS_IDENTITY Identity
     );
 
 #define KPH_HW_PROM21_DIES 8

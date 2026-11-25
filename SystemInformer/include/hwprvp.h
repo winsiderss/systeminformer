@@ -58,6 +58,7 @@ typedef enum _PHP_HW_FAMILY_ID
     PhpHwFamilyAlienware,
     PhpHwFamilyHp,
     PhpHwFamilyProm21,
+    PhpHwFamilyVrm,
     PhpHwFamilySmu,
     PhpHwFamilyHsmp,
     PhpHwFamilySmbus,
@@ -321,6 +322,22 @@ PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
     _In_ ULONG ModelLength,
     _In_reads_bytes_(DeviceIdLength) const UCHAR* DeviceId,
     _In_ ULONG DeviceIdLength
+    );
+
+NTSTATUS PhpHwVrmProbe(
+    VOID
+    );
+
+NTSTATUS PhpHwVrmPass(
+    VOID
+    );
+
+VOID PhpHwVrmEnd(
+    VOID
+    );
+
+VOID PhpHwVrmDiagnostics(
+    _Inout_ PPH_STRING_BUILDER Builder
     );
 
 NTSTATUS PhpHwProm21Probe(
