@@ -1411,6 +1411,7 @@ typedef enum _PHP_INTEL_MEMORY_CLOCK_FORMAT
     PhpIntelMemoryClockFormatNone,
     PhpIntelMemoryClockFormatSnb,
     PhpIntelMemoryClockFormatSkl,
+    PhpIntelMemoryClockFormatCnl,
     PhpIntelMemoryClockFormatIcl,
     PhpIntelMemoryClockFormatAdl,
     PhpIntelMemoryClockFormatMtl,
@@ -1422,7 +1423,8 @@ static PHP_INTEL_MEMORY_CLOCK_FORMAT PhpIntelMemoryClockFormat(
     )
 {
     static const UCHAR snbModels[] = { 0x2A, 0x3A, 0x3C, 0x45, 0x46, 0x3D, 0x47 };
-    static const UCHAR sklModels[] = { 0x4E, 0x5E, 0x8E, 0x9E, 0xA5, 0xA6, 0x66 };
+    static const UCHAR sklModels[] = { 0x4E, 0x5E, 0x8E, 0x9E, 0xA5, 0xA6 };
+    static const UCHAR cnlModels[] = { 0x66 };
     static const UCHAR iclModels[] = { 0x7D, 0x7E, 0x9D, 0x8C, 0x8D, 0xA7 };
     static const UCHAR adlModels[] = { 0x97, 0x9A, 0xB7, 0xBA, 0xBF, 0xBE, 0xD7 }; // Alder, Raptor, ADL-N and Bartlett Lake
     static const UCHAR mtlModels[] = { 0xAA, 0xAC, 0xC5, 0xC6, 0xB5, 0xCC, 0xD5 }; // Meteor, Arrow, Panther and Wildcat Lake
@@ -1435,6 +1437,8 @@ static PHP_INTEL_MEMORY_CLOCK_FORMAT PhpIntelMemoryClockFormat(
         return PhpIntelMemoryClockFormatSnb;
     if (PhpCpuIdentityIsModel(Identity, 0x06, sklModels, RTL_NUMBER_OF(sklModels)))
         return PhpIntelMemoryClockFormatSkl;
+    if (PhpCpuIdentityIsModel(Identity, 0x06, cnlModels, RTL_NUMBER_OF(cnlModels)))
+        return PhpIntelMemoryClockFormatCnl;
     if (PhpCpuIdentityIsModel(Identity, 0x06, iclModels, RTL_NUMBER_OF(iclModels)))
         return PhpIntelMemoryClockFormatIcl;
     if (PhpCpuIdentityIsModel(Identity, 0x06, adlModels, RTL_NUMBER_OF(adlModels)))
@@ -1505,11 +1509,20 @@ BOOLEAN NTAPI PhIntelMchbarToMemoryClock(
         break;
     case PhpIntelMemoryClockFormatSkl:
         {
-            // MT/s = MC_BIOS_REQ[3:0] x 133.33 / 100 x BCLK x 2, ratio below 3 invalid
-            if (!McBiosReq || (*McBiosReq & 0xF) < 3)
+            // MT/s = SA_PERF_STATUS[6:0] x (bit 7 ? 100 : 133.33)
+            if (!SaPerfStatus || !(*SaPerfStatus & 0x7F))
                 return FALSE;
 
-            dataRate = (FLOAT)(*McBiosReq & 0xF) * (400.0f / 3.0f) * 2.0f;
+            dataRate = (FLOAT)(*SaPerfStatus & 0x7F) * ((*SaPerfStatus & 0x80) ? 100.0f : 400.0f / 3.0f);
+        }
+        break;
+    case PhpIntelMemoryClockFormatCnl:
+        {
+            // MT/s = SA_PERF_STATUS[8:2] x (bit 9 ? 100 : 133.33)
+            if (!SaPerfStatus || !((*SaPerfStatus >> 2) & 0x7F))
+                return FALSE;
+
+            dataRate = (FLOAT)((*SaPerfStatus >> 2) & 0x7F) * ((*SaPerfStatus & 0x200) ? 100.0f : 400.0f / 3.0f);
         }
         break;
     case PhpIntelMemoryClockFormatIcl:
