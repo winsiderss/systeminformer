@@ -38,6 +38,10 @@ local KIND_NVME = 2
 local LOG_CDW10 = ((SECTOR // 4 - 1) << 16) | 0x02
 local JMICRON_SIGNATURE = 0x454d564e
 
+-- The first hardware ID of a disk unit starts with one of these (UTF-16).
+local DISK_USBSTOR = 'U\0S\0B\0S\0T\0O\0R\0\\\0D\0i\0s\0k\0'
+local DISK_SCSI = 'S\0C\0S\0I\0\\\0D\0i\0s\0k\0'
+
 -- The NVMe bridges by vendor << 16 | product, and their command family.
 local NVME = {
   [0x174c2362] = 'asmedia',
@@ -331,6 +335,14 @@ local function disk(device)
   if not id then
     local failed = vendor
     return record(failed, 0, 0, 0, 0), '', ''
+  end
+  local ids = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_HardwareIds) or ''
+  if
+    string.sub(ids, 1, #DISK_USBSTOR) ~= DISK_USBSTOR
+    and string.sub(ids, 1, #DISK_SCSI) ~= DISK_SCSI
+  then
+    ksi.trace('not a disk unit')
+    return record(nt.STATUS_NOT_SUPPORTED, vendor, product, 0, 0), id, ''
   end
   local bridge = NVME[(vendor << 16) | product]
   if bridge then
