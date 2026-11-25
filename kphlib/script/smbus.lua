@@ -11,7 +11,8 @@
 --
 -- Reads devices on the SMBus of the AMD FCH host and the Intel host. The
 -- hosts, how each one's SMBus base is reached, and the reads permitted on
--- each port are listed below.
+-- each port are listed below. A read is a byte, a word or a block; a block's
+-- bytes follow every entry's record in the output.
 --
 
 local nt = require('nt')
@@ -430,6 +431,19 @@ local I801_READS = {
   },
 }
 
+-- PMBus controller identification on port 0 of every host: PMBUS_REVISION (98h) as a byte,
+-- MFR_ID (99h), MFR_MODEL (9Ah) and IC_DEVICE_ID (ADh) as blocks, at 40h-47h
+-- and 60h-67h only (thermal sensors 18h-1Fh, SPD write protection 30h-37h,
+-- PMICs 48h-4Fh, SPD 50h-57h and clock generators 68h-6Fh are outside them).
+local PMBUS_READS = {
+  { 0x40, 0x47, 0x98, 0x98, true, false, false },
+  { 0x40, 0x47, 0x99, 0x9a, false, false, true },
+  { 0x40, 0x47, 0xad, 0xad, false, false, true },
+  { 0x60, 0x67, 0x98, 0x98, true, false, false },
+  { 0x60, 0x67, 0x99, 0x9a, false, false, true },
+  { 0x60, 0x67, 0xad, 0xad, false, false, true },
+}
+
 local KIND_FCH = 1
 local KIND_INTEL = 2
 
@@ -448,6 +462,9 @@ local HST_CMD = 0x03
 local HST_ADD = 0x04
 local HST_DAT0 = 0x05
 local HST_DAT1 = 0x06
+local HST_BLOCK = 0x07
+local AUX_CTL = 0x0d
+local BLOCK_MAX = 32
 local SMB_CTL = 0x08
 
 local OK = 0
@@ -1148,6 +1165,62 @@ local function release(s)
   return bad
 end
 
+-- A finished block transaction's bytes: the count in HST_DAT0, the buffer
+-- read from its start.
+local function block_bytes(s)
+  local count = host_in(s, HST_DAT0)
+  if count < 1 or count > BLOCK_MAX then
+    return nil
+  end
+  host_in(s, HST_CNT)
+  local bytes = {}
+  for i = 1, count do
+    bytes[i] = string.char(host_in(s, HST_BLOCK))
+  end
+  return table.concat(bytes)
+end
+
+-- An Intel block read byte by byte (the 32-byte buffer off): each byte waits
+-- with BYTE_DONE until it is taken; LAST_BYTE is set before the last. The
+-- bytes or nil, the host status at the end, and a status.
+local function i801_block_bytes(s, hs)
+  local bytes = {}
+  local count
+  while true do
+    local sts = 0
+    local ready = false
+    poll(25, 80, 1, WAIT_MS, function()
+      sts = host_in(s, HST_STS)
+      ready = sts & 0x80 ~= 0 or (sts & 0x01 == 0 and sts & 0x1e ~= 0)
+      return ready
+    end)
+    if not ready then
+      local k = host_in(s, HST_CNT)
+      host_out(s, HST_CNT, (k & ~0x40) | 0x02)
+      ksi.sleep(1)
+      host_out(s, HST_CNT, host_in(s, HST_CNT) & ~0x42)
+      ksi.trace('block from 0x%x timed out', hs)
+      return nil, 0, nt.STATUS_IO_TIMEOUT
+    end
+    if sts & 0x80 == 0 then
+      return count and #bytes == count and table.concat(bytes) or nil, sts, nt.STATUS_SUCCESS
+    end
+    if not count then
+      count = host_in(s, HST_DAT0)
+      if count < 1 or count > BLOCK_MAX then
+        host_out(s, HST_CNT, 0x14 | 0x02)
+        ksi.trace('block count %d from 0x%x', count, hs)
+        return nil, 0, nt.STATUS_DEVICE_DATA_ERROR
+      end
+    end
+    bytes[#bytes + 1] = string.char(host_in(s, HST_BLOCK))
+    if #bytes == count - 1 then
+      host_out(s, HST_CNT, 0x14 | 0x20)
+    end
+    host_out(s, HST_STS, 0x80)
+  end
+end
+
 local function i801_transact(s, hs, c, n)
   local sts = host_in(s, HST_STS)
   if sts & 0x01 ~= 0 then
@@ -1228,7 +1301,11 @@ local function permitted(lines, address, command, protocol)
       and address <= line[2]
       and command >= line[3]
       and command <= line[4]
-      and ((protocol == 0 and line[5]) or (protocol == 1 and line[6]))
+      and (
+        (protocol == 0 and line[5])
+        or (protocol == 1 and line[6])
+        or (protocol == 2 and line[7])
+      )
     then
       return true
     end
@@ -1245,6 +1322,20 @@ local function pair_lock(s)
   return false
 end
 
+-- The output: a status and a value per entry (a block's byte count), then the
+-- bytes of each block read, in entry order.
+local function packed(entries, output)
+  local records = {}
+  local blocks = {}
+  for i, o in ipairs(output) do
+    records[i] = string.pack('<i4I4', o[1], o[2])
+    if nt.NT_SUCCESS(o[1]) and entries[i].block then
+      blocks[#blocks + 1] = entries[i].block
+    end
+  end
+  return table.concat(records) .. table.concat(blocks)
+end
+
 local function i801_read(s, entries, port)
   s.cmd, s.bar, s.hostc = i801_host(s)
   if not s.cmd then
@@ -1255,6 +1346,7 @@ local function i801_read(s, entries, port)
   local allowed = 0
   for _, e in ipairs(entries) do
     e.allowed = lines and permitted(lines, e[1], e[2], e[3])
+      or (port == 0 and permitted(PMBUS_READS, e[1], e[2], e[3]))
     if e.allowed then
       allowed = allowed + 1
     else
@@ -1307,18 +1399,45 @@ local function i801_read(s, entries, port)
       stopped = true
     else
       local hs = (e[1] << 1) | 1
-      local cnt = e[3] == 1 and 0x0c or 0x08
-      local sts
-      es, sts = i801_transact(s, hs, e[2], cnt)
+      local cnt = e[3] == 2 and 0x14 or e[3] == 1 and 0x0c or 0x08
+      local sts, block
+      if e[3] == 2 and host_in(s, AUX_CTL) & 0x02 == 0 then
+        es = nt.STATUS_SUCCESS
+        if host_in(s, HST_STS) & 0x01 ~= 0 then
+          es = nt.STATUS_RETRY
+        else
+          s.started = true
+          host_out(s, HST_ADD, hs)
+          host_out(s, HST_CMD, e[2])
+          host_out(s, HST_CNT, cnt | 0x40)
+          block, sts, es = i801_block_bytes(s, hs)
+        end
+      else
+        es, sts = i801_transact(s, hs, e[2], cnt)
+      end
       if nt.NT_SUCCESS(es) then
-        local v = host_in(s, HST_DAT0)
-        if e[3] == 1 then
-          v = v | (host_in(s, HST_DAT1) << 8)
+        local v = 0
+        if e[3] == 2 then
+          if host_in(s, AUX_CTL) & 0x02 ~= 0 then
+            block = block_bytes(s)
+          end
+        else
+          v = host_in(s, HST_DAT0)
+          if e[3] == 1 then
+            v = v | (host_in(s, HST_DAT1) << 8)
+          end
         end
         local abort
         es, abort = i801_finish(s, hs, e[2], cnt, sts)
+        if nt.NT_SUCCESS(es) and e[3] == 2 and not block then
+          es = nt.STATUS_DEVICE_DATA_ERROR
+        end
         if nt.NT_SUCCESS(es) then
           value = v
+          if block then
+            value = #block
+            e.block = block
+          end
         elseif abort then
           stopped = true
         end
@@ -1338,14 +1457,10 @@ local function i801_read(s, entries, port)
     end
   end
 
-  local packed = {}
-  for i, o in ipairs(output) do
-    packed[i] = string.pack('<i4I4', o[1], o[2])
-  end
-  return nt.STATUS_SUCCESS, table.concat(packed)
+  return nt.STATUS_SUCCESS, packed(entries, output)
 end
 
--- Reads bytes and words from devices on the host's SMBus port.
+-- Reads bytes, words and blocks from devices on the host's SMBus port.
 function read(input)
   if #input < 12 or (#input - 8) % 4 ~= 0 then
     ksi.trace('input of %d bytes', #input)
@@ -1355,7 +1470,7 @@ function read(input)
   local entries = {}
   for i = 1, (#input - 8) // 4 do
     local address, command, protocol, zero = string.unpack('<I1I1I1I1', input, 9 + (i - 1) * 4)
-    if address > 0x7f or protocol > 1 or zero ~= 0 then
+    if address > 0x7f or protocol > 2 or zero ~= 0 then
       ksi.trace('entry %d malformed', i)
       return nt.STATUS_INVALID_PARAMETER
     end
@@ -1382,6 +1497,7 @@ function read(input)
   local allowed = 0
   for _, e in ipairs(entries) do
     e.allowed = lines and permitted(lines, e[1], e[2], e[3])
+      or (lines and port == 0 and permitted(PMBUS_READS, e[1], e[2], e[3]))
     if e.allowed then
       allowed = allowed + 1
     else
@@ -1510,18 +1626,30 @@ function read(input)
         end
         if nt.NT_SUCCESS(es) then
           local hs = (e[1] << 1) | 1
-          local cnt = e[3] == 1 and 0x0c or 0x08
+          local cnt = e[3] == 2 and 0x14 or e[3] == 1 and 0x0c or 0x08
           local sts
           es, sts = transact(s, hs, e[2], cnt)
           if nt.NT_SUCCESS(es) then
-            local v = host_in(s, HST_DAT0)
-            if e[3] == 1 then
-              v = v | (host_in(s, HST_DAT1) << 8)
+            local v, block = 0, nil
+            if e[3] == 2 then
+              block = sts & 0x1c == 0 and block_bytes(s) or nil
+            else
+              v = host_in(s, HST_DAT0)
+              if e[3] == 1 then
+                v = v | (host_in(s, HST_DAT1) << 8)
+              end
             end
             local abort
             es, abort = finish(s, hs, e[2], cnt, sts)
+            if nt.NT_SUCCESS(es) and e[3] == 2 and not block then
+              es = nt.STATUS_DEVICE_DATA_ERROR
+            end
             if nt.NT_SUCCESS(es) then
               value = v
+              if block then
+                value = #block
+                e.block = block
+              end
             elseif abort then
               stopped = true
             end
@@ -1555,9 +1683,5 @@ function read(input)
     return status
   end
 
-  local packed = {}
-  for i, o in ipairs(output) do
-    packed[i] = string.pack('<i4I4', o[1], o[2])
-  end
-  return nt.STATUS_SUCCESS, table.concat(packed)
+  return nt.STATUS_SUCCESS, packed(entries, output)
 end
