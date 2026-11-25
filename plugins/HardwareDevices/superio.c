@@ -1992,7 +1992,7 @@ static CONST MB_BOARD_VOLTAGE AsusProartX870eCreatorWifiVoltages[] =
     { 3, L"+3.3V", 34, 34, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsusProartX870eCreatorWifiTemperatures[] =
@@ -2017,7 +2017,7 @@ static CONST MB_BOARD_VOLTAGE AsusRogCrosshairViiiHeroVoltages[] =
     { 6, L"CPU SoC", 0, 1, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
     { 13, L"DIMM", 0, 1, 0 },
 };
 
@@ -2172,7 +2172,7 @@ static CONST MB_BOARD_VOLTAGE AsusRogMaximusXiFormulaVoltages[] =
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
     { 9, L"CPU Termination", 1, 1, 0 },
-    { 10, L"DIMM", 0, 1, 0 },
+    { 10, L"DIMM", 1, 1, 0 },
     { 11, L"CPU VCCIO", 1, 1, 0 },
     { 12, L"PCH Core", 0, 1, 0 },
     { 13, L"Phase Locked Loop", 0, 1, 0 },
@@ -2347,7 +2347,7 @@ static CONST MB_BOARD_VOLTAGE AsusRogStrixB550FGamingWifiVoltages[] =
     { 4, L"+12V", 11, 1, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsusRogStrixB550FGamingWifiTemperatures[] =
@@ -2370,7 +2370,7 @@ static CONST MB_BOARD_VOLTAGE AsusRogStrixB550IGamingVoltages[] =
     { 4, L"+12V", 11, 1, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsusRogStrixB550IGamingTemperatures[] =
@@ -2513,7 +2513,7 @@ static CONST MB_BOARD_VOLTAGE AsusRogStrixX570IGamingVoltages[] =
     { 4, L"+12V", 11, 1, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsusRogStrixX570IGamingTemperatures[] =
@@ -2640,7 +2640,7 @@ static CONST MB_BOARD_VOLTAGE AsusTufGamingB550mPlusWifiVoltages[] =
     { 3, L"+3.3V", 34, 34, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsusTufGamingB550mPlusWifiTemperatures[] =
@@ -2727,7 +2727,7 @@ static CONST MB_BOARD_VOLTAGE AsusTufGamingX570PlusWifiVoltages[] =
     { 4, L"+12V", 11, 1, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsusTufGamingX570PlusWifiTemperatures[] =
@@ -2820,7 +2820,7 @@ static CONST MB_BOARD_VOLTAGE AsrockB850mSteelLegendWifiVoltages[] =
     { 3, L"+3.3V", 34, 34, 0 },
     { 7, L"+3V Standby", 34, 34, 0 },
     { 8, L"CMOS Battery", 34, 34, 0 },
-    { 9, L"CPU Termination", 0, 1, 0 },
+    { 9, L"CPU Termination", 1, 1, 0 },
 };
 
 static CONST MB_BOARD_LABEL AsrockB850mSteelLegendWifiTemperatures[] =
