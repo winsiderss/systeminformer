@@ -2435,7 +2435,7 @@ BOOLEAN PhMipCpuListSectionCallback(
             count = 3;
 
             // Hottest package temperature and total package power, when reported.
-            valid = PhHwGetPackageValidMask();
+            valid = PhHwGetCpuValidMask();
 
             if (FlagOn(valid, PH_HW_CAP_PACKAGE_TEMP))
             {

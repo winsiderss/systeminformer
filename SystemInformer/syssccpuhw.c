@@ -38,7 +38,7 @@ VOID PhSipCpuQueryHardwareSensors(
     _Out_ PPH_SIP_CPU_SENSORS Sensors
     )
 {
-    ULONG valid = 0;
+    ULONG valid;
     ULONG activeCount = 0;
     ULONG multiplierCount = 0;
     ULONG packageCount;
@@ -50,20 +50,15 @@ VOID PhSipCpuQueryHardwareSensors(
     if (!PhHwSensorsAvailable())
         return;
 
+    // The processor values, which the Windows counters complete where no package has one.
+    valid = PhHwGetCpuValues(&Sensors->Temperature, &Sensors->PackagePower);
+
     packageCount = PhHwGetPackageCount();
 
     for (ULONG i = 0; i < packageCount; i++)
     {
         if (!(package = PhHwGetPackageSensor(i)))
             break;
-
-        if (package->Valid & PH_HW_CAP_PACKAGE_TEMP)
-        {
-            if (!(valid & PH_HW_CAP_PACKAGE_TEMP) || package->Temperature > Sensors->Temperature)
-                Sensors->Temperature = package->Temperature;
-
-            valid |= PH_HW_CAP_PACKAGE_TEMP;
-        }
 
         if (package->Valid & PH_HW_CAP_CCD_TEMP)
         {
@@ -77,12 +72,6 @@ VOID PhSipCpuQueryHardwareSensors(
 
                 valid |= PH_HW_CAP_CCD_TEMP;
             }
-        }
-
-        if (package->Valid & PH_HW_CAP_RAPL_PACKAGE)
-        {
-            Sensors->PackagePower += package->PackagePower;
-            valid |= PH_HW_CAP_RAPL_PACKAGE;
         }
 
         if (package->Valid & PH_HW_CAP_RAPL_CORE)

@@ -210,7 +210,12 @@ VOID PhHwSweepSensorSources(
     VOID
     );
 
-ULONG PhHwGetPackageValidMask(
+ULONG PhHwGetCpuValues(
+    _Out_ PFLOAT Temperature,
+    _Out_ PFLOAT Power
+    );
+
+ULONG PhHwGetCpuValidMask(
     VOID
     );
 

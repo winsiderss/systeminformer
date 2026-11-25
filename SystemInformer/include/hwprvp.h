@@ -494,6 +494,10 @@ VOID PhpHwPlatformDiagnostics(
 
 // What cpu's probe found, for the families that depend on it (called on the provider thread, after cpu's probe).
 
+BOOLEAN PhpHwCpuIsArm64(
+    VOID
+    );
+
 _Success_(return)
 BOOLEAN PhpHwCpuQueryIntel(
     _Out_ PPH_CPU_IDENTITY Identity

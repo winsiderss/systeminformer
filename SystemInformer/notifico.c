@@ -2644,7 +2644,7 @@ VOID PhNfpCpuTemperatureHistoryIconUpdateCallback(
     PH_FORMAT format[3];
 
     PhNfpHwUpdateIconAvailability(Icon);
-    available = BooleanFlagOn(PhHwGetPackageValidMask(), PH_HW_CAP_PACKAGE_TEMP);
+    available = BooleanFlagOn(PhHwGetCpuValidMask(), PH_HW_CAP_PACKAGE_TEMP);
 
     // Icon
 
@@ -2736,7 +2736,7 @@ VOID PhNfpCpuTemperatureTextIconUpdateCallback(
     WCHAR buffer[PH_INT64_STR_LEN_1];
 
     PhNfpHwUpdateIconAvailability(Icon);
-    available = BooleanFlagOn(PhHwGetPackageValidMask(), PH_HW_CAP_PACKAGE_TEMP);
+    available = BooleanFlagOn(PhHwGetCpuValidMask(), PH_HW_CAP_PACKAGE_TEMP);
 
     // Icon
 
@@ -2826,7 +2826,7 @@ VOID PhNfpCpuPowerTextIconUpdateCallback(
     WCHAR buffer[PH_INT64_STR_LEN_1];
 
     PhNfpHwUpdateIconAvailability(Icon);
-    available = BooleanFlagOn(PhHwGetPackageValidMask(), PH_HW_CAP_RAPL_PACKAGE);
+    available = BooleanFlagOn(PhHwGetCpuValidMask(), PH_HW_CAP_RAPL_PACKAGE);
 
     // Icon
 

@@ -1766,11 +1766,10 @@ static VOID PhpHwCpuPublish(
         PPHP_HW_SAMPLE sample = &PhpHwCpuSamples[PhpHwCpuPackageFirst[i]];
         ULONG valid = PhpHwCpuTickValid[i];
         FLOAT watts;
-        FLOAT celsius;
         FLOAT limit;
 
-        // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family and, on ARM64,
-        // the counters' hottest zone come after (spec 5.1).
+        // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family comes after
+        // (spec 5.1).
         if ((sample->Valid & (1ULL << PhpHwRegPackageThermStatus)) && PhpHwCpuTjMax[i])
         {
             ULONG64 value = sample->Value[PhpHwRegPackageThermStatus];
@@ -1782,12 +1781,6 @@ static VOID PhpHwCpuPublish(
         else if ((PhpHwCpuClass == PhpHwCpuIntel || PhpHwCpuClass == PhpHwCpuCentaur) && (valid & PH_HW_CAP_CORE_TEMP))
         {
             sensor->Temperature = PhpHwCpuTickMaxCore[i];
-            valid |= PH_HW_CAP_PACKAGE_TEMP;
-        }
-        else if (PhpHwCpuClass == PhpHwCpuArm64 && PhpHwCounterHottestZone(&celsius))
-        {
-            // On x64 a zone is often a board sensor or a constant, and would mislead as the processor's.
-            sensor->Temperature = celsius;
             valid |= PH_HW_CAP_PACKAGE_TEMP;
         }
 
@@ -1866,13 +1859,6 @@ static VOID PhpHwCpuPublish(
             PhpHwCpuComputeUnitPower(i, &watts)
             )
         {
-            sensor->PackagePower = watts;
-            valid |= PH_HW_CAP_RAPL_PACKAGE;
-            cpuPower += watts;
-        }
-        else if (PhpHwCpuClass == PhpHwCpuArm64 && PhpHwCounterPackagePower(&watts))
-        {
-            // No ARM64 part has a package energy register: the Windows CPU_CLUSTER meters or the PSOC zone stand in.
             sensor->PackagePower = watts;
             valid |= PH_HW_CAP_RAPL_PACKAGE;
             cpuPower += watts;
@@ -2057,6 +2043,18 @@ VOID PhpHwCpuEnd(
     PhpHwCpuTscMhz = 0.0f;
     PhpHwCpuEnergyUnit = 0.0f;
     PhpHwCpuVoltageSupported = FALSE;
+}
+
+/**
+ * Determines whether the session identified an ARM64 processor.
+ *
+ * \return TRUE for an ARM64 processor.
+ */
+BOOLEAN PhpHwCpuIsArm64(
+    VOID
+    )
+{
+    return PhpHwCpuClass == PhpHwCpuArm64;
 }
 
 /**

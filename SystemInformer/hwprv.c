@@ -68,6 +68,9 @@ PH_CIRCULAR_BUFFER_FLOAT PhHwCpuTemperatureHistory;
 PH_CIRCULAR_BUFFER_FLOAT PhHwCpuPowerHistory;
 FLOAT PhHwCpuTemperature = 0.0f;
 FLOAT PhHwCpuPower = 0.0f;
+static ULONG PhpHwCpuFallbackValid = 0; // PH_HW_CAP_PACKAGE_TEMP and PH_HW_CAP_RAPL_PACKAGE from the Windows counters
+static FLOAT PhpHwCpuFallbackTemperature = 0.0f; // the hottest zone
+static FLOAT PhpHwCpuFallbackPower = 0.0f; // the package power fallback, watts
 
 PH_PROVIDER_REGISTRATION PhHwProviderRegistration;
 
@@ -196,12 +199,8 @@ static VOID PhpHwBeginSession(
     PhpHwInitializeTopology();
     PhpHwGateOpen = TRUE;
 
-    // What the Windows counters published without the driver is replaced by the families' values.
+    // Without the driver only the processor values were published.
     PhpHwAvailable = FALSE;
-    PhpHwCapabilities = 0;
-
-    for (ULONG i = 0; i < PhpHwPackageCount; i++)
-        PhpHwPackageSensors[i].Valid = 0;
 
     for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
     {
@@ -668,48 +667,85 @@ static VOID PhpHwUpdateCapabilities(
 }
 
 /**
- * Publishes package 0 from the Windows counters while the driver is not in use: the hottest zone and the package
- * power fallback; without a power reading only the temperature.
+ * Computes the processor temperature (the hottest package) and power (the packages together), completed from the
+ * Windows counters where no package has one.
  *
- * \param Enabled Whether hardware sensors are on.
+ * \param Temperature Receives the temperature, 0 without one.
+ * \param Power Receives the power, 0 without one.
+ * \return PH_HW_CAP_PACKAGE_TEMP and PH_HW_CAP_RAPL_PACKAGE flags for the values given.
  */
-static VOID PhpHwUpdateCounterPackage(
-    _In_ BOOLEAN Enabled
+static ULONG PhpHwQueryCpuValues(
+    _Out_ PFLOAT Temperature,
+    _Out_ PFLOAT Power
     )
 {
-    PPH_HW_PACKAGE_SENSOR package;
+    ULONG valid = 0;
+    FLOAT temperature = 0.0f;
+    FLOAT power = 0.0f;
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+    {
+        PPH_HW_PACKAGE_SENSOR package = &PhpHwPackageSensors[i];
+
+        if ((package->Valid & PH_HW_CAP_PACKAGE_TEMP) && (!(valid & PH_HW_CAP_PACKAGE_TEMP) || package->Temperature > temperature))
+        {
+            temperature = package->Temperature;
+            valid |= PH_HW_CAP_PACKAGE_TEMP;
+        }
+
+        if (package->Valid & PH_HW_CAP_RAPL_PACKAGE)
+        {
+            power += package->PackagePower;
+            valid |= PH_HW_CAP_RAPL_PACKAGE;
+        }
+    }
+
+    if (!(valid & PH_HW_CAP_PACKAGE_TEMP) && (PhpHwCpuFallbackValid & PH_HW_CAP_PACKAGE_TEMP))
+    {
+        temperature = PhpHwCpuFallbackTemperature;
+        valid |= PH_HW_CAP_PACKAGE_TEMP;
+    }
+
+    if (!(valid & PH_HW_CAP_RAPL_PACKAGE) && (PhpHwCpuFallbackValid & PH_HW_CAP_RAPL_PACKAGE))
+    {
+        power = PhpHwCpuFallbackPower;
+        valid |= PH_HW_CAP_RAPL_PACKAGE;
+    }
+
+    *Temperature = temperature;
+    *Power = power;
+
+    return valid;
+}
+
+/**
+ * Reads the Windows counters' stand-ins for the processor values (the hottest zone and the package power fallback)
+ * and publishes PhHwCpuTemperature and PhHwCpuPower. The package sensors keep only their own readings.
+ *
+ * \param Fallback Whether the counters may stand in.
+ */
+static VOID PhpHwUpdateCpuValues(
+    _In_ BOOLEAN Fallback
+    )
+{
     ULONG valid = 0;
     FLOAT celsius;
     FLOAT watts;
 
-    PhHwCpuTemperature = 0.0f;
-    PhHwCpuPower = 0.0f;
-
-    if (Enabled)
-        PhpHwInitializeTopology();
-
-    if (!PhpHwPackageCount)
-        return;
-
-    package = &PhpHwPackageSensors[0];
-
-    if (Enabled && PhpHwCounterHottestZone(&celsius))
+    if (Fallback && PhpHwCounterHottestZone(&celsius))
     {
-        package->Temperature = celsius;
-        PhHwCpuTemperature = celsius;
+        PhpHwCpuFallbackTemperature = celsius;
         valid |= PH_HW_CAP_PACKAGE_TEMP;
     }
 
-    if (Enabled && PhpHwCounterPackagePower(&watts))
+    if (Fallback && PhpHwCounterPackagePower(&watts))
     {
-        package->PackagePower = watts;
-        PhHwCpuPower = watts;
+        PhpHwCpuFallbackPower = watts;
         valid |= PH_HW_CAP_RAPL_PACKAGE;
     }
 
-    package->Valid = valid;
-    PhpHwCapabilities = valid;
-    PhpHwAvailable = !!valid;
+    PhpHwCpuFallbackValid = valid;
+    PhpHwQueryCpuValues(&PhHwCpuTemperature, &PhHwCpuPower);
 }
 
 /**
@@ -754,13 +790,16 @@ VOID PhHwProviderUpdate(
         PhpHwUpdateCounters(TRUE);
         PhpHwUpdateSources(TRUE);
         PhpHwUpdateCapabilities();
+        // No ARM64 part has a package temperature or energy register; on x64 a zone is often a board sensor.
+        PhpHwUpdateCpuValues(PhpHwCpuIsArm64());
         PhpHwSignalReportRequests(&serving);
     }
     else
     {
         PhpHwUpdateCounters(!!PhCsEnableHardwareSensors);
         PhpHwUpdateSources(!!PhCsEnableHardwareSensors);
-        PhpHwUpdateCounterPackage(!!PhCsEnableHardwareSensors);
+        PhpHwUpdateCpuValues(!!PhCsEnableHardwareSensors);
+        PhpHwAvailable = !!PhpHwCpuFallbackValid;
     }
 
     memset(&updatedEvent, 0, sizeof(PH_PROVIDER_UPDATED_EVENT));
@@ -1312,23 +1351,42 @@ BOOLEAN NTAPI PhHwSensorsEnabled(
 }
 
 /**
- * Retrieves the capabilities at least one processor package has a current value for.
+ * Retrieves the processor temperature (the hottest package) and power (the packages together); the Windows counters
+ * stand in where no package has one (on ARM64, or without the driver).
  *
- * \return PH_HW_CAP_* flags of the package sensors, or 0 when hardware sensors are unavailable.
+ * \param Temperature Receives the temperature, 0 without one.
+ * \param Power Receives the power, 0 without one.
+ * \return PH_HW_CAP_PACKAGE_TEMP and PH_HW_CAP_RAPL_PACKAGE flags for the values given, or 0 when hardware sensors
+ * are unavailable.
  */
-ULONG PhHwGetPackageValidMask(
+ULONG PhHwGetCpuValues(
+    _Out_ PFLOAT Temperature,
+    _Out_ PFLOAT Power
+    )
+{
+    if (!PhHwSensorsAvailable())
+    {
+        *Temperature = 0.0f;
+        *Power = 0.0f;
+        return 0;
+    }
+
+    return PhpHwQueryCpuValues(Temperature, Power);
+}
+
+/**
+ * Retrieves which of the processor temperature and power have a value.
+ *
+ * \return PH_HW_CAP_PACKAGE_TEMP and PH_HW_CAP_RAPL_PACKAGE flags, or 0 when hardware sensors are unavailable.
+ */
+ULONG PhHwGetCpuValidMask(
     VOID
     )
 {
-    ULONG valid = 0;
+    FLOAT temperature;
+    FLOAT power;
 
-    if (!PhHwSensorsAvailable())
-        return 0;
-
-    for (ULONG i = 0; i < PhHwGetPackageCount(); i++)
-        valid |= PhpHwPackageSensors[i].Valid;
-
-    return valid;
+    return PhHwGetCpuValues(&temperature, &power);
 }
 
 /**
@@ -1345,7 +1403,7 @@ BOOLEAN PhHwSensorsProbed(
  * Determines whether hardware sensors are available.
  *
  * \return TRUE when a driver family has published a sensor in this session, or without the driver when the Windows
- * counters give package 0 a value.
+ * counters give the processor a temperature or power.
  */
 BOOLEAN NTAPI PhHwSensorsAvailable(
     VOID

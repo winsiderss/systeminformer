@@ -87,32 +87,14 @@ static BOOLEAN CpuGetPackageTemperature(
     _Out_ PFLOAT Temperature
     )
 {
-    BOOLEAN found = FALSE;
-    FLOAT temperature = 0.0f;
-    ULONG packageCount;
-    PPH_HW_PACKAGE_SENSOR package;
+    FLOAT temperature;
+    FLOAT power;
 
-    if (!PhHwSensorsAvailable())
+    if (!(PhHwGetCpuValues(&temperature, &power) & PH_HW_CAP_PACKAGE_TEMP))
         return FALSE;
 
-    packageCount = PhHwGetPackageCount();
-
-    for (ULONG i = 0; i < packageCount; i++)
-    {
-        if (!(package = PhHwGetPackageSensor(i)))
-            break;
-
-        if ((package->Valid & PH_HW_CAP_PACKAGE_TEMP) && (!found || package->Temperature > temperature))
-        {
-            temperature = package->Temperature;
-            found = TRUE;
-        }
-    }
-
-    if (found)
-        *Temperature = temperature;
-
-    return found;
+    *Temperature = temperature;
+    return TRUE;
 }
 
 // Index is the flat processor index; degrees Celsius.
@@ -318,7 +300,7 @@ static ULONG CpuGetSensorGraphs(
     VOID
     )
 {
-    return PhSipCpuSelectSensorGraphs(PhHwGetCapabilities());
+    return PhSipCpuSelectSensorGraphs(PhHwGetCpuValidMask());
 }
 
 // Returns 0 when the row is hidden.
