@@ -1217,8 +1217,8 @@ static CONST MB_BOARD_VOLTAGE GigabyteX870AorusEliteVoltages[] =
     { 4, L"CPU NB/SoC", 0, 1, 0 },
     { 5, L"CPU Misc", 0, 1, 0 },
     { 6, L"CPU VDDIO", 0, 1, 0 },
-    { 7, L"DRAM VDD", 0, 1, 0 },
-    { 8, L"DRAM VDDQ", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteX870AorusEliteTemperatures[] =
@@ -1439,10 +1439,9 @@ static CONST MB_BOARD_VOLTAGE GigabyteZ390mGamingVoltages[] =
     { 4, L"CPU VCCGT", 0, 1, 0 },
     { 5, L"CPU System Agent", 0, 1, 0 },
     { 6, L"VDDQ", 0, 1, 0 },
-    { 7, L"DDRVTT", 0, 1, 0 },
-    { 8, L"PCHCore", 0, 1, 0 },
-    { 9, L"CPU VCCIO", 0, 1, 0 },
-    { 10, L"DDRVPP", 0, 1, 0 },
+    { 7, L"+3V Standby", 10, 10, 0 },
+    { 8, L"CMOS Battery", 10, 10, 0 },
+    { 9, L"AVCC3", 10, 10, 0 },
 };
 
 static CONST MB_BOARD_LABEL GigabyteZ390mGamingTemperatures[] =
