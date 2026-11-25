@@ -318,7 +318,7 @@ static ULONG CpuGetSensorGraphs(
     VOID
     )
 {
-    return PhHwGetCapabilities() & PH_SIP_CPU_SENSOR_GRAPHS;
+    return PhSipCpuSelectSensorGraphs(PhHwGetCapabilities());
 }
 
 // Returns 0 when the row is hidden.

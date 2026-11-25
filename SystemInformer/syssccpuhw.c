@@ -14,6 +14,22 @@
 #include <syssccpuhw.h>
 
 /**
+ * Selects the CPU section's sensor graphs: the temperature when there is one, and the power only beside it.
+ *
+ * \param Capabilities PH_HW_CAP_* flags.
+ * \return The PH_SIP_CPU_SENSOR_GRAPHS flags to show.
+ */
+ULONG PhSipCpuSelectSensorGraphs(
+    _In_ ULONG Capabilities
+    )
+{
+    if (!(Capabilities & PH_HW_CAP_PACKAGE_TEMP))
+        return 0;
+
+    return Capabilities & PH_SIP_CPU_SENSOR_GRAPHS;
+}
+
+/**
  * Sums and picks the CPU section's hardware sensor values over the packages and logical processors.
  *
  * \param Sensors Receives the values; Valid is zero when hardware sensors are unavailable.

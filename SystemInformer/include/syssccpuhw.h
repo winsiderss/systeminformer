@@ -33,6 +33,10 @@ typedef struct _PH_SIP_CPU_SENSORS
     ULONG ThrottleFlags;
 } PH_SIP_CPU_SENSORS, *PPH_SIP_CPU_SENSORS;
 
+ULONG PhSipCpuSelectSensorGraphs(
+    _In_ ULONG Capabilities
+    );
+
 VOID PhSipCpuQueryHardwareSensors(
     _Out_ PPH_SIP_CPU_SENSORS Sensors
     );
