@@ -156,6 +156,10 @@ static BOOLEAN PhpHwCounterZoneSeen = FALSE; // a zone had a temperature since t
 static FLOAT PhpHwCounterZoneMaximum = 0.0f; // the hottest current zone, degrees Celsius
 static BOOLEAN PhpHwCounterClusterValid = FALSE; // a CPU_CLUSTER energy meter has a current reading
 static FLOAT PhpHwCounterClusterWatts = 0.0f; // the CPU_CLUSTER energy meters together, watts
+static BOOLEAN PhpHwCounterPackageMeterValid = FALSE; // a RAPL package (_PKG) energy meter has a current reading
+static FLOAT PhpHwCounterPackageMeterWatts = 0.0f; // the RAPL package meters together, watts
+static BOOLEAN PhpHwCounterSocValid = FALSE; // the PSOC power zone has a current reading
+static FLOAT PhpHwCounterSocWatts = 0.0f; // the PSOC power zone, watts
 static ULONG PhpHwCounterStatus = ERROR_NOT_READY; // the last open, add or query result, for the report
 static ULONG PhpHwCounterSetsAdded = 0; // bit per PHP_HW_COUNTER_SET with an added counter
 static ULONG PhpHwCounterReportCount = 0;
@@ -175,6 +179,8 @@ static VOID PhpHwCounterClearSensorsLocked(
     PhpHwCounterZoneValid = FALSE;
     PhpHwCounterZoneSeen = FALSE;
     PhpHwCounterClusterValid = FALSE;
+    PhpHwCounterPackageMeterValid = FALSE;
+    PhpHwCounterSocValid = FALSE;
     PhpHwCounterReportCount = 0;
     PhpHwCounterReportBlockCount = 0;
 }
@@ -720,13 +726,13 @@ static VOID PhpHwCounterReadTrips(
         HANDLE handle;
         PHP_HW_THERMAL_INFORMATION_EX thermal;
         ULONG returnLength = 0;
+        ULONG exact;
         PPHP_HW_COUNTER_TRIP trip;
 
         memset(detailBuffer, 0, sizeof(detailBuffer));
         detail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W);
         memset(&deviceInfoData, 0, sizeof(SP_DEVINFO_DATA));
         deviceInfoData.cbSize = sizeof(SP_DEVINFO_DATA);
-        ULONG exact;
 
         report[0]++;
 
@@ -761,6 +767,7 @@ static VOID PhpHwCounterReadTrips(
         memset(&thermal, 0, sizeof(PHP_HW_THERMAL_INFORMATION_EX));
         thermal.ThermalStamp = PHP_HW_THERMAL_STAMP_NONE;
 
+        returnLength = 0;
         status = PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), &returnLength);
 
         // A driver that wants the structure's exact size (92 bytes, not the padded sizeof) is asked again.
@@ -776,7 +783,6 @@ static VOID PhpHwCounterReadTrips(
                 report[3]++;
         }
 
-        returnLength = 0;
         if (!NT_SUCCESS(status))
         {
             report[5] = status;
@@ -892,6 +898,10 @@ static VOID PhpHwCounterPublish(
     FLOAT zoneLimit = 0.0f;
     BOOLEAN clusterValid = FALSE;
     FLOAT clusterWatts = 0.0f;
+    BOOLEAN packageMeterValid = FALSE;
+    FLOAT packageMeterWatts = 0.0f;
+    BOOLEAN socValid = FALSE;
+    FLOAT socWatts = 0.0f;
 
     for (ULONG i = 0; i < PhpHwCounterItemCount; i++)
     {
@@ -907,8 +917,17 @@ static VOID PhpHwCounterPublish(
         case PhpHwCounterSetZone:
             if (PhpHwCounterZoneIsPower(item->Name))
             {
+                SIZE_T nameLength = wcslen(item->Name);
+
                 valid = !!(item->Seen & 1);
                 value = (FLOAT)item->Values[0] / 1000.0f;
+
+                // The SoC's power, the package power when no meter gives one; PSYS is the whole system.
+                if (valid && nameLength >= 5 && _wcsicmp(item->Name + nameLength - 5, L".PSOC") == 0)
+                {
+                    socWatts = value;
+                    socValid = TRUE;
+                }
 
                 if (valid && item->SensorIndex == ULONG_MAX)
                     item->SensorIndex = PhpHwCounterAddSensor(PhHwNamedSensorMeterPower, PhpHwCounterMeterId(item->Name, i), item->Name);
@@ -1043,6 +1062,12 @@ static VOID PhpHwCounterPublish(
                     clusterValid = TRUE;
                 }
 
+                if (valid && PhEndsWithStringRef2(&meterName, L"_PKG", TRUE))
+                {
+                    packageMeterWatts += value;
+                    packageMeterValid = TRUE;
+                }
+
                 // A meter appears once it has counted; RAPL DRAM lists on parts that never do.
                 if (valid && item->SensorIndex == ULONG_MAX && ratio > 0.0)
                     item->SensorIndex = PhpHwCounterAddSensor(PhHwNamedSensorMeterPower, PhpHwCounterMeterId(item->Name, i), item->Name);
@@ -1098,6 +1123,10 @@ static VOID PhpHwCounterPublish(
     PhpHwCounterZoneMaximum = zoneMaximum;
     PhpHwCounterClusterValid = clusterValid;
     PhpHwCounterClusterWatts = clusterWatts;
+    PhpHwCounterPackageMeterValid = packageMeterValid;
+    PhpHwCounterPackageMeterWatts = packageMeterWatts;
+    PhpHwCounterSocValid = socValid;
+    PhpHwCounterSocWatts = socWatts;
     PhpHwCounterZoneSeen |= zoneValid;
     PhpHwCounterReportCount = PhpHwCounterItemCount;
     memcpy(PhpHwCounterReport, PhpHwCounterItems, sizeof(PHP_HW_COUNTER_ITEM) * PhpHwCounterItemCount);
@@ -1216,7 +1245,7 @@ VOID PhpHwUpdateCounters(
 }
 
 /**
- * Retrieves the hottest current ACPI thermal zone, the package temperature fallback on ARM64.
+ * Retrieves the hottest current ACPI thermal zone, the package temperature fallback.
  *
  * \param Celsius Receives the temperature.
  * \return TRUE when a zone has a current temperature.
@@ -1241,24 +1270,29 @@ BOOLEAN PhpHwCounterHottestZone(
 }
 
 /**
- * Retrieves the CPU_CLUSTER energy meters together, the processor power fallback on ARM64.
+ * Retrieves the package power fallback: the CPU_CLUSTER energy meters together, else the RAPL package meters
+ * together, else the PSOC power zone.
  *
  * \param Watts Receives the power.
- * \return TRUE when a cluster meter has a current reading.
+ * \return TRUE when one of them has a current reading.
  */
 _Success_(return)
-BOOLEAN PhpHwCounterClusterPower(
+BOOLEAN PhpHwCounterPackagePower(
     _Out_ PFLOAT Watts
     )
 {
-    BOOLEAN valid;
+    BOOLEAN valid = TRUE;
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
 
-    valid = PhpHwCounterClusterValid;
-
-    if (valid)
+    if (PhpHwCounterClusterValid)
         *Watts = PhpHwCounterClusterWatts;
+    else if (PhpHwCounterPackageMeterValid)
+        *Watts = PhpHwCounterPackageMeterWatts;
+    else if (PhpHwCounterSocValid)
+        *Watts = PhpHwCounterSocWatts;
+    else
+        valid = FALSE;
 
     PhReleaseQueuedLockShared(&PhpHwNamedSensorLock);
 

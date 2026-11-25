@@ -560,7 +560,7 @@ BOOLEAN PhpHwCounterZoneEverSeen(
     );
 
 _Success_(return)
-BOOLEAN PhpHwCounterClusterPower(
+BOOLEAN PhpHwCounterPackagePower(
     _Out_ PFLOAT Watts
     );
 

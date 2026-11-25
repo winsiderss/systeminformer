@@ -196,6 +196,13 @@ static VOID PhpHwBeginSession(
     PhpHwInitializeTopology();
     PhpHwGateOpen = TRUE;
 
+    // What the Windows counters published without the driver is replaced by the families' values.
+    PhpHwAvailable = FALSE;
+    PhpHwCapabilities = 0;
+
+    for (ULONG i = 0; i < PhpHwPackageCount; i++)
+        PhpHwPackageSensors[i].Valid = 0;
+
     for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
     {
         PPHP_HW_FAMILY family = &PhpHwFamilies[i];
@@ -661,6 +668,51 @@ static VOID PhpHwUpdateCapabilities(
 }
 
 /**
+ * Publishes package 0 from the Windows counters while the driver is not in use: the hottest zone and the package
+ * power fallback; without a power reading only the temperature.
+ *
+ * \param Enabled Whether hardware sensors are on.
+ */
+static VOID PhpHwUpdateCounterPackage(
+    _In_ BOOLEAN Enabled
+    )
+{
+    PPH_HW_PACKAGE_SENSOR package;
+    ULONG valid = 0;
+    FLOAT celsius;
+    FLOAT watts;
+
+    PhHwCpuTemperature = 0.0f;
+    PhHwCpuPower = 0.0f;
+
+    if (Enabled)
+        PhpHwInitializeTopology();
+
+    if (!PhpHwPackageCount)
+        return;
+
+    package = &PhpHwPackageSensors[0];
+
+    if (Enabled && PhpHwCounterHottestZone(&celsius))
+    {
+        package->Temperature = celsius;
+        PhHwCpuTemperature = celsius;
+        valid |= PH_HW_CAP_PACKAGE_TEMP;
+    }
+
+    if (Enabled && PhpHwCounterPackagePower(&watts))
+    {
+        package->PackagePower = watts;
+        PhHwCpuPower = watts;
+        valid |= PH_HW_CAP_RAPL_PACKAGE;
+    }
+
+    package->Valid = valid;
+    PhpHwCapabilities = valid;
+    PhpHwAvailable = !!valid;
+}
+
+/**
  * Runs one update of the hardware provider on the provider thread.
  *
  * \param Object The registration's object, unused.
@@ -708,6 +760,7 @@ VOID PhHwProviderUpdate(
     {
         PhpHwUpdateCounters(!!PhCsEnableHardwareSensors);
         PhpHwUpdateSources(!!PhCsEnableHardwareSensors);
+        PhpHwUpdateCounterPackage(!!PhCsEnableHardwareSensors);
     }
 
     memset(&updatedEvent, 0, sizeof(PH_PROVIDER_UPDATED_EVENT));
@@ -1291,13 +1344,14 @@ BOOLEAN PhHwSensorsProbed(
 /**
  * Determines whether hardware sensors are available.
  *
- * \return TRUE when the gate is open and a driver family has published a sensor in this session.
+ * \return TRUE when a driver family has published a sensor in this session, or without the driver when the Windows
+ * counters give package 0 a value.
  */
 BOOLEAN NTAPI PhHwSensorsAvailable(
     VOID
     )
 {
-    return PhpHwGateOpen && PhpHwAvailable;
+    return PhpHwAvailable;
 }
 
 /**

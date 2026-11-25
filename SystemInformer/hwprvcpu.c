@@ -1870,9 +1870,9 @@ static VOID PhpHwCpuPublish(
             valid |= PH_HW_CAP_RAPL_PACKAGE;
             cpuPower += watts;
         }
-        else if (PhpHwCpuClass == PhpHwCpuArm64 && PhpHwCounterClusterPower(&watts))
+        else if (PhpHwCpuClass == PhpHwCpuArm64 && PhpHwCounterPackagePower(&watts))
         {
-            // No ARM64 part has a package energy register: the Windows CPU_CLUSTER meters stand in.
+            // No ARM64 part has a package energy register: the Windows CPU_CLUSTER meters or the PSOC zone stand in.
             sensor->PackagePower = watts;
             valid |= PH_HW_CAP_RAPL_PACKAGE;
             cpuPower += watts;
