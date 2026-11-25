@@ -620,7 +620,7 @@ static VOID PhpHwUpdateSources(
             WritePointerRelease(&PhpHwSourceUpdateThread, NULL);
         }
 
-        // Sensors are current against a finished update only.
+        // A sensor not reported by this update goes stale once it finishes.
         PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
         PhpHwSourceCompletedUpdateId = PhpHwSourceUpdateId;
         PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
@@ -1081,7 +1081,8 @@ VOID PhHwEnumerateSourceSensors(
             info.SensorName = sensor->SensorName;
             info.Flags = sensor->Flags;
             info.Value = sensor->Value;
-            info.Current = sensor->UpdateId == PhpHwSourceCompletedUpdateId;
+            // Reported in the last finished update or the running one (history samples on another thread).
+            info.Current = sensor->UpdateId - PhpHwSourceCompletedUpdateId <= 1;
             info.ComponentClass = sensor->HasComponentClass ? &sensor->ComponentClass : NULL;
 
             Callback(&info, Context);

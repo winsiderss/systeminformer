@@ -189,7 +189,7 @@ typedef struct _PH_HW_SOURCE_SENSOR
     PPH_STRING SensorName;
     ULONG Flags; // PH_HW_SENSOR_REPORT_*
     FLOAT Value;
-    BOOLEAN Current; // reported in the last update
+    BOOLEAN Current; // reported in the last update or the one running
     const GUID* ComponentClass; // the device setup class of the component's icon; NULL when the source gave none
 } PH_HW_SOURCE_SENSOR, *PPH_HW_SOURCE_SENSOR;
 typedef const PH_HW_SOURCE_SENSOR* PCPH_HW_SOURCE_SENSOR;
