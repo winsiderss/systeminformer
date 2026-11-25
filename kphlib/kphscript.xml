@@ -117,7 +117,7 @@ This file is part of System Informer.
     <script name="axi" file="script/axi.lua" arch="amd64,arm64" desc="Power supplies through their USB serial dongle">
         <routine name="read" level="maximum"/>
     </script>
-    <script name="aqtion" file="script/aqtion.lua" arch="amd64" desc="AQtion network controller temperature through its firmware status block">
+    <script name="aqtion" file="script/aqtion.lua" arch="amd64" desc="AQtion network controller temperature through its firmware">
         <routine name="read" level="maximum"/>
     </script>
 </scripts>

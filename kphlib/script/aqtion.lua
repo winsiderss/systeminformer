@@ -9,31 +9,52 @@
 --
 
 --
--- Reads the temperature of a network controller of the AQtion second
--- generation from the status block its firmware keeps in the controller's
--- memory BAR: the block's two transaction counters are equal and unchanged
--- across the read when the firmware was not writing it. Nothing is written. A
--- function that is not in D0 is not woken: it reads nothing.
+-- Reads the temperature of an AQtion network controller through its memory BAR:
+-- a status block on the second generation, a firmware mailbox request under the
+-- RAM semaphore on the first (firmware 2 to 4).
 --
 
 local nt = require('nt')
 
 local VENDOR = 0x1d6a
+-- The generation of each device.
 local DEVICES = {
-  [0x00c0] = true,
-  [0x04c0] = true,
-  [0x94c0] = true,
-  [0x93c0] = true,
-  [0x14c0] = true,
-  [0x34c0] = true,
-  [0x12c0] = true,
-  [0x11c0] = true,
+  [0x07b1] = 1,
+  [0x08b1] = 1,
+  [0x09b1] = 1,
+  [0x87b1] = 1,
+  [0x88b1] = 1,
+  [0x89b1] = 1,
+  [0x00c0] = 2,
+  [0x04c0] = 2,
+  [0x94c0] = 2,
+  [0x93c0] = 2,
+  [0x14c0] = 2,
+  [0x34c0] = 2,
+  [0x12c0] = 2,
+  [0x11c0] = 2,
 }
 local BLOCK = 0x13000
 local HEALTH = 0x620
 local PAGE = 0x1000
 local TRIES = 16
 local CONTROLLERS_MAX = 8
+
+local VERSION = 0x18
+local MIF_COMMAND = 0x200
+local MIF_ADDRESS = 0x208
+local MIF_VALUE = 0x20c
+local MAILBOX = 0x360
+local CONTROL2 = 0x36c
+local STATE2 = 0x374
+local SEMAPHORE = 0x3a8
+local TEMPERATURE_REQUEST = 0x40000
+local MAILBOX_TEMPERATURE = 0x50
+local MIF_READ = 0x8000
+local MIF_BUSY = 0x100
+local POLLS = 100
+local ANSWER_STALL = 100
+local MIF_STALL = 10
 
 local kept = {}
 
@@ -78,8 +99,8 @@ local function release(s)
   s.device:release()
 end
 
--- The function at a locator, its IDs checked: kept between calls while its
--- header stays the same; nil and a status.
+-- The function at a locator, IDs checked, kept while its header is unchanged;
+-- nil and a status.
 local function session(locator)
   local k = kept[locator]
   if k then
@@ -114,7 +135,7 @@ local function session(locator)
     device:release()
     return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
-  local s = { device = device, key = header_key(header), kept = false }
+  local s = { device = device, key = header_key(header), kept = false, generation = DEVICES[id] }
   if not ksi.volatile and not nt.is_device_removable(device) then
     s.kept = true
     kept[locator] = s
@@ -205,10 +226,9 @@ local function bar(s)
   return base
 end
 
--- The page holding the status block, read-only: mapped once per base, after
--- the base is found among the function's memory resources with the block
--- inside it.
-local function page(s, base)
+-- The page at Offset, mapped once per base after checking it lies in a memory
+-- resource of the function.
+local function page(s, base, offset, writable)
   if s.map and s.base == base then
     return s.map
   end
@@ -226,41 +246,29 @@ local function page(s, base)
       length = r.length
     end
   end
-  if not length or length < BLOCK + PAGE then
-    ksi.trace('BAR 0x%x is not a memory resource holding the block', base)
+  if not length or length < offset + PAGE then
+    ksi.trace('BAR 0x%x is not a memory resource holding the page', base)
     return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
   end
   local bits, bitsFailed = address_bits()
   if not bits then
     return nil, bitsFailed
   end
-  local st = nt.check_range(base + BLOCK, base + BLOCK + PAGE, bits)
+  local st = nt.check_range(base + offset, base + offset + PAGE, bits)
   if not nt.NT_SUCCESS(st) then
     return nil, st
   end
-  local m, mapFailed = ksi.hw.map(base + BLOCK, PAGE, false)
+  local m, mapFailed = ksi.hw.map(base + offset, PAGE, writable)
   if not m then
-    ksi.trace('page 0x%x not mapped: 0x%x', base + BLOCK, mapFailed)
+    ksi.trace('page 0x%x not mapped: 0x%x', base + offset, mapFailed)
     return nil, mapFailed
   end
   s.map, s.base = m, base
   return m
 end
 
--- The temperature in whole degrees C (signed), or nil and a status.
-local function temperature(s)
-  local st = in_d0(s)
-  if not nt.NT_SUCCESS(st) then
-    return nil, st
-  end
-  local base, failed = bar(s)
-  if not base then
-    return nil, failed
-  end
-  local m, mapFailed = page(s, base)
-  if not m then
-    return nil, mapFailed
-  end
+-- The second generation's temperature in millidegrees C, or nil and a status.
+local function block_temperature(m)
   for _ = 1, TRIES do
     local before = ksi.hw.map_read(m, 0, 4)
     if before == 0xffffffff then
@@ -272,7 +280,7 @@ local function temperature(s)
       local after = ksi.hw.map_read(m, 0, 4)
       if after == before then
         local raw = (health >> 8) & 0xff
-        return raw >= 0x80 and raw - 0x100 or raw
+        return (raw >= 0x80 and raw - 0x100 or raw) * 1000
       end
     end
   end
@@ -280,10 +288,108 @@ local function temperature(s)
   return nil, nt.STATUS_DEVICE_BUSY
 end
 
--- Reads the temperature of each controller given by its locator (4 bytes
--- each: segment << 16 | bus << 8 | device << 3 | function). Returns a status
--- and per controller a status and the temperature in millidegrees C (4 bytes
--- each, the temperature signed).
+-- Polls Done up to POLLS times, Stall microseconds apart; whether it held.
+local function poll(done, stall)
+  for _ = 1, POLLS do
+    if done() then
+      return true
+    end
+    ksi.stall(stall)
+  end
+  return done()
+end
+
+-- One dword of firmware RAM through the memory interface, caller holding the
+-- RAM semaphore; nil and a status.
+local function ram_read(m, address)
+  ksi.hw.map_write(m, MIF_ADDRESS, 4, address)
+  ksi.hw.map_write(m, MIF_COMMAND, 4, MIF_READ)
+  local done = poll(function()
+    return ksi.hw.map_read(m, MIF_COMMAND, 4) & MIF_BUSY == 0
+      or ksi.hw.map_read(m, MIF_ADDRESS, 4) ~= address
+  end, MIF_STALL)
+  if not done then
+    return nil, nt.STATUS_IO_TIMEOUT
+  end
+  return ksi.hw.map_read(m, MIF_VALUE, 4)
+end
+
+-- The first generation's PHY temperature in millidegrees C, or nil and a
+-- status.
+local function mailbox_temperature(m)
+  local version = ksi.hw.map_read(m, VERSION, 4)
+  if version == 0xffffffff then
+    return nil, nt.STATUS_DEVICE_NOT_READY
+  end
+  local major = version >> 24
+  if major < 2 or major > 4 then
+    ksi.trace('firmware 0x%x has no temperature', version)
+    return nil, nt.STATUS_NOT_SUPPORTED
+  end
+  local lock <close>, refused = ksi.lock('pci')
+  if not lock then
+    return nil, refused
+  end
+  local control = ksi.hw.map_read(m, CONTROL2, 4)
+  local asked = control & TEMPERATURE_REQUEST
+  ksi.hw.map_write(m, CONTROL2, 4, control ~ TEMPERATURE_REQUEST)
+  if
+    not poll(function()
+      return ksi.hw.map_read(m, STATE2, 4) & TEMPERATURE_REQUEST ~= asked
+    end, ANSWER_STALL)
+  then
+    ksi.trace('the firmware did not answer')
+    return nil, nt.STATUS_IO_TIMEOUT
+  end
+  local mailbox = ksi.hw.map_read(m, MAILBOX, 4)
+  if not poll(function()
+    return ksi.hw.map_read(m, SEMAPHORE, 4) == 1
+  end, ANSWER_STALL) then
+    ksi.trace('the RAM semaphore is held')
+    return nil, nt.STATUS_DEVICE_BUSY
+  end
+  local held <close> = setmetatable({}, {
+    __close = function()
+      ksi.hw.map_write(m, SEMAPHORE, 4, 1)
+    end,
+  })
+  local value, failed = ram_read(m, mailbox + MAILBOX_TEMPERATURE)
+  if not value then
+    return nil, failed
+  end
+  local raw = value & 0xffff
+  if raw >= 0x8000 then
+    raw = raw - 0x10000
+  end
+  return raw * 1000 // 256
+end
+
+-- The temperature in millidegrees C, or nil and a status.
+local function temperature(s)
+  local st = in_d0(s)
+  if not nt.NT_SUCCESS(st) then
+    return nil, st
+  end
+  local base, failed = bar(s)
+  if not base then
+    return nil, failed
+  end
+  if s.generation == 1 then
+    local m, mapFailed = page(s, base, 0, true)
+    if not m then
+      return nil, mapFailed
+    end
+    return mailbox_temperature(m)
+  end
+  local m, mapFailed = page(s, base, BLOCK, false)
+  if not m then
+    return nil, mapFailed
+  end
+  return block_temperature(m)
+end
+
+-- Per 4-byte locator (segment << 16 | bus << 8 | device << 3 | function): an i4
+-- status and i4 millidegrees C.
 function read(input)
   if not ksi.hw.pci_open or not ksi.hw.map or not ksi.hw.cpuid then
     ksi.trace('no PCI, memory or CPUID functions')
@@ -296,15 +402,15 @@ function read(input)
   local output = {}
   for at = 1, #input, 4 do
     local s, refused = session(string.unpack('<I4', input, at))
-    local degrees, status = nil, refused
+    local millidegrees, status = nil, refused
     if s then
-      degrees, status = temperature(s)
+      millidegrees, status = temperature(s)
       if not s.kept then
         release(s)
       end
     end
-    if degrees then
-      output[#output + 1] = string.pack('<i4i4', nt.STATUS_SUCCESS, degrees * 1000)
+    if millidegrees then
+      output[#output + 1] = string.pack('<i4i4', nt.STATUS_SUCCESS, millidegrees)
     else
       output[#output + 1] = string.pack('<i4i4', status, 0)
     end
