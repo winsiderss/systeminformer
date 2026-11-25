@@ -1524,6 +1524,16 @@ INT_PTR CALLBACK MotherboardOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+// hiddevices.c
+
+VOID HidDevicesInitialize(
+    VOID
+    );
+
+VOID HidDevicesUninitialize(
+    VOID
+    );
+
 // usbdisk.c
 
 VOID UsbDiskInitialize(

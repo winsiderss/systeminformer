@@ -113,6 +113,9 @@
     <ClCompile Include="superio.c">
       <Filter>Source Files\Motherboard</Filter>
     </ClCompile>
+    <ClCompile Include="hiddevices.c">
+      <Filter>Source Files\Devices</Filter>
+    </ClCompile>
     <ClCompile Include="usbdisk.c">
       <Filter>Source Files\Disk</Filter>
     </ClCompile>

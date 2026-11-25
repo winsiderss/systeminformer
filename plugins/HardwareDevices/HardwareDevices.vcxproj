@@ -122,6 +122,7 @@
     <ClCompile Include="asuswmi.c" />
     <ClCompile Include="dellsmm.c" />
     <ClCompile Include="gpdfan.c" />
+    <ClCompile Include="hiddevices.c" />
     <ClCompile Include="gpusensor.c" />
     <ClCompile Include="lenovows.c" />
     <ClCompile Include="disktemp.c" />

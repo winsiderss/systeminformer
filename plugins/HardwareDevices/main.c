@@ -83,6 +83,7 @@ VOID NTAPI LoadCallback(
     AsusWmiInitialize();
     AmdNpuInitialize();
     UsbDiskInitialize();
+    HidDevicesInitialize();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -91,6 +92,7 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
+    HidDevicesUninitialize();
     UsbDiskUninitialize();
     AmdNpuUninitialize();
     AsusWmiUninitialize();
