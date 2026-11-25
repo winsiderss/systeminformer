@@ -234,6 +234,7 @@ static BOOLEAN PhpHwMmioApplyStatus(
     case STATUS_RETRY:
     case STATUS_DEVICE_NOT_READY: // asleep, or all ones
     case STATUS_DEVICE_POWERED_OFF:
+    case STATUS_CANCELLED:
         break;
     case STATUS_ACCESS_DENIED: // not permitted
         reg->Disabled = TRUE;
@@ -668,6 +669,10 @@ static BOOLEAN PhpHwMmioReadMcs(
             if (status == STATUS_RETRY)
             {
                 retried = TRUE;
+            }
+            else if (status == STATUS_DEVICE_NOT_READY || status == STATUS_DEVICE_POWERED_OFF)
+            {
+                NOTHING;
             }
             else if (status == STATUS_ACCESS_DENIED || ++mc->Strikes[c] >= PHP_HW_MMIO_STRIKE_LIMIT)
             {

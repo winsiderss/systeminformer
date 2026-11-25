@@ -201,6 +201,8 @@ static BOOLEAN PhpHwPciApplyStatus(
     switch (Status)
     {
     case STATUS_RETRY:
+    case STATUS_DEVICE_NOT_READY:
+    case STATUS_DEVICE_POWERED_OFF:
     case STATUS_CANCELLED:
         break;
     case STATUS_ACCESS_DENIED:
