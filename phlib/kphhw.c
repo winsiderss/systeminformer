@@ -37,6 +37,7 @@ static CONST PH_STRINGREF KphpHwCrosEcFileName = PH_STRINGREF_INIT(L"scripts\\cr
 static CONST PH_STRINGREF KphpHwVsecFileName = PH_STRINGREF_INIT(L"scripts\\vsec.bin");
 static CONST PH_STRINGREF KphpHwEcFileName = PH_STRINGREF_INIT(L"scripts\\ec.bin");
 static CONST PH_STRINGREF KphpHwTsensFileName = PH_STRINGREF_INIT(L"scripts\\tsens.bin");
+static CONST PH_STRINGREF KphpHwSpbmFileName = PH_STRINGREF_INIT(L"scripts\\spbm.bin");
 static CONST PH_STRINGREF KphpHwGpdFileName = PH_STRINGREF_INIT(L"scripts\\gpd.bin");
 static CONST PH_STRINGREF KphpHwLenovoWsFileName = PH_STRINGREF_INIT(L"scripts\\lenovows.bin");
 static CONST PH_STRINGREF KphpHwDellFileName = PH_STRINGREF_INIT(L"scripts\\dell.bin");
@@ -65,6 +66,7 @@ static KPH_HW_SCRIPT KphpHwCrosEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIP
 static KPH_HW_SCRIPT KphpHwVsecScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwVsecFileName };
 static KPH_HW_SCRIPT KphpHwEcScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwEcFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
+static KPH_HW_SCRIPT KphpHwSpbmScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwSpbmFileName };
 static KPH_HW_SCRIPT KphpHwGpdScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwGpdFileName };
 static KPH_HW_SCRIPT KphpHwLenovoWsScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwLenovoWsFileName };
 static KPH_HW_SCRIPT KphpHwDellScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwDellFileName };
@@ -231,6 +233,7 @@ VOID KphHwSetScriptMode(
         &KphpHwEcScript,
         &KphpHwVsecScript,
         &KphpHwTsensScript,
+        &KphpHwSpbmScript,
         &KphpHwGpdScript,
         &KphpHwLenovoWsScript,
         &KphpHwDellScript,
@@ -3226,6 +3229,42 @@ NTSTATUS KphHwTsensRead(
 
     if (NT_SUCCESS(status) && returnLength != length)
         status = STATUS_INFO_LENGTH_MISMATCH;
+
+    return status;
+}
+
+/**
+ * Reads the NVIDIA N1X power budget page: its temperatures, powers, energies
+ * and power limits.
+ *
+ * \param Sample Receives the sample.
+ * \return Successful or errant status; STATUS_NOT_SUPPORTED when the script
+ * has no row for the part.
+ */
+NTSTATUS KphHwSpbmRead(
+    _Out_ PKPH_HW_SPBM_SAMPLE Sample
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+    NTSTATUS status;
+    KPH_HW_SPBM_SAMPLE sample;
+    ULONG returnLength;
+
+    status = KphpHwScriptCall(
+        &KphpHwSpbmScript,
+        &routine,
+        NULL,
+        0,
+        &sample,
+        sizeof(sample),
+        &returnLength
+        );
+
+    if (NT_SUCCESS(status) && returnLength != sizeof(sample))
+        status = STATUS_INFO_LENGTH_MISMATCH;
+
+    if (NT_SUCCESS(status))
+        *Sample = sample;
 
     return status;
 }

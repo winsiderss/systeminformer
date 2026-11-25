@@ -336,6 +336,68 @@ typedef struct _KPH_HW_TSENS_IDENTITY
     KPH_HW_TSENS_CONTROLLER Controllers[KPH_HW_TSENS_CONTROLLERS];
 } KPH_HW_TSENS_IDENTITY, *PKPH_HW_TSENS_IDENTITY;
 
+typedef enum _KPH_HW_SPBM_TEMPERATURE
+{
+    KphHwSpbmTemperatureHottest,
+    KphHwSpbmTemperatureSoc,
+    KphHwSpbmTemperatureCluster0E,
+    KphHwSpbmTemperatureCluster0P,
+    KphHwSpbmTemperatureCluster1E,
+    KphHwSpbmTemperatureCluster1P,
+    KphHwSpbmTemperatureGpu,
+    KphHwSpbmTemperatureUncore,
+    KphHwSpbmTemperatureDla,
+    KphHwSpbmTemperatureMaximum
+} KPH_HW_SPBM_TEMPERATURE;
+
+typedef enum _KPH_HW_SPBM_POWER
+{
+    KphHwSpbmPowerSystem,
+    KphHwSpbmPowerPackage,
+    KphHwSpbmPowerCpuGpu,
+    KphHwSpbmPowerCpuP,
+    KphHwSpbmPowerCpuE,
+    KphHwSpbmPowerRailA,
+    KphHwSpbmPowerDcInput,
+    KphHwSpbmPowerGpu,
+    KphHwSpbmPowerRailB,
+    KphHwSpbmPowerPackageAverage,
+    KphHwSpbmPowerSystemAverage,
+    KphHwSpbmPowerSystemShortAverage,
+    KphHwSpbmPowerMaximum
+} KPH_HW_SPBM_POWER;
+
+typedef enum _KPH_HW_SPBM_ENERGY
+{
+    KphHwSpbmEnergyPackage,
+    KphHwSpbmEnergyCpuE,
+    KphHwSpbmEnergyCpuP,
+    KphHwSpbmEnergyGpu,
+    KphHwSpbmEnergySystem,
+    KphHwSpbmEnergyMaximum
+} KPH_HW_SPBM_ENERGY;
+
+typedef enum _KPH_HW_SPBM_LIMIT
+{
+    KphHwSpbmLimitPl1,
+    KphHwSpbmLimitPl2,
+    KphHwSpbmLimitPl1Request,
+    KphHwSpbmLimitPl2Request,
+    KphHwSpbmLimitMaximum
+} KPH_HW_SPBM_LIMIT;
+
+typedef struct _KPH_HW_SPBM_SAMPLE
+{
+    ULONG TemperatureMask; // the channels the part has
+    ULONG PowerMask;
+    ULONG EnergyMask;
+    ULONG LimitMask;
+    LONG Temperature[KphHwSpbmTemperatureMaximum]; // milli-degrees Celsius
+    ULONG Power[KphHwSpbmPowerMaximum]; // milliwatts
+    ULONG Energy[KphHwSpbmEnergyMaximum]; // millijoules, a count that wraps
+    ULONG Limit[KphHwSpbmLimitMaximum]; // milliwatts
+} KPH_HW_SPBM_SAMPLE, *PKPH_HW_SPBM_SAMPLE;
+
 #define KPH_HW_VSEC_DISCOVERY_PMT 2
 #define KPH_HW_VSEC_DISCOVERY_TPMI 66
 
@@ -388,6 +450,7 @@ C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
 C_ASSERT(sizeof(KPH_HW_TSENS_CONTROLLER) == 72);
 C_ASSERT(sizeof(KPH_HW_TSENS_IDENTITY) == 580);
+C_ASSERT(sizeof(KPH_HW_SPBM_SAMPLE) == 136);
 
 PHLIBAPI
 NTSTATUS
@@ -961,6 +1024,13 @@ NTAPI
 KphHwTsensRead(
     _In_ ULONG Count,
     _Out_writes_(Count * KPH_HW_TSENS_SENSORS) PULONG Status
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwSpbmRead(
+    _Out_ PKPH_HW_SPBM_SAMPLE Sample
     );
 
 PHLIBAPI

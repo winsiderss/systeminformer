@@ -96,6 +96,7 @@ PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum] =
     { L"smbus", 3 * PHP_HW_SECOND, PhpHwSmbusProbe, PhpHwSmbusPass, PhpHwSmbusEndSession, PhpHwSmbusDiagnostics },
     { L"acpi", 2 * PHP_HW_SECOND, PhpHwAcpiProbe, PhpHwAcpiPass, PhpHwAcpiEnd, PhpHwAcpiDiagnostics },
     { L"tsens", 0, PhpHwTsensProbe, PhpHwTsensPass, PhpHwTsensEnd, PhpHwTsensDiagnostics },
+    { L"spbm", 0, PhpHwSpbmProbe, PhpHwSpbmPass, PhpHwSpbmEnd, PhpHwSpbmDiagnostics },
 };
 
 BOOLEAN PhpHwReportReads = FALSE;

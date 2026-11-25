@@ -107,6 +107,9 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
+    <script name="spbm" file="script/spbm.lua" arch="arm64" desc="NVIDIA N1X power budget page">
+        <routine name="read" level="maximum"/>
+    </script>
     <script name="usbdisk" file="script/usbdisk.lua" arch="amd64,arm64" desc="SMART data of SATA drives behind USB bridges">
         <routine name="read" level="maximum"/>
     </script>
