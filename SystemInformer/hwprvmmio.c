@@ -1448,12 +1448,14 @@ NTSTATUS PhpHwMmioPass(
     // The chipset temperature's first source; without it, platform's PWRM.
     if (PhpHwMmioActive(PhpHwMmioPchTemp))
     {
-        PhpHwChipsetTemperatureValid = FALSE;
-
         if (PhpHwMmioValue(PhpHwMmioPchTemp, &value) && PhIntelPchTemperatureToCelsius((USHORT)value, &celsius))
         {
             PhpHwChipsetTemperature = celsius;
             PhpHwChipsetTemperatureValid = TRUE;
+        }
+        else
+        {
+            PhpHwChipsetTemperatureValid = FALSE;
         }
     }
 

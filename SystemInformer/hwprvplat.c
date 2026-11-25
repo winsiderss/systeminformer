@@ -242,7 +242,6 @@ NTSTATUS PhpHwPlatformPass(
 
         item.Offset = PH_INTEL_PWRM_THERMAL_TSS0;
         item.Width = 4;
-        PhpHwChipsetTemperatureValid = FALSE;
 
         // TSRV clear is a reading in progress, not a failure.
         if (PhpHwPlatformRead(&PhpHwPlatformPwrm, KPH_HW_PLATFORM_PWRM, &item, 1, &value))
@@ -252,11 +251,16 @@ NTSTATUS PhpHwPlatformPass(
                 PhpHwChipsetTemperature = celsius;
                 PhpHwChipsetTemperatureValid = TRUE;
             }
+            else
+            {
+                PhpHwChipsetTemperatureValid = FALSE;
+            }
 
             answered = TRUE;
         }
         else
         {
+            PhpHwChipsetTemperatureValid = FALSE;
             retried |= PhpHwPlatformPwrm.Status == STATUS_RETRY;
             answered |= PhpHwPlatformPwrm.Status != STATUS_RETRY;
         }
