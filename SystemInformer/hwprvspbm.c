@@ -13,10 +13,8 @@
 #include <kphhw.h>
 #include <trace.h>
 
-// Collector spbm: the NVIDIA N1X power budget page spbm.lua lists, one KphHwSpbmRead every update. Package 0 takes
-// the hottest temperature, the package, core (P and E clusters) and platform power and the active PL1 and PL2; the
-// other channels are named sensors. A power with an energy count is the count's rate over the update, the instant
-// word until there are two samples.
+// Collector spbm: the NVIDIA N1X power budget page, one KphHwSpbmRead every update. A power with an energy count is
+// the count's rate over the update.
 
 #define PHP_HW_SPBM_ID_BASE 0x53500000 // named sensor ids: base + kind * 0x100 + channel
 #define PHP_HW_SPBM_STRIKE_LIMIT 3 // failed reads in a row before the sensors end for the session
@@ -70,6 +68,7 @@ static CONST PHP_HW_SPBM_NAMED PhpHwSpbmLimits[] =
 {
     { PhHwNamedSensorPowerLimit, KphHwSpbmLimitPl1Request, L"PL1 (requested)" },
     { PhHwNamedSensorPowerLimit, KphHwSpbmLimitPl2Request, L"PL2 (requested)" },
+    { PhHwNamedSensorPowerLimit, KphHwSpbmLimitInForce, L"Limit in force" },
 };
 
 // The energy count of a power channel, KphHwSpbmEnergyMaximum when it has none.
@@ -310,7 +309,9 @@ NTSTATUS PhpHwSpbmPass(
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSpbmLimits); i++)
     {
-        PhpHwSetNamedSensor(PhpHwSpbmLimitIndex[i], read, (FLOAT)PhpHwSpbmSample.Limit[PhpHwSpbmLimits[i].Channel] / 1000.0f);
+        ULONG milliwatts = PhpHwSpbmSample.Limit[PhpHwSpbmLimits[i].Channel];
+
+        PhpHwSetNamedSensor(PhpHwSpbmLimitIndex[i], read && milliwatts, (FLOAT)milliwatts / 1000.0f);
     }
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSpbmVoltages); i++)

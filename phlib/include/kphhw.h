@@ -384,6 +384,7 @@ typedef enum _KPH_HW_SPBM_LIMIT
     KphHwSpbmLimitPl2,
     KphHwSpbmLimitPl1Request,
     KphHwSpbmLimitPl2Request,
+    KphHwSpbmLimitInForce, // 0 when unknown
     KphHwSpbmLimitMaximum
 } KPH_HW_SPBM_LIMIT;
 
@@ -397,14 +398,14 @@ typedef enum _KPH_HW_SPBM_VOLTAGE
 
 typedef struct _KPH_HW_SPBM_SAMPLE
 {
-    ULONG TemperatureMask; // the channels the part has
+    ULONG TemperatureMask;
     ULONG PowerMask;
     ULONG EnergyMask;
     ULONG LimitMask;
     ULONG VoltageMask;
     LONG Temperature[KphHwSpbmTemperatureMaximum]; // milli-degrees Celsius
     ULONG Power[KphHwSpbmPowerMaximum]; // milliwatts
-    ULONG Energy[KphHwSpbmEnergyMaximum]; // millijoules, a count that wraps
+    ULONG Energy[KphHwSpbmEnergyMaximum]; // millijoules, wrapping
     ULONG Limit[KphHwSpbmLimitMaximum]; // milliwatts
     ULONG Voltage[KphHwSpbmVoltageMaximum]; // millivolts
 } KPH_HW_SPBM_SAMPLE, *PKPH_HW_SPBM_SAMPLE;
@@ -461,7 +462,7 @@ C_ASSERT(sizeof(KPH_HW_VSEC_REGION) == 16);
 C_ASSERT(sizeof(KPH_HW_TSENS_SENSOR) == 4);
 C_ASSERT(sizeof(KPH_HW_TSENS_CONTROLLER) == 72);
 C_ASSERT(sizeof(KPH_HW_TSENS_IDENTITY) == 580);
-C_ASSERT(sizeof(KPH_HW_SPBM_SAMPLE) == 156);
+C_ASSERT(sizeof(KPH_HW_SPBM_SAMPLE) == 160);
 
 PHLIBAPI
 NTSTATUS

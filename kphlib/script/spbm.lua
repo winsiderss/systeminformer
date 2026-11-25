@@ -9,11 +9,8 @@
 --
 
 --
--- Reads the power budget page of the NVIDIA N1X: words the SoC's power
--- firmware keeps current with its rails' power, energy and voltage, its
--- temperatures and its power limits. A part is found by processor 0's MIDR and
--- by the DSDT reading the page itself; the page of a part that is not listed
--- is never mapped. Nothing is written.
+-- Reads the NVIDIA N1X power budget page of the listed parts. Nothing is
+-- written.
 --
 
 local nt = require('nt')
@@ -22,7 +19,7 @@ local MIDR = 0x4000
 local PAGE = 0x1000
 local ADDRESS_BITS = 48
 
--- The channels of KPH_HW_SPBM_SAMPLE, in its order.
+-- KPH_HW_SPBM_SAMPLE's channels.
 local TEMPERATURE = {
   hottest = 0,
   soc = 1,
@@ -67,8 +64,14 @@ local LIMIT = {
   pl2 = 1,
   pl1_request = 2,
   pl2_request = 3,
+  in_force = 4,
 }
-local LIMIT_MAX = 4
+local LIMIT_MAX = 5
+
+local LEVEL = {
+  [1] = LIMIT.pl1,
+  [2] = LIMIT.pl2,
+}
 
 local VOLTAGE = {
   cpu_p = 0,
@@ -77,15 +80,14 @@ local VOLTAGE = {
 }
 local VOLTAGE_MAX = 3
 
--- A temperature word is tenths of a kelvin ('dk') or whole degrees Celsius
--- ('c'); powers and limits are milliwatts, energies millijoules, voltages
--- millivolts.
+-- Temperatures 'dk' (tenths of a kelvin) or 'c' (degrees Celsius).
 local ROWS = {
   {
     implementer = 0x41,
     parts = { 0xd85, 0xd87 },
     base = 0x1c238000,
     probe = 0x818,
+    level = 0x048,
     temperatures = {
       [TEMPERATURE.hottest] = { 0x81c, 'c' },
       [TEMPERATURE.soc] = { 0x818, 'dk' },
@@ -135,7 +137,6 @@ local ROWS = {
 
 local kept = {}
 
--- Processor 0's MIDR, or nil.
 local function midr()
   local list = ksi.hw.processors()
   if #list < 4 then
@@ -153,8 +154,6 @@ local function midr()
   return value
 end
 
--- The row of this part: from the tables once in a kept script, nil when there
--- is none.
 local function part()
   if kept.part ~= nil then
     return kept.part or nil
@@ -169,7 +168,6 @@ local function part()
       if row.implementer == implementer then
         for _, p in ipairs(row.parts) do
           if p == number then
-            -- The DSDT's own thermal zone reads this word: a DWordConst of it.
             local word = string.pack('<BI4', 0x0c, row.base + row.probe)
             if string.find(dsdt, word, 37, true) then
               found = row
@@ -191,7 +189,6 @@ local function part()
   return found or nil
 end
 
--- The page, mapped once in a kept script.
 local function page(row)
   if kept.page then
     return kept.page
@@ -210,8 +207,6 @@ local function page(row)
   return m
 end
 
--- Packs one kind of channel: the mask of the row's channels, then each
--- channel's value (0 for one the row does not have).
 local function channels(m, list, max, convert)
   local mask = 0
   local values = {}
@@ -231,7 +226,6 @@ local function word(m, at)
   return ksi.hw.map_read(m, at, 4)
 end
 
--- Milli-degrees Celsius.
 local function temperature(m, at)
   local value = ksi.hw.map_read(m, at[1], 4)
   if at[2] == 'c' then
@@ -240,11 +234,7 @@ local function temperature(m, at)
   return value * 100 - 273150
 end
 
--- Returns one sample: <I4> masks of the temperature, power, energy, limit and
--- voltage channels the row has, then <i4> per temperature channel
--- (milli-degrees Celsius), <I4> per power channel (milliwatts), <I4> per
--- energy channel (millijoules, a count that wraps), <I4> per limit channel
--- (milliwatts) and <I4> per voltage channel (millivolts).
+-- Returns a KPH_HW_SPBM_SAMPLE.
 function read(input)
   if not ksi.hw.map or not ksi.hw.sysreg_read or not ksi.hw.firmware_table then
     ksi.trace('no map, system register or firmware table functions')
@@ -268,6 +258,13 @@ function read(input)
   local pm, p = channels(m, row.powers, POWER_MAX, word)
   local em, e = channels(m, row.energies, ENERGY_MAX, word)
   local lm, l = channels(m, row.limits, LIMIT_MAX, word)
+  if row.level then
+    local limit = LEVEL[word(m, row.level)]
+    lm = lm | (1 << LIMIT.in_force)
+    if limit and l[limit + 1] then
+      l[LIMIT.in_force + 1] = l[limit + 1]
+    end
+  end
   local vm, v = channels(m, row.voltages, VOLTAGE_MAX, word)
   local out = { string.pack('<I4I4I4I4I4', tm, pm, em, lm, vm) }
   for _, v in ipairs(t) do
