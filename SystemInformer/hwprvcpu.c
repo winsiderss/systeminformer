@@ -1922,6 +1922,9 @@ NTSTATUS PhpHwCpuPass(
 {
     NTSTATUS status;
 
+    if (PhpHwCpuClass == PhpHwCpuNone)
+        return STATUS_NOT_SUPPORTED;
+
     PhpHwCpuItemCount = 0;
 
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
