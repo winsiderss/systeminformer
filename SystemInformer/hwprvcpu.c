@@ -1753,7 +1753,7 @@ static VOID PhpHwCpuPublish(
         }
         else if (PhpHwCpuClass == PhpHwCpuArm64)
         {
-            valid = PhpHwCpuDecodeArm64(i);
+            valid = PhpHwCpuDecodeArm64(i) | (ReadULongAcquire(&sensor->Valid) & PH_HW_CAP_CORE_TEMP);
         }
         else if (PhpHwCpuClass == PhpHwCpuCentaur)
         {
