@@ -157,6 +157,7 @@ typedef struct _PHP_HW_CPU_TAG
 {
     PHP_HW_REG Reg;
     ULONG Processor; // the item's processor; its core and package come from the sensor
+    BOOLEAN Unanswered; // its call failed as a whole: no value and no strike
 } PHP_HW_CPU_TAG, *PPHP_HW_CPU_TAG;
 
 static PHP_HW_CPU_CLASS PhpHwCpuClass = PhpHwCpuNone;
@@ -513,7 +514,7 @@ static VOID PhpHwCpuStoreValues(
     {
         PPHP_HW_CPU_TAG tag = &PhpHwCpuTags[i];
 
-        if (!PhpHwCpuApplyStatus(tag->Reg, tag->Processor, PhpHwCpuValues[i].Status))
+        if (tag->Unanswered || !PhpHwCpuApplyStatus(tag->Reg, tag->Processor, PhpHwCpuValues[i].Status))
             continue;
 
         PhpHwCpuSamples[tag->Processor].Value[tag->Reg] = PhpHwCpuValues[i].Value;
@@ -610,6 +611,7 @@ static VOID PhpHwCpuProbeReadArm64(
             PhpHwCpuItems[PhpHwCpuItemCount].Msr = PhpHwCpuRegisters[reg].Register;
             PhpHwCpuTags[PhpHwCpuItemCount].Reg = reg;
             PhpHwCpuTags[PhpHwCpuItemCount].Processor = i;
+            PhpHwCpuTags[PhpHwCpuItemCount].Unanswered = FALSE;
             PhpHwCpuItemCount++;
         }
     }
@@ -720,6 +722,7 @@ static VOID PhpHwCpuProbeRead(
             PhpHwCpuItems[PhpHwCpuItemCount].Msr = PhpHwCpuRegisters[reg].Register;
             PhpHwCpuTags[PhpHwCpuItemCount].Reg = reg;
             PhpHwCpuTags[PhpHwCpuItemCount].Processor = i;
+            PhpHwCpuTags[PhpHwCpuItemCount].Unanswered = FALSE;
             PhpHwCpuItemCount++;
         }
     }
@@ -1181,7 +1184,7 @@ static NTSTATUS PhpHwCpuReadItems(
         if (!NT_SUCCESS(status))
         {
             for (ULONG i = start; i < end; i++)
-                PhpHwCpuValues[i].Status = status;
+                PhpHwCpuTags[i].Unanswered = TRUE;
         }
         else
         {
@@ -1971,6 +1974,7 @@ NTSTATUS PhpHwCpuPass(
             PhpHwCpuItems[PhpHwCpuItemCount].Msr = PhpHwCpuRegisters[reg].Register;
             PhpHwCpuTags[PhpHwCpuItemCount].Reg = reg;
             PhpHwCpuTags[PhpHwCpuItemCount].Processor = i;
+            PhpHwCpuTags[PhpHwCpuItemCount].Unanswered = FALSE;
             PhpHwCpuItemCount++;
         }
     }
