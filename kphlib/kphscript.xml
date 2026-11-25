@@ -110,4 +110,7 @@ This file is part of System Informer.
     <script name="usbdisk" file="script/usbdisk.lua" arch="amd64,arm64" desc="SMART data of SATA drives behind USB bridges">
         <routine name="read" level="maximum"/>
     </script>
+    <script name="hid" file="script/hid.lua" arch="amd64,arm64" desc="Coolers that push their status as HID input reports">
+        <routine name="read" level="maximum"/>
+    </script>
 </scripts>

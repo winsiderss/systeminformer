@@ -105,10 +105,13 @@ M.DEVPROP_TYPE_BINARY = 0x00001003
 M.DevicePropertyBootConfiguration = 0x3
 M.DevicePropertyBootConfigurationTranslated = 0x4
 M.DevicePropertyLocationInformation = 0xA
+M.DevicePropertyPhysicalDeviceObjectName = 0xB
 M.DevicePropertyBusNumber = 0xE
 M.DevicePropertyRemovalPolicy = 0x13
 M.DevicePropertyResourceRequirements = 0x14
 M.DevicePropertyAllocatedResources = 0x15
+
+M.FILE_READ_DATA = 0x0001
 
 M.CM_RESOURCE_CONNECTION_CLASS_GPIO = 0x01
 M.CM_RESOURCE_CONNECTION_CLASS_SERIAL = 0x02
