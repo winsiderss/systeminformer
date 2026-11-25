@@ -12,7 +12,8 @@
 -- Reads devices on the SMBus of the AMD FCH host and the Intel host. The
 -- hosts, how each one's SMBus base is reached, and the reads permitted on
 -- each port are listed below. A read is a byte, a word or a block; a block's
--- bytes follow every entry's record in the output.
+-- bytes follow every entry's record in the output. A paged read (PMBus) sets
+-- the device's PAGE for one byte or word and puts the old page back.
 --
 
 local nt = require('nt')
@@ -435,14 +436,26 @@ local I801_READS = {
 -- MFR_ID (99h), MFR_MODEL (9Ah) and IC_DEVICE_ID (ADh) as blocks, at 40h-47h
 -- and 60h-67h only (thermal sensors 18h-1Fh, SPD write protection 30h-37h,
 -- PMICs 48h-4Fh, SPD 50h-57h and clock generators 68h-6Fh are outside them).
+-- Telemetry on a page: VOUT_MODE (20h) as a paged byte, READ_VIN to
+-- READ_TEMPERATURE_1 (88h-8Dh), READ_POUT and READ_PIN (96h-97h) as paged
+-- words; never as plain reads.
 local PMBUS_READS = {
-  { 0x40, 0x47, 0x98, 0x98, true, false, false },
-  { 0x40, 0x47, 0x99, 0x9a, false, false, true },
-  { 0x40, 0x47, 0xad, 0xad, false, false, true },
-  { 0x60, 0x67, 0x98, 0x98, true, false, false },
-  { 0x60, 0x67, 0x99, 0x9a, false, false, true },
-  { 0x60, 0x67, 0xad, 0xad, false, false, true },
+  { 0x40, 0x47, 0x98, 0x98, true, false, false, false, false },
+  { 0x40, 0x47, 0x99, 0x9a, false, false, true, false, false },
+  { 0x40, 0x47, 0xad, 0xad, false, false, true, false, false },
+  { 0x40, 0x47, 0x20, 0x20, false, false, false, false, true },
+  { 0x40, 0x47, 0x88, 0x8d, false, false, false, true, false },
+  { 0x40, 0x47, 0x96, 0x97, false, false, false, true, false },
+  { 0x60, 0x67, 0x98, 0x98, true, false, false, false, false },
+  { 0x60, 0x67, 0x99, 0x9a, false, false, true, false, false },
+  { 0x60, 0x67, 0xad, 0xad, false, false, true, false, false },
+  { 0x60, 0x67, 0x20, 0x20, false, false, false, false, true },
+  { 0x60, 0x67, 0x88, 0x8d, false, false, false, true, false },
+  { 0x60, 0x67, 0x96, 0x97, false, false, false, true, false },
 }
+local PAGE_MAX = 3
+local PUT_BACK_TRIES = 10
+local PMBUS_PAGE = 0x00
 
 local KIND_FCH = 1
 local KIND_INTEL = 2
@@ -1078,7 +1091,7 @@ end
 
 -- The transaction up to the end of the wait; a transfer that does not end
 -- is killed.
-local function transact(s, hs, c, n)
+local function transact(s, hs, c, n, d)
   local sts = host_in(s, HST_STS)
   if sts & 0x01 ~= 0 then
     ksi.trace('the host is busy: 0x%x', sts)
@@ -1094,6 +1107,9 @@ local function transact(s, hs, c, n)
   end
   host_out(s, HST_ADD, hs)
   host_out(s, HST_CMD, c)
+  if d then
+    host_out(s, HST_DAT0, d)
+  end
   host_out(s, HST_CNT, n)
   host_out(s, HST_CNT, n | 0x40)
   ksi.stall(250)
@@ -1221,7 +1237,7 @@ local function i801_block_bytes(s, hs)
   end
 end
 
-local function i801_transact(s, hs, c, n)
+local function i801_transact(s, hs, c, n, d)
   local sts = host_in(s, HST_STS)
   if sts & 0x01 ~= 0 then
     ksi.trace('the host is busy: 0x%x', sts)
@@ -1239,6 +1255,9 @@ local function i801_transact(s, hs, c, n)
   s.started = true
   host_out(s, HST_ADD, hs)
   host_out(s, HST_CMD, c)
+  if d then
+    host_out(s, HST_DAT0, d)
+  end
   host_out(s, HST_CNT, n | 0x40)
   ksi.stall(25)
   local done = false
@@ -1305,6 +1324,8 @@ local function permitted(lines, address, command, protocol)
         (protocol == 0 and line[5])
         or (protocol == 1 and line[6])
         or (protocol == 2 and line[7])
+        or (protocol == 3 and line[8])
+        or (protocol == 4 and line[9])
       )
     then
       return true
@@ -1320,6 +1341,168 @@ local function pair_lock(s)
     return ksi.lock('isa')
   end
   return false
+end
+
+-- One transfer on the FCH host: a byte, word or block read, or with data a
+-- byte write. A status, the value, whether the read stops, and a block's
+-- bytes.
+local function fch_xfer(s, address, command, protocol, data)
+  local hs = (address << 1) | (data and 0 or 1)
+  local cnt = protocol == 2 and 0x14 or protocol == 1 and 0x0c or 0x08
+  local es, sts = transact(s, hs, command, cnt, data)
+  if not nt.NT_SUCCESS(es) then
+    return es, 0, true
+  end
+  local v, block = 0, nil
+  if data then
+    v = 0
+  elseif protocol == 2 then
+    block = sts & 0x1c == 0 and block_bytes(s) or nil
+  else
+    v = host_in(s, HST_DAT0)
+    if protocol == 1 then
+      v = v | (host_in(s, HST_DAT1) << 8)
+    end
+  end
+  local abort
+  es, abort = finish(s, hs, command, cnt, sts)
+  if nt.NT_SUCCESS(es) and protocol == 2 and not block then
+    es = nt.STATUS_DEVICE_DATA_ERROR
+  end
+  if not nt.NT_SUCCESS(es) then
+    return es, 0, abort
+  end
+  return es, v, false, block
+end
+
+-- One transfer on the Intel host, as fch_xfer.
+local function i801_xfer(s, address, command, protocol, data)
+  local hs = (address << 1) | (data and 0 or 1)
+  local cnt = protocol == 2 and 0x14 or protocol == 1 and 0x0c or 0x08
+  local es, sts, block
+  if protocol == 2 and host_in(s, AUX_CTL) & 0x02 == 0 then
+    if host_in(s, HST_STS) & 0x01 ~= 0 then
+      return nt.STATUS_RETRY, 0, true
+    end
+    s.started = true
+    host_out(s, HST_ADD, hs)
+    host_out(s, HST_CMD, command)
+    host_out(s, HST_CNT, cnt | 0x40)
+    block, sts, es = i801_block_bytes(s, hs)
+  else
+    es, sts = i801_transact(s, hs, command, cnt, data)
+  end
+  if not nt.NT_SUCCESS(es) then
+    return es, 0, true
+  end
+  local v = 0
+  if data then
+    v = 0
+  elseif protocol == 2 then
+    if host_in(s, AUX_CTL) & 0x02 ~= 0 then
+      block = block_bytes(s)
+    end
+  else
+    v = host_in(s, HST_DAT0)
+    if protocol == 1 then
+      v = v | (host_in(s, HST_DAT1) << 8)
+    end
+  end
+  local abort
+  es, abort = i801_finish(s, hs, command, cnt, sts)
+  if nt.NT_SUCCESS(es) and protocol == 2 and not block then
+    es = nt.STATUS_DEVICE_DATA_ERROR
+  end
+  if not nt.NT_SUCCESS(es) then
+    return es, 0, abort
+  end
+  return es, v, false, block
+end
+
+-- A paged read: PAGE read, written to the entry's page and read back when it
+-- differs; the byte or word; PAGE read again, and when another agent moved it
+-- the read is a retry and its page is left; otherwise the old page written
+-- back and read back (from a close handler too, whatever ends the read).
+local function paged(s, e, xfer)
+  local a = e[1]
+  local es, original, abort = xfer(s, a, PMBUS_PAGE, 0)
+  if not nt.NT_SUCCESS(es) then
+    return es, 0, abort
+  end
+  local pending = false
+  -- A transfer ended part way (a limit) leaves the host busy for a while:
+  -- each step is tried again while the host is busy.
+  local function settled(...)
+    local st, v
+    for _ = 1, PUT_BACK_TRIES do
+      st, v = xfer(s, a, PMBUS_PAGE, 0, ...)
+      if st ~= nt.STATUS_RETRY then
+        break
+      end
+      ksi.stall(100)
+    end
+    return st, v
+  end
+  local function put_back()
+    local ws = settled(original)
+    local rs, back = settled()
+    pending = false
+    return nt.NT_SUCCESS(ws) and nt.NT_SUCCESS(rs) and back == original
+  end
+  local guard <close> = setmetatable({}, {
+    __close = function()
+      if pending then
+        put_back()
+      end
+    end,
+  })
+  if original ~= e[4] then
+    pending = true
+    local written, _, writeAbort = xfer(s, a, PMBUS_PAGE, 0, e[4])
+    es, abort = written, writeAbort
+    local now
+    if nt.NT_SUCCESS(es) then
+      es, now, abort = xfer(s, a, PMBUS_PAGE, 0)
+    end
+    if not nt.NT_SUCCESS(es) or now ~= e[4] then
+      ksi.trace('0x%x did not take page %d', a, e[4])
+      put_back()
+      return nt.NT_SUCCESS(es) and nt.STATUS_DEVICE_DATA_ERROR or es, 0, abort
+    end
+  end
+  local value
+  es, value, abort = xfer(s, a, e[2], e[3] == 3 and 1 or 0)
+  local cs, current = xfer(s, a, PMBUS_PAGE, 0)
+  if nt.NT_SUCCESS(cs) and current ~= e[4] then
+    ksi.trace('another agent moved 0x%x to page %d', a, current)
+    pending = false
+    return nt.STATUS_RETRY, 0, false
+  end
+  if pending and not put_back() then
+    ksi.trace('page %d of 0x%x not put back', original, a)
+    return nt.STATUS_DEVICE_CONFIGURATION_ERROR, 0, true
+  end
+  if not nt.NT_SUCCESS(cs) then
+    return cs, 0, true
+  end
+  if not nt.NT_SUCCESS(es) then
+    return es, 0, abort
+  end
+  return es, value, false
+end
+
+-- An entry's transfer: a status, the value (a block's byte count) and
+-- whether the read stops; a block's bytes kept on the entry.
+local function transfer(s, e, xfer)
+  if e[3] >= 3 then
+    return paged(s, e, xfer)
+  end
+  local es, value, abort, block = xfer(s, e[1], e[2], e[3])
+  if block then
+    e.block = block
+    value = #block
+  end
+  return es, value, abort
 end
 
 -- The output: a status and a value per entry (a block's byte count), then the
@@ -1398,52 +1581,7 @@ local function i801_read(s, entries, port)
       es = nt.STATUS_RETRY
       stopped = true
     else
-      local hs = (e[1] << 1) | 1
-      local cnt = e[3] == 2 and 0x14 or e[3] == 1 and 0x0c or 0x08
-      local sts, block
-      if e[3] == 2 and host_in(s, AUX_CTL) & 0x02 == 0 then
-        es = nt.STATUS_SUCCESS
-        if host_in(s, HST_STS) & 0x01 ~= 0 then
-          es = nt.STATUS_RETRY
-        else
-          s.started = true
-          host_out(s, HST_ADD, hs)
-          host_out(s, HST_CMD, e[2])
-          host_out(s, HST_CNT, cnt | 0x40)
-          block, sts, es = i801_block_bytes(s, hs)
-        end
-      else
-        es, sts = i801_transact(s, hs, e[2], cnt)
-      end
-      if nt.NT_SUCCESS(es) then
-        local v = 0
-        if e[3] == 2 then
-          if host_in(s, AUX_CTL) & 0x02 ~= 0 then
-            block = block_bytes(s)
-          end
-        else
-          v = host_in(s, HST_DAT0)
-          if e[3] == 1 then
-            v = v | (host_in(s, HST_DAT1) << 8)
-          end
-        end
-        local abort
-        es, abort = i801_finish(s, hs, e[2], cnt, sts)
-        if nt.NT_SUCCESS(es) and e[3] == 2 and not block then
-          es = nt.STATUS_DEVICE_DATA_ERROR
-        end
-        if nt.NT_SUCCESS(es) then
-          value = v
-          if block then
-            value = #block
-            e.block = block
-          end
-        elseif abort then
-          stopped = true
-        end
-      else
-        stopped = true
-      end
+      es, value, stopped = transfer(s, e, i801_xfer)
     end
     output[i] = { es, value }
   end
@@ -1469,12 +1607,12 @@ function read(input)
   local locator, port = string.unpack('<I4I4', input)
   local entries = {}
   for i = 1, (#input - 8) // 4 do
-    local address, command, protocol, zero = string.unpack('<I1I1I1I1', input, 9 + (i - 1) * 4)
-    if address > 0x7f or protocol > 2 or zero ~= 0 then
+    local address, command, protocol, page = string.unpack('<I1I1I1I1', input, 9 + (i - 1) * 4)
+    if address > 0x7f or protocol > 4 or page > (protocol >= 3 and PAGE_MAX or 0) then
       ksi.trace('entry %d malformed', i)
       return nt.STATUS_INVALID_PARAMETER
     end
-    entries[i] = { address, command, protocol }
+    entries[i] = { address, command, protocol, page }
   end
 
   local lock <close>, failed = ksi.lock('smbus')
@@ -1625,37 +1763,7 @@ function read(input)
           end
         end
         if nt.NT_SUCCESS(es) then
-          local hs = (e[1] << 1) | 1
-          local cnt = e[3] == 2 and 0x14 or e[3] == 1 and 0x0c or 0x08
-          local sts
-          es, sts = transact(s, hs, e[2], cnt)
-          if nt.NT_SUCCESS(es) then
-            local v, block = 0, nil
-            if e[3] == 2 then
-              block = sts & 0x1c == 0 and block_bytes(s) or nil
-            else
-              v = host_in(s, HST_DAT0)
-              if e[3] == 1 then
-                v = v | (host_in(s, HST_DAT1) << 8)
-              end
-            end
-            local abort
-            es, abort = finish(s, hs, e[2], cnt, sts)
-            if nt.NT_SUCCESS(es) and e[3] == 2 and not block then
-              es = nt.STATUS_DEVICE_DATA_ERROR
-            end
-            if nt.NT_SUCCESS(es) then
-              value = v
-              if block then
-                value = #block
-                e.block = block
-              end
-            elseif abort then
-              stopped = true
-            end
-          else
-            stopped = true
-          end
+          es, value, stopped = transfer(s, e, fch_xfer)
         end
       end
       output[i] = { es, value }
