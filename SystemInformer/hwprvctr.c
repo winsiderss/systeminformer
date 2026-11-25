@@ -47,12 +47,15 @@ C_ASSERT(FIELD_OFFSET(PHP_HW_THERMAL_INFORMATION_EX, ActiveTripPoint) + sizeof(U
 #define PHP_HW_COUNTER_ZONE_MAXIMUM 4500 // tenths of a kelvin; above 177 C is not a temperature
 #define PHP_HW_COUNTER_ZONE_DUMMY 3000 // 300.0 K, the constant that firmware dummy zones return
 #define PHP_HW_COUNTER_RETRY_TICKS 30 // updates between attempts to open the query after a failure
+#define PHP_HW_COUNTER_NIC_ID_BASE 0x20000 // network adapter temperatures: this plus the item index
+#define PHP_HW_COUNTER_NIC_MAXIMUM 150 // degrees Celsius; 0 or above this is not a reading
 
 typedef enum _PHP_HW_COUNTER_SET
 {
     PhpHwCounterSetZone, // Thermal Zone Information
     PhpHwCounterSetProcessor, // Processor Information
     PhpHwCounterSetMeter, // Energy Meter
+    PhpHwCounterSetNic, // Mellanox WinOF-2 Device Diagnostic; found by name
     PhpHwCounterSetMaximum
 } PHP_HW_COUNTER_SET;
 
@@ -62,12 +65,16 @@ static CONST GUID PhpHwZoneCounterSet = { 0x52bc5412, 0xdac2, 0x449c, { 0x8b, 0x
 static CONST GUID PhpHwProcessorCounterSet = { 0xb4fc721a, 0x0378, 0x476f, { 0x89, 0xba, 0xa5, 0xa7, 0x9f, 0x81, 0x0b, 0x36 } };
 // {06EBF20D-17FB-4338-A08D-7A99F17CA678}
 static CONST GUID PhpHwMeterCounterSet = { 0x06ebf20d, 0x17fb, 0x4338, { 0xa0, 0x8d, 0x7a, 0x99, 0xf1, 0x7c, 0xa6, 0x78 } };
+// Registered without a published GUID; looked up by name when the query opens.
+static GUID PhpHwNicCounterSet = { 0 };
+static ULONG PhpHwNicCounterId = ULONG_MAX; // ULONG_MAX when the set or its temperature counter is not registered
 
 static CONST GUID* CONST PhpHwCounterSetGuids[PhpHwCounterSetMaximum] =
 {
     &PhpHwZoneCounterSet,
     &PhpHwProcessorCounterSet,
-    &PhpHwMeterCounterSet
+    &PhpHwMeterCounterSet,
+    &PhpHwNicCounterSet
 };
 
 typedef struct _PHP_HW_COUNTER
@@ -90,6 +97,7 @@ static CONST PHP_HW_COUNTER PhpHwCounters[] =
     { PhpHwCounterSetProcessor, 31, 3 }, // Performance Limit Flags
     { PhpHwCounterSetMeter, 3, 0 }, // Power, mW over the base
     { PhpHwCounterSetMeter, 4, 1 },
+    { PhpHwCounterSetNic, ULONG_MAX, 0 }, // Nic temperature in Celsius degrees unit; the ID is PhpHwNicCounterId
 };
 
 typedef struct _PHP_HW_COUNTER_ITEM
@@ -227,6 +235,127 @@ static VOID PhpHwCounterClose(
 }
 
 /**
+ * Returns the ID of a counter in its set; ULONG_MAX when it is not registered.
+ */
+static ULONG PhpHwCounterId(
+    _In_ PCPHP_HW_COUNTER Counter
+    )
+{
+    return Counter->Set == PhpHwCounterSetNic ? PhpHwNicCounterId : Counter->CounterId;
+}
+
+/**
+ * Queries registration information of a counter set, growing the buffer as needed.
+ *
+ * \return TRUE when the information is in the buffer; Length receives its size.
+ */
+static BOOLEAN PhpHwCounterQueryRegistration(
+    _In_ PCGUID Set,
+    _In_ PerfRegInfoType Request,
+    _Inout_ PVOID* Buffer,
+    _Inout_ PULONG BufferLength,
+    _Out_ PULONG Length
+    )
+{
+    ULONG status;
+    ULONG length = 0;
+
+    *Length = 0;
+    status = PerfQueryCounterSetRegistrationInfo(NULL, Set, Request, 0, *Buffer, *BufferLength, &length);
+
+    if (status == ERROR_NOT_ENOUGH_MEMORY && length > *BufferLength)
+    {
+        PhFree(*Buffer);
+        *BufferLength = length;
+        *Buffer = PhAllocate(length);
+        status = PerfQueryCounterSetRegistrationInfo(NULL, Set, Request, 0, *Buffer, *BufferLength, &length);
+    }
+
+    if (status != ERROR_SUCCESS || length > *BufferLength)
+        return FALSE;
+
+    *Length = length;
+    return TRUE;
+}
+
+/**
+ * Finds the network adapter diagnostic set and its temperature counter by their English names.
+ */
+static VOID PhpHwCounterFindNicSet(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF setName = PH_STRINGREF_INIT(L"Mellanox WinOF-2 Device Diagnostic");
+    static CONST PH_STRINGREF counterName = PH_STRINGREF_INIT(L"Nic temperature in Celsius degrees unit");
+    ULONG count = 0;
+    ULONG setsLength;
+    PGUID sets;
+    PVOID buffer;
+    ULONG bufferLength = 0x1000;
+    ULONG length;
+
+    memset(&PhpHwNicCounterSet, 0, sizeof(GUID));
+    PhpHwNicCounterId = ULONG_MAX;
+
+    if (PerfEnumerateCounterSet(NULL, NULL, 0, &count) != ERROR_NOT_ENOUGH_MEMORY || !count)
+        return;
+    if (!NT_SUCCESS(RtlULongMult(count, sizeof(GUID), &setsLength)))
+        return;
+
+    sets = PhAllocate(setsLength);
+    buffer = PhAllocate(bufferLength);
+
+    if (PerfEnumerateCounterSet(NULL, sets, count, &count) == ERROR_SUCCESS && count <= setsLength / sizeof(GUID))
+    {
+        for (ULONG i = 0; i < count; i++)
+        {
+            PH_STRINGREF name;
+            PPERF_STRING_BUFFER_HEADER header;
+            PPERF_STRING_COUNTER_HEADER counters;
+
+            if (!PhpHwCounterQueryRegistration(&sets[i], PERF_REG_COUNTERSET_ENGLISH_NAME, &buffer, &bufferLength, &length))
+                continue;
+
+            name.Buffer = buffer;
+            name.Length = wcsnlen(name.Buffer, length / sizeof(WCHAR)) * sizeof(WCHAR);
+
+            if (!PhEqualStringRef(&name, &setName, TRUE))
+                continue;
+
+            if (PhpHwCounterQueryRegistration(&sets[i], PERF_REG_COUNTER_ENGLISH_NAMES, &buffer, &bufferLength, &length) &&
+                length >= sizeof(PERF_STRING_BUFFER_HEADER))
+            {
+                header = buffer;
+                counters = PTR_ADD_OFFSET(header, sizeof(PERF_STRING_BUFFER_HEADER));
+
+                for (ULONG j = 0; j < header->dwCounters && j < (length - sizeof(PERF_STRING_BUFFER_HEADER)) / sizeof(PERF_STRING_COUNTER_HEADER); j++)
+                {
+                    ULONG offset = counters[j].dwOffset;
+
+                    if (offset >= length)
+                        continue;
+
+                    name.Buffer = PTR_ADD_OFFSET(buffer, offset);
+                    name.Length = wcsnlen(name.Buffer, (length - offset) / sizeof(WCHAR)) * sizeof(WCHAR);
+
+                    if (PhEqualStringRef(&name, &counterName, TRUE))
+                    {
+                        PhpHwNicCounterSet = sets[i];
+                        PhpHwNicCounterId = counters[j].dwCounterId;
+                        break;
+                    }
+                }
+            }
+
+            break;
+        }
+    }
+
+    PhFree(buffer);
+    PhFree(sets);
+}
+
+/**
  * Opens the query and adds every counter whose set is registered.
  *
  * \return TRUE when a counter was added.
@@ -250,16 +379,20 @@ static BOOLEAN PhpHwCounterOpen(
         goto Exit;
     }
 
+    PhpHwCounterFindNicSet();
     identifier = PhAllocateZero(length);
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwCounters); i++)
     {
         PCPHP_HW_COUNTER counter = &PhpHwCounters[i];
 
+        if (PhpHwCounterId(counter) == ULONG_MAX)
+            continue;
+
         memset(identifier, 0, length);
         identifier->Size = length;
         identifier->CounterSetGuid = *PhpHwCounterSetGuids[counter->Set];
-        identifier->CounterId = counter->CounterId;
+        identifier->CounterId = PhpHwCounterId(counter);
         identifier->InstanceId = PERF_WILDCARD_COUNTER;
         memcpy(PTR_ADD_OFFSET(identifier, sizeof(PERF_COUNTER_IDENTIFIER)), PERF_WILDCARD_INSTANCE, sizeof(PERF_WILDCARD_INSTANCE));
 
@@ -292,7 +425,7 @@ static BOOLEAN PhpHwCounterOpen(
                     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwCounters); i++)
                     {
                         if (IsEqualGUID(&identifier->CounterSetGuid, PhpHwCounterSetGuids[PhpHwCounters[i].Set]) &&
-                            identifier->CounterId == PhpHwCounters[i].CounterId)
+                            identifier->CounterId == PhpHwCounterId(&PhpHwCounters[i]))
                         {
                             index = i;
                             break;
@@ -898,6 +1031,13 @@ static VOID PhpHwCounterPublish(
                     item->SensorIndex = PhpHwCounterAddSensor(PhHwNamedSensorMeterPower, PhpHwCounterMeterId(item->Name, i), item->Name);
             }
             break;
+        case PhpHwCounterSetNic:
+            valid = (item->Seen & 1) && item->Values[0] && item->Values[0] <= PHP_HW_COUNTER_NIC_MAXIMUM;
+            value = (FLOAT)item->Values[0];
+
+            if (valid && item->SensorIndex == ULONG_MAX)
+                item->SensorIndex = PhpHwCounterAddSensor(PhHwNamedSensorZoneTemperature, PHP_HW_COUNTER_NIC_ID_BASE + i, item->Name);
+            break;
         }
 
         PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
@@ -1162,7 +1302,7 @@ VOID PhpHwWriteCounterDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
-    static CONST PCWSTR setNames[PhpHwCounterSetMaximum] = { L"thermal zones", L"processors", L"energy meters" };
+    static CONST PCWSTR setNames[PhpHwCounterSetMaximum] = { L"thermal zones", L"processors", L"energy meters", L"network adapters" };
     PPHP_HW_COUNTER_ITEM items = NULL;
     PHP_HW_COUNTER_BLOCK blocks[RTL_NUMBER_OF(PhpHwCounters)];
     ULONG count;
@@ -1223,7 +1363,7 @@ VOID PhpHwWriteCounterDiagnostics(
                 Builder,
                 L"  Counter %s %lu: status 0x%08lx, type %lu, %lu instances\n",
                 setNames[PhpHwCounters[block->Counter].Set],
-                PhpHwCounters[block->Counter].CounterId,
+                PhpHwCounterId(&PhpHwCounters[block->Counter]),
                 block->Status,
                 block->Type,
                 block->Instances
@@ -1264,6 +1404,9 @@ VOID PhpHwWriteCounterDiagnostics(
             break;
         case PhpHwCounterSetMeter:
             PhAppendFormatStringBuilder(Builder, L"  Meter %s: power %I64u over %I64u\n", item->Name, item->Values[0], item->Values[1]);
+            break;
+        case PhpHwCounterSetNic:
+            PhAppendFormatStringBuilder(Builder, L"  Network adapter %s: %I64u C\n", item->Name, item->Values[0]);
             break;
         }
     }

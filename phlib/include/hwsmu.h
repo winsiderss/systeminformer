@@ -44,7 +44,7 @@ typedef enum _PH_HW_NAMED_SENSOR_KIND
     PhHwNamedSensorPowerLimit, // PH_HW_CAP_PLATFORM_LIMITS, watts, CPU component
     PhHwNamedSensorPmtTemperature, // PH_HW_CAP_TPMI_POWER, degrees Celsius, CPU component: Intel PMT SoC and core telemetry, Qualcomm TSENS die sensors
     PhHwNamedSensorAcpiVoltage, // PH_HW_CAP_ACPI_TEMP, volts, System component (ATK0110)
-    PhHwNamedSensorZoneTemperature, // Windows counters, degrees Celsius, Windows component: ACPI thermal zones
+    PhHwNamedSensorZoneTemperature, // Windows counters, degrees Celsius, Windows component: ACPI thermal zones; network adapters from Id 0x20000
     PhHwNamedSensorZonePassiveLimit, // Windows counters, percent, Windows component
     PhHwNamedSensorMeterPower, // Windows counters, watts, Windows component: energy meters
     PhHwNamedSensorOsClock, // Windows counters, MHz, Windows component; Id is the flat processor index
