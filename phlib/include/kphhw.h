@@ -735,6 +735,14 @@ KphHwCorsairRead(
     _Out_ PULONG Count
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwAxiRead(
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    );
+
 #define KPH_HW_GIGABYTE_SENSORS 6
 
 PHLIBAPI

@@ -72,6 +72,8 @@ static CONST PH_STRINGREF KphpHwUsbDiskFileName = PH_STRINGREF_INIT(L"scripts\\u
 static KPH_HW_SCRIPT KphpHwUsbDiskScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwUsbDiskFileName };
 static CONST PH_STRINGREF KphpHwHidFileName = PH_STRINGREF_INIT(L"scripts\\hid.bin");
 static KPH_HW_SCRIPT KphpHwHidScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHidFileName };
+static CONST PH_STRINGREF KphpHwAxiFileName = PH_STRINGREF_INIT(L"scripts\\axi.bin");
+static KPH_HW_SCRIPT KphpHwAxiScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwAxiFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -237,6 +239,7 @@ VOID KphHwSetScriptMode(
         &KphpHwOcMailboxScript,
         &KphpHwUsbDiskScript,
         &KphpHwHidScript,
+        &KphpHwAxiScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -2222,9 +2225,10 @@ NTSTATUS KphHwProm21Read(
 }
 
 /**
- * Calls a routine of the HID script that reads every listed collection into
- * device records, holding Bus around the call unless it is KphHwBusMaximum.
+ * Calls a routine of a script that reads every listed device into device
+ * records, holding Bus around the call unless it is KphHwBusMaximum.
  *
+ * \param Script The script.
  * \param Routine The routine.
  * \param Bus The bus to hold, or KphHwBusMaximum for none.
  * \param Devices Receives a record per device.
@@ -2233,6 +2237,7 @@ NTSTATUS KphHwProm21Read(
  * the bus.
  */
 static NTSTATUS KphpHwHidCall(
+    _In_ PKPH_HW_SCRIPT Script,
     _In_ PCANSI_STRING Routine,
     _In_ KPH_HW_BUS Bus,
     _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
@@ -2248,7 +2253,7 @@ static NTSTATUS KphpHwHidCall(
     if (Bus == KphHwBusMaximum || NT_SUCCESS(status = KphpHwAcquireBus(Bus, KPH_HW_BUS_TIMEOUT)))
     {
         status = KphpHwScriptCall(
-            &KphpHwHidScript,
+            Script,
             Routine,
             NULL,
             0,
@@ -2292,7 +2297,7 @@ NTSTATUS KphHwHidRead(
 {
     static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
 
-    return KphpHwHidCall(&routine, KphHwBusMaximum, Devices, Count);
+    return KphpHwHidCall(&KphpHwHidScript, &routine, KphHwBusMaximum, Devices, Count);
 }
 
 /**
@@ -2310,7 +2315,25 @@ NTSTATUS KphHwCorsairRead(
 {
     static const ANSI_STRING routine = RTL_CONSTANT_STRING("corsair");
 
-    return KphpHwHidCall(&routine, KphHwBusCorsair, Devices, Count);
+    return KphpHwHidCall(&KphpHwHidScript, &routine, KphHwBusCorsair, Devices, Count);
+}
+
+/**
+ * Reads the power supplies behind their USB serial dongle.
+ *
+ * \param Devices Receives a record per supply.
+ * \param Count Receives the number of records.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the supplies.
+ */
+NTSTATUS KphHwAxiRead(
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+
+    return KphpHwHidCall(&KphpHwAxiScript, &routine, KphHwBusCorsair, Devices, Count);
 }
 
 /**

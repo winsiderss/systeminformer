@@ -1494,6 +1494,7 @@ EXPORTS
     KphDuplicateObject
     KphHwAsusWmiIdentify
     KphHwAsusWmiRead
+    KphHwAxiRead
     KphHwCorsairRead
     KphHwDellIdentify
     KphHwDellRead

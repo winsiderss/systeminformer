@@ -12,22 +12,26 @@
 #include "devices.h"
 
 //
-// Coolers, fan controllers and power supplies on USB HID as a hardware sensor source, read through the driver while
-// it is connected: the coolers that push their status every HD_PASSIVE_INTERVAL_MS (each read waits for the device's
-// next report), the devices that answer requests every HD_ACTIVE_INTERVAL_MS under their tool mutex (another tool
-// holding it is tried again at the next callback). Each device keeps its component id while it stays: the slot of its
-// vendor, product and order among devices of that model.
+// Coolers, fan controllers and power supplies on USB as a hardware sensor source, read through the driver while it is
+// connected: the HID coolers that push their status every HD_PASSIVE_INTERVAL_MS (each read waits for the device's next
+// report), the HID devices that answer requests and the supplies behind a serial dongle every HD_ACTIVE_INTERVAL_MS
+// under their tool mutex (another tool holding it is tried again at the next callback). Each device keeps its
+// component id while it stays: the slot of its source, vendor, product and order among devices of that model.
 //
 
 #define HD_PASSIVE_INTERVAL_MS 10000
 #define HD_ACTIVE_INTERVAL_MS 5000
-#define HD_SLOTS (KPH_HW_HID_DEVICES * 2)
+#define HD_SOURCE_COOLERS 0
+#define HD_SOURCE_REQUESTS 1
+#define HD_SOURCE_SERIAL 2
+#define HD_SOURCES 3
+#define HD_SLOTS (KPH_HW_HID_DEVICES * HD_SOURCES)
 
 typedef struct _HD_DEVICE
 {
     ULONG Key; // vendor << 16 | product
     ULONG Order; // among the devices of the same key in one read
-    BOOLEAN Active;
+    ULONG Source; // HD_SOURCE_*
     BOOLEAN Present;
     NTSTATUS LastStatus;
     PPH_STRING Name;
@@ -38,10 +42,8 @@ typedef struct _HD_DEVICE
 typedef struct _HD_CONTEXT
 {
     PH_QUEUED_LOCK Lock;
-    ULONG64 LastPassiveTime;
-    ULONG64 LastActiveTime;
-    NTSTATUS LastPassiveStatus;
-    NTSTATUS LastActiveStatus;
+    ULONG64 LastTime[HD_SOURCES];
+    NTSTATUS LastStatus[HD_SOURCES];
     ULONG Count;
     HD_DEVICE Devices[HD_SLOTS];
 } HD_CONTEXT, *PHD_CONTEXT;
@@ -69,6 +71,7 @@ static CONST HD_NAME HidDevicesNames[] =
     { 0x0c70f00b, L"Aquacomputer Aquastream Ultimate" },
     { 0x1b1c0c10, L"Corsair Commander Pro" },
     { 0x1b1c1d00, L"Corsair Obsidian 1000D" },
+    { 0x1b1c1c00, L"Corsair AXi power supply" },
 };
 
 static CONST PCWSTR HidDevicesKindNames[] =
@@ -102,18 +105,18 @@ static PPH_STRING HidDevicesName(
 }
 
 /**
- * Merges one read's records into the slots of their kind (Active), by key and order. Called with the lock held.
+ * Merges one read's records into the slots of their source, by key and order. Called with the lock held.
  */
 static VOID HidDevicesMerge(
     _Inout_ PHD_CONTEXT Context,
-    _In_ BOOLEAN Active,
+    _In_ ULONG Source,
     _In_reads_(Count) PKPH_HW_HID_DEVICE Records,
     _In_ ULONG Count
     )
 {
     for (ULONG i = 0; i < Context->Count; i++)
     {
-        if (Context->Devices[i].Active == Active)
+        if (Context->Devices[i].Source == Source)
             Context->Devices[i].Present = FALSE;
     }
 
@@ -132,7 +135,7 @@ static VOID HidDevicesMerge(
 
         for (ULONG i = 0; i < Context->Count; i++)
         {
-            if (Context->Devices[i].Active == Active && Context->Devices[i].Key == key &&
+            if (Context->Devices[i].Source == Source && Context->Devices[i].Key == key &&
                 Context->Devices[i].Order == order)
             {
                 device = &Context->Devices[i];
@@ -148,7 +151,7 @@ static VOID HidDevicesMerge(
             device = &Context->Devices[Context->Count++];
             device->Key = key;
             device->Order = order;
-            device->Active = Active;
+            device->Source = Source;
             device->Name = HidDevicesName(key);
         }
 
@@ -160,32 +163,44 @@ static VOID HidDevicesMerge(
 }
 
 /**
- * Reads one kind of device when its interval has passed. Called on the provider thread with the lock held.
+ * Reads one source's devices when its interval has passed. Called on the provider thread with the lock held.
  */
 static VOID HidDevicesPoll(
     _Inout_ PHD_CONTEXT Context,
-    _In_ BOOLEAN Active,
+    _In_ ULONG Source,
     _In_ ULONG64 Now
     )
 {
-    PULONG64 lastTime = Active ? &Context->LastActiveTime : &Context->LastPassiveTime;
-    PNTSTATUS lastStatus = Active ? &Context->LastActiveStatus : &Context->LastPassiveStatus;
     PKPH_HW_HID_DEVICE records;
     ULONG count = 0;
     NTSTATUS status;
 
-    if (*lastTime && Now - *lastTime < (Active ? HD_ACTIVE_INTERVAL_MS : HD_PASSIVE_INTERVAL_MS))
+    if (Context->LastTime[Source] &&
+        Now - Context->LastTime[Source] < (Source == HD_SOURCE_COOLERS ? HD_PASSIVE_INTERVAL_MS : HD_ACTIVE_INTERVAL_MS))
         return;
 
     records = PhAllocate(KPH_HW_HID_DEVICES * sizeof(KPH_HW_HID_DEVICE));
-    status = Active ? KphHwCorsairRead(records, &count) : KphHwHidRead(records, &count);
-    *lastStatus = status;
+
+    switch (Source)
+    {
+    case HD_SOURCE_COOLERS:
+        status = KphHwHidRead(records, &count);
+        break;
+    case HD_SOURCE_REQUESTS:
+        status = KphHwCorsairRead(records, &count);
+        break;
+    default:
+        status = KphHwAxiRead(records, &count);
+        break;
+    }
+
+    Context->LastStatus[Source] = status;
 
     // Another tool holds the devices: the next callback tries again.
     if (status != STATUS_RETRY)
     {
-        *lastTime = Now;
-        HidDevicesMerge(Context, Active, records, NT_SUCCESS(status) ? count : 0);
+        Context->LastTime[Source] = Now;
+        HidDevicesMerge(Context, Source, records, NT_SUCCESS(status) ? count : 0);
     }
 
     PhFree(records);
@@ -208,8 +223,10 @@ static VOID NTAPI HidDevicesSourceCallback(
     now = NtGetTickCount64();
 
     PhAcquireQueuedLockExclusive(&context->Lock);
-    HidDevicesPoll(context, FALSE, now);
-    HidDevicesPoll(context, TRUE, now);
+
+    for (ULONG source = 0; source < HD_SOURCES; source++)
+        HidDevicesPoll(context, source, now);
+
     PhReleaseQueuedLockExclusive(&context->Lock);
 
     PhAcquireQueuedLockShared(&context->Lock);
@@ -267,9 +284,10 @@ static VOID NTAPI HidDevicesSourceDiagnostics(
 
     PhAppendFormatStringBuilder(
         Builder,
-        L"Last reads: coolers 0x%08lx, request devices 0x%08lx; devices %lu\n",
-        context->LastPassiveStatus,
-        context->LastActiveStatus,
+        L"Last reads: coolers 0x%08lx, request devices 0x%08lx, serial supplies 0x%08lx; devices %lu\n",
+        context->LastStatus[HD_SOURCE_COOLERS],
+        context->LastStatus[HD_SOURCE_REQUESTS],
+        context->LastStatus[HD_SOURCE_SERIAL],
         context->Count
         );
 
