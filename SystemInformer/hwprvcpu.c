@@ -1581,7 +1581,6 @@ static VOID PhpHwCpuPublish(
     )
 {
     FLOAT seconds = 0.0f;
-    FLOAT cpuPower = 0.0f;
     ULONG capabilities = 0;
     ULONG index;
 
@@ -1861,7 +1860,6 @@ static VOID PhpHwCpuPublish(
         {
             sensor->PackagePower = watts;
             valid |= PH_HW_CAP_RAPL_PACKAGE;
-            cpuPower += watts;
         }
 
         if (PhpHwCpuSampleWatts(sample, PhpHwRegPp0Energy, PhpHwCpuEnergyUnit, seconds, &watts))
@@ -1908,7 +1906,6 @@ static VOID PhpHwCpuPublish(
         WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PhpHwCpuPackageCaps) | (valid & PhpHwCpuPackageCaps));
     }
 
-    PhHwCpuPower = cpuPower;
     PhpHwFamilies[PhpHwFamilyCpu].Capabilities = capabilities;
 
     PhpHwCpuDropIdleEnergy();

@@ -531,11 +531,7 @@ NTSTATUS PhpHwPciPass(
             PhAmdTdpRunningAverageToWatts(value.Value, package->ProcessorTdp, package->TdpLimit3, &PhpHwPciIdentity, &watts)
             )
         {
-            if (ReadULongAcquire(&sensor->Valid) & PH_HW_CAP_RAPL_PACKAGE)
-                PhHwCpuPower -= sensor->PackagePower;
-
             sensor->PackagePower = watts;
-            PhHwCpuPower += watts;
             WriteULongRelease(&sensor->Valid, ReadULongAcquire(&sensor->Valid) | PH_HW_CAP_RAPL_PACKAGE);
         }
     }
