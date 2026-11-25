@@ -664,8 +664,8 @@ static VOID PhpHwCpuProbeReadArm64(
     PhpHwCpuRegisters[PhpHwRegArmFrequency].Disabled = TRUE;
     PhpHwCpuRegisters[PhpHwRegArmAmuEnable].Disabled = !!PhpHwCpuRegisters[PhpHwRegArmAmuEnable].Register;
 
-    // No ARM64 part has a package temperature register: the counters' hottest thermal zone stands in.
-    PhpHwCpuPackageCaps = PHP_HW_CPU_PACKAGE_CAPS | PH_HW_CAP_PACKAGE_TEMP;
+    // No ARM64 part has a package register: the package values are tsens's and spbm's.
+    PhpHwCpuPackageCaps = 0;
 
     for (ULONG i = 0; i < PhpHwPackageCount; i++)
     {
