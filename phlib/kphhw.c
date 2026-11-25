@@ -1926,10 +1926,10 @@ NTSTATUS KphHwEcSensors(
 
     for (ULONG at = 0; at < returnLength; count++)
     {
-        if (returnLength - at < 5 || returnLength - at - 5 < output[at + 4] || output[at + 4] >= KPH_HW_EC_LABEL_LENGTH)
+        if (returnLength - at < 6 || returnLength - at - 6 < output[at + 5] || output[at + 5] >= KPH_HW_EC_LABEL_LENGTH)
             return STATUS_INFO_LENGTH_MISMATCH;
 
-        at += 5 + output[at + 4];
+        at += 6 + output[at + 5];
     }
 
     if (count > Capacity)
@@ -1941,9 +1941,10 @@ NTSTATUS KphHwEcSensors(
         Sensors[i].Size = output[at + 1];
         Sensors[i].Bank = output[at + 2];
         Sensors[i].Register = output[at + 3];
+        Sensors[i].Form = output[at + 4];
         RtlZeroMemory(Sensors[i].Label, sizeof(Sensors[i].Label));
-        RtlCopyMemory(Sensors[i].Label, &output[at + 5], output[at + 4]);
-        at += 5 + output[at + 4];
+        RtlCopyMemory(Sensors[i].Label, &output[at + 6], output[at + 5]);
+        at += 6 + output[at + 5];
     }
 
     *Count = count;

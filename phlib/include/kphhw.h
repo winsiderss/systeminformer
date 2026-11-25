@@ -216,7 +216,11 @@ typedef enum _KPH_HW_EC_KIND
     KphHwEcVoltage = 2, // mV
     KphHwEcCurrent = 3, // A
     KphHwEcFan = 4, // RPM
+    KphHwEcPower = 5, // W
 } KPH_HW_EC_KIND;
+
+#define KPH_HW_EC_LITTLE_ENDIAN 0x10 // the bytes are little-endian
+#define KPH_HW_EC_SHIFT_MASK 0x0F // the value is 2^-n of the kind's unit
 
 #define KPH_HW_EC_LABEL_LENGTH 32
 
@@ -226,6 +230,7 @@ typedef struct _KPH_HW_EC_SENSOR
     UCHAR Size; // bytes, big-endian when 2
     UCHAR Bank;
     UCHAR Register;
+    UCHAR Form; // KPH_HW_EC_LITTLE_ENDIAN, KPH_HW_EC_SHIFT_MASK
     CHAR Label[KPH_HW_EC_LABEL_LENGTH]; // null-terminated
 } KPH_HW_EC_SENSOR, *PKPH_HW_EC_SENSOR;
 
@@ -373,7 +378,7 @@ C_ASSERT(sizeof(KPH_HW_PCI_CONFIG) == 8);
 C_ASSERT(sizeof(KPH_HW_CROSEC_IDENTITY) == 8);
 C_ASSERT(sizeof(KPH_HW_EC_IDENTITY) == 12);
 C_ASSERT(sizeof(KPH_HW_EC_REGISTER) == 8);
-C_ASSERT(sizeof(KPH_HW_EC_SENSOR) == 36);
+C_ASSERT(sizeof(KPH_HW_EC_SENSOR) == 37);
 C_ASSERT(sizeof(KPH_HW_ALIENWARE_IDENTITY) == 34);
 C_ASSERT(sizeof(KPH_HW_ALIENWARE_SENSOR) == 2);
 C_ASSERT(sizeof(KPH_HW_HP_SENSOR) == 34);

@@ -376,6 +376,8 @@ static NTSTATUS PhpHwBoardEcList(
             kind = PhHwNamedSensorAcpiVoltage;
         else if (sensor->Kind == KphHwEcFan && sensor->Size == 2)
             kind = PhHwNamedSensorFanSpeed;
+        else if (sensor->Kind == KphHwEcPower && sensor->Size == 2)
+            kind = PhHwNamedSensorAcpiPower;
         else
             continue;
 
@@ -412,7 +414,8 @@ NTSTATUS PhpHwBoardEcProbe(
 
 /**
  * Publishes the board EC's sensors from one read of their bytes: a temperature is a signed byte of degrees C (-62,
- * -60 and -40 mark an unconnected probe), a voltage big-endian mV, a fan big-endian RPM. Contention is no value; three
+ * -60 and -40 mark an unconnected probe), a voltage mV, a power W and a fan RPM, big-endian unless the sensor's form
+ * says little-endian, a voltage or power scaled by the form's 2^-n. Contention is no value; three
  * failed reads in a row end the EC.
  *
  * \return STATUS_RETRY when the read met contention, STATUS_NOT_SUPPORTED once the EC ended, else STATUS_SUCCESS.
@@ -465,10 +468,15 @@ NTSTATUS PhpHwBoardEcPass(
 
         for (UCHAR b = 0; b < sensor->Size; b++, at++)
         {
+            ULONG byte = read ? (values[at].Value & 0xFF) : 0;
+
             if (read && !NT_SUCCESS(values[at].Status))
                 valid = FALSE;
 
-            raw = (raw << 8) | (read ? (values[at].Value & 0xFF) : 0);
+            if (sensor->Form & KPH_HW_EC_LITTLE_ENDIAN)
+                raw |= byte << (b * 8);
+            else
+                raw = (raw << 8) | byte;
         }
 
         if (sensor->Kind == KphHwEcTemperature)
@@ -481,8 +489,13 @@ NTSTATUS PhpHwBoardEcPass(
         }
         else if (sensor->Kind == KphHwEcVoltage)
         {
-            value = (FLOAT)raw / 1000.0f;
+            value = ldexpf((FLOAT)raw, -(sensor->Form & KPH_HW_EC_SHIFT_MASK)) / 1000.0f;
             capabilities |= PH_HW_CAP_ACPI_TEMP;
+        }
+        else if (sensor->Kind == KphHwEcPower)
+        {
+            value = ldexpf((FLOAT)raw, -(sensor->Form & KPH_HW_EC_SHIFT_MASK));
+            capabilities |= PH_HW_CAP_ACPI_POWER;
         }
         else
         {

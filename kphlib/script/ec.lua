@@ -10,9 +10,8 @@
 
 --
 -- Reads bytes of an ACPI embedded controller through its command and data
--- ports. A controller whose _GLK is 1 is read with the ACPI Global Lock held.
--- The boards whose controller has banks, and the registers each permits, are
--- listed below; elsewhere bank 0 is read and the bank is never written.
+-- ports, under the Global Lock when _GLK asks; only the boards listed below
+-- switch banks, elsewhere bank 0 is read.
 --
 
 local nt = require('nt')
@@ -30,12 +29,17 @@ local PUT_BACK_ROUNDS = 182
 local GLOBAL_LOCK_MS = 100
 local EVAL_MS = 100
 
--- Sensor kinds the sensors routine gives: a temperature in degrees C (signed),
--- a voltage in mV, a current in A and a fan or flow in RPM.
+-- Sensor kinds: temperature in degrees C (signed), voltage in mV, current in A,
+-- fan or flow in RPM.
 local TEMPERATURE = 1
 local VOLTAGE = 2
 local CURRENT = 3
 local FAN = 4
+local POWER = 5
+
+-- A sensor's form: little-endian bytes, and a value of 2^-n of the unit.
+local LITTLE = 0x10
+local EIGHTHS = 0x03
 
 local BOARD_MANUFACTURER = 'ASUSTeK COMPUTER INC.'
 local MSI_MANUFACTURER = 'Micro-Star International'
@@ -45,7 +49,8 @@ local MSI_CPU = 0x68
 local MSI_GPU = 0x80
 local BANK_REGISTER = 0xff
 
--- Each family: sensor -> { kind, size, bank, register, label }; a value of size 2 is big-endian.
+-- Each family: sensor -> { kind, size, bank, register, label, form }; size 2 is
+-- big-endian unless form is LITTLE.
 local FAMILIES = {
   amd_400 = {
     temp_chipset = { TEMPERATURE, 1, 0, 0x3a, 'Chipset' },
@@ -99,6 +104,12 @@ local FAMILIES = {
     temp_mb = { TEMPERATURE, 1, 0, 0x32, 'Motherboard' },
     temp_t_sensor = { TEMPERATURE, 1, 0, 0x36, 'T Sensor' },
     temp_vrm = { TEMPERATURE, 1, 0, 0x33, 'VRM' },
+    temp_vrm_soc = { TEMPERATURE, 1, 4, 0x18, 'VRM SOC' },
+    temp_dimm = { TEMPERATURE, 1, 0, 0x55, 'DIMM' },
+    in_vrm_core = { VOLTAGE, 2, 1, 0x5a, 'VRM Vcore', EIGHTHS },
+    in_vrm_soc = { VOLTAGE, 2, 4, 0x1a, 'VRM SOC', LITTLE },
+    power_vrm_core = { POWER, 2, 1, 0x5c, 'VRM Vcore', EIGHTHS },
+    power_vrm_soc = { POWER, 2, 4, 0x1e, 'VRM SOC', LITTLE },
     fan_cpu_opt = { FAN, 2, 0, 0xb0, 'CPU Optional Fan' },
   },
   amd_trx_50 = {
@@ -269,6 +280,22 @@ local BOARDS = {
       'temp_vrm',
       'temp_water_in',
       'temp_water_out',
+    },
+  },
+  {
+    products = {
+      'ROG CROSSHAIR X870E APEX',
+    },
+    family = 'amd_800',
+    sensors = {
+      'temp_vrm',
+      'temp_vrm_soc',
+      'temp_dimm',
+      'in_vrm_core',
+      'in_vrm_soc',
+      'power_vrm_core',
+      'power_vrm_soc',
+      'fan_cpu_opt',
     },
   },
   {
@@ -922,8 +949,7 @@ local BOARDS = {
   },
 }
 
--- MSI laptop controllers by the firmware string at A0h: the CPU temperature is
--- at 68h; true when the GPU temperature is at 80h.
+-- MSI laptop firmware string -> whether the GPU temperature is at MSI_GPU.
 local MSI_FIRMWARES = {
   ['14C1EMS1.012'] = true,
   ['14C1EMS1.101'] = true,
@@ -963,12 +989,11 @@ local MSI_FIRMWARES = {
 
 local ANY_BOARD = { allow = { { 0, 0x00, 0xff } } }
 
--- What a script kept between calls finds again: the board's row and each
--- controller.
+-- Kept between calls: the board's row and each controller.
 local kept = {}
 
--- The manufacturer and product strings of the first SMBIOS type 2 (baseboard)
--- structure, or nil when the table has none.
+-- The manufacturer and product strings of the first SMBIOS baseboard structure,
+-- or nil.
 local function baseboard_strings()
   local smbios = ksi.hw.firmware_table('RSMB', 0)
   if not smbios or #smbios < 8 then
@@ -1009,9 +1034,8 @@ end
 
 local msi_row
 
--- The row of this board: its sensors, the bank register and the { bank,
--- first, last } registers they permit; or the row of every other board; nil
--- and a status when an MSI controller's firmware string could not be read.
+-- This board's row, ANY_BOARD when unlisted, or nil and a status when the MSI
+-- firmware string is unreadable.
 local function board()
   if kept.board then
     return kept.board
@@ -1109,8 +1133,8 @@ local function ec_write(s, address, value)
   return wait(s, IBF, 0)
 end
 
--- The bank put back from a close handler: counted waits, as a limit may have
--- ended the call.
+-- Puts the bank back from a close handler: counted waits, since a time limit
+-- may have ended the call.
 local function put_back(s, address, value)
   for _, step in ipairs({ { s.command, WR_EC }, { s.data, address }, { s.data, value } }) do
     local empty = false
@@ -1130,7 +1154,8 @@ local function put_back(s, address, value)
   end
 end
 
--- Whether the controller asks for the Global Lock: its _GLK, 0 when it has none.
+-- Whether the controller asks for the Global Lock: its _GLK, 0 when it has
+-- none.
 local function global_lock_wanted(device)
   local output, failed = nt.acpi.eval(device, '_GLK', EVAL_MS)
   if not output then
@@ -1151,8 +1176,8 @@ local function global_lock_wanted(device)
   return string.unpack('<I4', output, 17) ~= 0
 end
 
--- The Global Lock's guard when the controller wants it, false when it does
--- not, or nil and a status.
+-- The Global Lock's guard, false when the controller does not want it, or nil
+-- and a status.
 local function global_lock(s)
   if not s.glk then
     return false
@@ -1160,8 +1185,8 @@ local function global_lock(s)
   return nt.acpi.global_lock(s.device, GLOBAL_LOCK_MS)
 end
 
--- The controller at an ordinal of the PNP0C09 devices: its device, data and
--- command ports and whether it wants the Global Lock; kept between calls.
+-- The controller at a PNP0C09 ordinal: device, ports and whether it wants the
+-- Global Lock; kept between calls.
 local function controller(ordinal)
   local key = 'ec' .. ordinal
   if kept[key] then
@@ -1202,9 +1227,8 @@ local function controller(ordinal)
   return s
 end
 
--- Calls fn with the Global Lock (when the controller wants it) and the isa
--- lock held and no byte of another transaction waiting; returns what fn
--- returns, or the status that refused.
+-- Calls fn under the Global Lock (when wanted) and the isa lock; returns fn's
+-- results or the refusing status.
 local function with_locks(s, fn)
   local held <close>, refusal = global_lock(s)
   if held == nil then
@@ -1223,9 +1247,8 @@ local function with_locks(s, fn)
   return fn()
 end
 
--- The row of an MSI laptop by its controller's firmware string; the row of
--- every other board when there is no controller or the string is not listed;
--- nil and a status when the string could not be read.
+-- An MSI laptop's row by firmware string, ANY_BOARD when no controller or
+-- unlisted, or nil and a status.
 msi_row = function()
   local s, missing = controller(0)
   if not s then
@@ -1269,9 +1292,8 @@ msi_row = function()
   return row
 end
 
--- The ports and flags of the controller at an ordinal: input <I4 ordinal;
--- output <I4I4I4 data port, command port, flags (1 the Global Lock is taken,
--- 2 this board's controller has banks).
+-- Input <I4 ordinal; output <I4I4I4 data port, command port, flags (1 Global
+-- Lock taken, 2 board has banks).
 function identify(input)
   if not ksi.hw.port_read then
     return nt.STATUS_NOT_SUPPORTED
@@ -1292,8 +1314,8 @@ function identify(input)
   return nt.STATUS_SUCCESS, output
 end
 
--- The sensors of this board's row: <I1I1I1I1s1 kind, size, bank, register
--- and label per sensor; STATUS_NOT_FOUND on a board with no row.
+-- Output <I1I1I1I1I1s1 kind, size, bank, register, form, label per sensor;
+-- STATUS_NOT_FOUND on an unlisted board.
 function sensors(input)
   if #input ~= 0 then
     return nt.STATUS_INVALID_PARAMETER
@@ -1307,14 +1329,13 @@ function sensors(input)
   end
   local output = {}
   for i, e in ipairs(row.sensors) do
-    output[i] = string.pack('<I1I1I1I1s1', e[1], e[2], e[3], e[4], e[5])
+    output[i] = string.pack('<I1I1I1I1I1s1', e[1], e[2], e[3], e[4], e[6] or 0, e[5])
   end
   return nt.STATUS_SUCCESS, table.concat(output)
 end
 
--- Reads bytes of the controller at an ordinal: input <I4 ordinal, then <I4I4
--- bank and register per item; output <i4I4 status and value per item. A bank
--- written is put back before the call returns.
+-- Input <I4 ordinal, then <I4I4 bank, register per item; output <i4I4 status,
+-- value per item; restores the bank.
 function read(input)
   if not ksi.hw.port_read then
     return nt.STATUS_NOT_SUPPORTED
