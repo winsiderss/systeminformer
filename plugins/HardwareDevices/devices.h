@@ -1524,6 +1524,16 @@ INT_PTR CALLBACK MotherboardOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+// usbdisk.c
+
+VOID UsbDiskInitialize(
+    VOID
+    );
+
+VOID UsbDiskUninitialize(
+    VOID
+    );
+
 // superio.c
 
 #define MB_REGISTER_SPACE 0x1000

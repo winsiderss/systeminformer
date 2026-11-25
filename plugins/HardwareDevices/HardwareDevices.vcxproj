@@ -134,6 +134,7 @@
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="storage.c" />
     <ClCompile Include="superio.c" />
+    <ClCompile Include="usbdisk.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="devices.h" />

@@ -82,6 +82,7 @@ VOID NTAPI LoadCallback(
     DellSmmInitialize();
     AsusWmiInitialize();
     AmdNpuInitialize();
+    UsbDiskInitialize();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -90,6 +91,7 @@ VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Context
     )
 {
+    UsbDiskUninitialize();
     AmdNpuUninitialize();
     AsusWmiUninitialize();
     DellSmmUninitialize();
