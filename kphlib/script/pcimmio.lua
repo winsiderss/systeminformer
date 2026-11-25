@@ -336,6 +336,7 @@ local ROWS = {
     d0 = false,
     reads = function()
       return {
+        { 0x5918, 0x8, 4 },
         { 0x5040, 0xc, 4 },
         { 0x5050, 0x8, 4 },
         { 0x58e0, 0x10, 4 },
@@ -379,6 +380,7 @@ local ROWS = {
     d0 = false,
     reads = function()
       return {
+        { 0x5918, 0x8, 4 },
         { 0x5040, 0xc, 4 },
         { 0x5050, 0x8, 4 },
         { 0x58e0, 0x10, 4 },
