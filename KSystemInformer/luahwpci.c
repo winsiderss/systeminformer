@@ -245,8 +245,6 @@ NTSTATUS KphpLuaHwPciQueryBusInterface(
         goto Exit;
     }
 
-    status = STATUS_SUCCESS;
-
 Exit:
 
     return status;

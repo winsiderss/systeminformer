@@ -188,20 +188,27 @@ int KphpLuaHwFirmwareTable(
         goto Exit;
     }
 
-    if ((status != STATUS_BUFFER_TOO_SMALL) || (query.TableBufferLength == 0))
+    if (!NT_SUCCESS(status) && (status != STATUS_BUFFER_TOO_SMALL))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "Firmware table 0x%08lx 0x%08lx: %!STATUS! length %lu",
+                      "Firmware table 0x%08lx 0x%08lx: %!STATUS!",
                       query.ProviderSignature,
                       query.TableID,
-                      status,
-                      query.TableBufferLength);
+                      status);
 
-        if (NT_SUCCESS(status))
-        {
-            status = STATUS_UNSUCCESSFUL;
-        }
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
+    if (query.TableBufferLength == 0)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "Firmware table 0x%08lx 0x%08lx: %!STATUS! zero length",
+                      query.ProviderSignature,
+                      query.TableID,
+                      status);
 
         results = KphLuaNilErrorStatus(State, status);
         goto Exit;
@@ -479,11 +486,6 @@ NTSTATUS KphLuaHwReferenceDriverDevices(
                       HARDWARE,
                       "IoEnumerateDeviceObjectList returned: %!STATUS!",
                       status);
-
-        if (NT_SUCCESS(status) || (status == STATUS_BUFFER_TOO_SMALL))
-        {
-            status = STATUS_SUCCESS;
-        }
 
         goto Exit;
     }
