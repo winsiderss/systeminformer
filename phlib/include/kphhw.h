@@ -690,6 +690,51 @@ KphHwUsbDiskRead(
     _Out_ PULONG Count
     );
 
+#define KPH_HW_HID_DEVICES 8
+#define KPH_HW_HID_VALUES 24
+#define KPH_HW_HID_TEMPERATURE 1 // millidegrees C
+#define KPH_HW_HID_FAN 2 // RPM
+#define KPH_HW_HID_FLOW 3 // dL/h
+#define KPH_HW_HID_VOLTAGE 4 // mV
+#define KPH_HW_HID_CURRENT 5 // mA
+#define KPH_HW_HID_POWER 6 // mW
+
+typedef struct _KPH_HW_HID_VALUE
+{
+    UCHAR Kind; // KPH_HW_HID_*
+    UCHAR Index; // the sensor's number among those of its kind
+    UCHAR Reserved[2];
+    LONG Value;
+} KPH_HW_HID_VALUE, *PKPH_HW_HID_VALUE;
+
+typedef struct _KPH_HW_HID_DEVICE
+{
+    NTSTATUS Status;
+    USHORT VendorId;
+    USHORT ProductId;
+    UCHAR Count; // valid entries of Values
+    UCHAR Reserved[3];
+    KPH_HW_HID_VALUE Values[KPH_HW_HID_VALUES];
+} KPH_HW_HID_DEVICE, *PKPH_HW_HID_DEVICE;
+
+C_ASSERT(sizeof(KPH_HW_HID_DEVICE) == 204);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwHidRead(
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+KphHwCorsairRead(
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    );
+
 #define KPH_HW_GIGABYTE_SENSORS 6
 
 PHLIBAPI

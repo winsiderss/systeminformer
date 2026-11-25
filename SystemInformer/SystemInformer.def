@@ -1494,9 +1494,11 @@ EXPORTS
     KphDuplicateObject
     KphHwAsusWmiIdentify
     KphHwAsusWmiRead
+    KphHwCorsairRead
     KphHwDellIdentify
     KphHwDellRead
     KphHwGpdReadFan
+    KphHwHidRead
     KphHwHsmpReadMetrics
     KphHwLenovoWsRead
     KphHwOcMailboxRead

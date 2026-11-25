@@ -70,6 +70,8 @@ static CONST PH_STRINGREF KphpHwOcMailboxFileName = PH_STRINGREF_INIT(L"scripts\
 static KPH_HW_SCRIPT KphpHwOcMailboxScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwOcMailboxFileName };
 static CONST PH_STRINGREF KphpHwUsbDiskFileName = PH_STRINGREF_INIT(L"scripts\\usbdisk.bin");
 static KPH_HW_SCRIPT KphpHwUsbDiskScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwUsbDiskFileName };
+static CONST PH_STRINGREF KphpHwHidFileName = PH_STRINGREF_INIT(L"scripts\\hid.bin");
+static KPH_HW_SCRIPT KphpHwHidScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwHidFileName };
 static KPH_HW_SCRIPT KphpHwTsensScript = { PH_QUEUED_LOCK_INIT, NULL, KPH_SCRIPT_NON_VOLATILE, &KphpHwTsensFileName };
 
 /**
@@ -234,6 +236,7 @@ VOID KphHwSetScriptMode(
         &KphpHwProm21Script,
         &KphpHwOcMailboxScript,
         &KphpHwUsbDiskScript,
+        &KphpHwHidScript,
     };
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(scripts); i++)
@@ -359,6 +362,7 @@ typedef enum _KPH_HW_BUS
     KphHwBusEc,
     KphHwBusDimm,
     KphHwBusJMicronSmart,
+    KphHwBusCorsair,
     KphHwBusMaximum
 } KPH_HW_BUS;
 
@@ -373,10 +377,11 @@ static CONST PH_STRINGREF KphpHwBusNames[KphHwBusMaximum] =
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_EC"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_DIMM"),
     PH_STRINGREF_INIT(L"\\BaseNamedObjects\\Access_JMicron_SMART"),
+    PH_STRINGREF_INIT(L"\\BaseNamedObjects\\CorsairLinkReadWriteGuardMutex"),
 };
-static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
-static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL };
-static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
+static PH_INITONCE KphpHwBusInitOnce[KphHwBusMaximum] = { PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT, PH_INITONCE_INIT };
+static HANDLE KphpHwBusHandles[KphHwBusMaximum] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+static NTSTATUS KphpHwBusStatus[KphHwBusMaximum] = { STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS, STATUS_SUCCESS };
 
 /**
  * Creates or opens a mutant hardware monitors share to serialize a bus.
@@ -2214,6 +2219,98 @@ NTSTATUS KphHwProm21Read(
     memcpy(Values, values, Count * sizeof(KPH_HW_VALUE32));
 
     return status;
+}
+
+/**
+ * Calls a routine of the HID script that reads every listed collection into
+ * device records, holding Bus around the call unless it is KphHwBusMaximum.
+ *
+ * \param Routine The routine.
+ * \param Bus The bus to hold, or KphHwBusMaximum for none.
+ * \param Devices Receives a record per device.
+ * \param Count Receives the number of records.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the bus.
+ */
+static NTSTATUS KphpHwHidCall(
+    _In_ PCANSI_STRING Routine,
+    _In_ KPH_HW_BUS Bus,
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    )
+{
+    NTSTATUS status;
+    PKPH_HW_HID_DEVICE devices;
+    ULONG returnLength = 0;
+
+    devices = PhAllocate(KPH_HW_HID_DEVICES * sizeof(KPH_HW_HID_DEVICE));
+
+    if (Bus == KphHwBusMaximum || NT_SUCCESS(status = KphpHwAcquireBus(Bus, KPH_HW_BUS_TIMEOUT)))
+    {
+        status = KphpHwScriptCall(
+            &KphpHwHidScript,
+            Routine,
+            NULL,
+            0,
+            devices,
+            KPH_HW_HID_DEVICES * sizeof(KPH_HW_HID_DEVICE),
+            &returnLength
+            );
+
+        if (Bus != KphHwBusMaximum)
+            KphpHwReleaseBus(Bus);
+
+        if (status == STATUS_BUFFER_TOO_SMALL)
+            status = STATUS_INFO_LENGTH_MISMATCH;
+        else if (NT_SUCCESS(status) && returnLength % sizeof(KPH_HW_HID_DEVICE))
+            status = STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        memcpy(Devices, devices, returnLength);
+        *Count = returnLength / sizeof(KPH_HW_HID_DEVICE);
+    }
+
+    PhFree(devices);
+
+    return status;
+}
+
+/**
+ * Reads the coolers that push their status as HID input reports. Each read
+ * waits for the device's next report.
+ *
+ * \param Devices Receives a record per device.
+ * \param Count Receives the number of records.
+ * \return Successful or errant status.
+ */
+NTSTATUS KphHwHidRead(
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+
+    return KphpHwHidCall(&routine, KphHwBusMaximum, Devices, Count);
+}
+
+/**
+ * Reads the fan controllers and power supplies that answer HID requests.
+ *
+ * \param Devices Receives a record per device.
+ * \param Count Receives the number of records.
+ * \return Successful or errant status; STATUS_RETRY when another tool holds
+ * the devices.
+ */
+NTSTATUS KphHwCorsairRead(
+    _Out_writes_to_(KPH_HW_HID_DEVICES, *Count) PKPH_HW_HID_DEVICE Devices,
+    _Out_ PULONG Count
+    )
+{
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("corsair");
+
+    return KphpHwHidCall(&routine, KphHwBusCorsair, Devices, Count);
 }
 
 /**
