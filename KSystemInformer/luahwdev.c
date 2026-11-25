@@ -1928,7 +1928,8 @@ Exit:
  * object.
  *
  * \details May raise a Lua error. A named device takes a request at the top of
- * its stack; a device or PCI device object takes it itself.
+ * its stack; a device or PCI device object takes it itself, safe only while
+ * the script holds an open of it or its driver copes with a removed device.
  *
  * \param[in] State The Lua state.
  * \param[in] Index The index of the argument.

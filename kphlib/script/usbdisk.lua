@@ -388,7 +388,27 @@ function read(input)
     local devices = ksi.hw.devices(name)
     for _, device in ipairs(devices or {}) do
       if #output < DISKS_MAX then
-        local head, id, data = disk(device)
+        -- An open of the disk by its name holds its removal for the requests.
+        local bytes = ksi.hw.device_property(device, nt.DevicePropertyPhysicalDeviceObjectName)
+        local chars = {}
+        for i = 1, #(bytes or '') - 1, 2 do
+          local low, high = string.byte(bytes, i, i + 1)
+          if low == 0 and high == 0 then
+            break
+          end
+          chars[#chars + 1] = high == 0 and string.char(low) or '?'
+        end
+        local opened, failed = nil, nt.STATUS_OBJECT_NAME_NOT_FOUND
+        if #chars > 0 then
+          opened, failed = ksi.hw.device_open(table.concat(chars), nt.FILE_READ_DATA)
+        end
+        local head, id, data
+        if opened then
+          head, id, data = disk(device)
+          opened:release()
+        else
+          head, id, data = record(failed, 0, 0, 0, 0), '', ''
+        end
         output[#output + 1] = head
           .. id
           .. string.rep('\0', ID_MAX - #id)
