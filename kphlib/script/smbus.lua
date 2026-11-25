@@ -11,9 +11,7 @@
 --
 -- Reads devices on the SMBus of the AMD FCH host and the Intel host. The
 -- hosts, how each one's SMBus base is reached, and the reads permitted on
--- each port are listed below. A read is a byte, a word or a block; a block's
--- bytes follow every entry's record in the output. A paged read (PMBus) sets
--- the device's PAGE for one byte or word and puts the old page back.
+-- each port are listed below.
 --
 
 local nt = require('nt')
@@ -419,8 +417,14 @@ local I801_DEVICES = {
   [0x80863a60] = true,
 }
 
+-- An SCH5027 hardware monitor at 2Ch-2Eh: identification, voltages,
+-- temperatures and fans, as bytes.
 local I801_READS = {
   [0] = {
+    { 0x2c, 0x2e, 0x3d, 0x3f, true, false },
+    { 0x2c, 0x2e, 0x20, 0x2f, true, false },
+    { 0x2c, 0x2e, 0x84, 0x89, true, false },
+    { 0x2c, 0x2e, 0x99, 0x9a, true, false },
     { 0x18, 0x1f, 0x00, 0x07, false, true },
     { 0x50, 0x57, 0x00, 0xff, true, true },
     { 0x48, 0x4f, 0x04, 0x06, true, false },
@@ -432,13 +436,9 @@ local I801_READS = {
   },
 }
 
--- PMBus controller identification on port 0 of every host: PMBUS_REVISION (98h) as a byte,
--- MFR_ID (99h), MFR_MODEL (9Ah) and IC_DEVICE_ID (ADh) as blocks, at 40h-47h
--- and 60h-67h only (thermal sensors 18h-1Fh, SPD write protection 30h-37h,
--- PMICs 48h-4Fh, SPD 50h-57h and clock generators 68h-6Fh are outside them).
--- Telemetry on a page: VOUT_MODE (20h) as a paged byte, READ_VIN to
--- READ_TEMPERATURE_1 (88h-8Dh), READ_POUT and READ_PIN (96h-97h) as paged
--- words; never as plain reads.
+-- PMBus controllers on port 0 of every host: first and last address, first and
+-- last command, then whether a byte, word, block, paged word or paged byte read
+-- is permitted.
 local PMBUS_READS = {
   { 0x40, 0x47, 0x98, 0x98, true, false, false, false, false },
   { 0x40, 0x47, 0x99, 0x9a, false, false, true, false, false },
@@ -1181,8 +1181,7 @@ local function release(s)
   return bad
 end
 
--- A finished block transaction's bytes: the count in HST_DAT0, the buffer
--- read from its start.
+-- A finished block transaction's bytes (the count in HST_DAT0), or nil.
 local function block_bytes(s)
   local count = host_in(s, HST_DAT0)
   if count < 1 or count > BLOCK_MAX then
@@ -1196,9 +1195,9 @@ local function block_bytes(s)
   return table.concat(bytes)
 end
 
--- An Intel block read byte by byte (the 32-byte buffer off): each byte waits
--- with BYTE_DONE until it is taken; LAST_BYTE is set before the last. The
--- bytes or nil, the host status at the end, and a status.
+-- An Intel block read byte by byte (32-byte buffer off): the bytes or nil, the
+-- final host status and a status. LAST_BYTE is set before the last byte is
+-- taken.
 local function i801_block_bytes(s, hs)
   local bytes = {}
   local count
@@ -1343,9 +1342,8 @@ local function pair_lock(s)
   return false
 end
 
--- One transfer on the FCH host: a byte, word or block read, or with data a
--- byte write. A status, the value, whether the read stops, and a block's
--- bytes.
+-- One FCH transfer (a byte write with data): a status, the value, whether the
+-- read stops and a block's bytes.
 local function fch_xfer(s, address, command, protocol, data)
   local hs = (address << 1) | (data and 0 or 1)
   local cnt = protocol == 2 and 0x14 or protocol == 1 and 0x0c or 0x08
@@ -1419,10 +1417,8 @@ local function i801_xfer(s, address, command, protocol, data)
   return es, v, false, block
 end
 
--- A paged read: PAGE read, written to the entry's page and read back when it
--- differs; the byte or word; PAGE read again, and when another agent moved it
--- the read is a retry and its page is left; otherwise the old page written
--- back and read back (from a close handler too, whatever ends the read).
+-- A read on the entry's page; the old page is put back, also on unwind, unless
+-- another agent moved it (a retry).
 local function paged(s, e, xfer)
   local a = e[1]
   local es, original, abort = xfer(s, a, PMBUS_PAGE, 0)
@@ -1430,8 +1426,7 @@ local function paged(s, e, xfer)
     return es, 0, abort
   end
   local pending = false
-  -- A transfer ended part way (a limit) leaves the host busy for a while:
-  -- each step is tried again while the host is busy.
+  -- A transfer cut short by a limit leaves the host busy for a while.
   local function settled(...)
     local st, v
     for _ = 1, PUT_BACK_TRIES do
@@ -1491,8 +1486,8 @@ local function paged(s, e, xfer)
   return es, value, false
 end
 
--- An entry's transfer: a status, the value (a block's byte count) and
--- whether the read stops; a block's bytes kept on the entry.
+-- An entry's transfer: a status, the value (a block's byte count) and whether
+-- the read stops.
 local function transfer(s, e, xfer)
   if e[3] >= 3 then
     return paged(s, e, xfer)
@@ -1505,8 +1500,8 @@ local function transfer(s, e, xfer)
   return es, value, abort
 end
 
--- The output: a status and a value per entry (a block's byte count), then the
--- bytes of each block read, in entry order.
+-- A status and a value per entry (a block's byte count), then each block's
+-- bytes in entry order.
 local function packed(entries, output)
   local records = {}
   local blocks = {}
