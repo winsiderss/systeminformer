@@ -104,15 +104,34 @@ VOID PhpHwSmuPublish(
     _In_ const PH_HW_SMU_DECODE* Decode
     )
 {
-    for (ULONG i = 0; i < Sensors->Count; i++)
-        PhpHwSetNamedSensor(Sensors->Sensors[i].Index, FALSE, 0.0f);
+    ULONG indices[PH_HW_SMU_MAX_READINGS];
 
+    // Adding a sensor takes the lock, so every index is found before it is held.
     for (ULONG i = 0; i < Decode->Count; i++)
     {
         const PH_HW_SMU_READING* reading = &Decode->Readings[i];
 
-        PhpHwSetNamedSensor(PhpHwSmuSensorIndex(Sensors, PackageIndex, i, reading->Id | IdFlags, reading), TRUE, reading->Value);
+        indices[i] = PhpHwSmuSensorIndex(Sensors, PackageIndex, i, reading->Id | IdFlags, reading);
     }
+
+    PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
+
+    for (ULONG i = 0; i < Sensors->Count; i++)
+    {
+        if (Sensors->Sensors[i].Index < PhpHwNamedSensorCount)
+            PhpHwNamedSensors[Sensors->Sensors[i].Index].Valid = FALSE;
+    }
+
+    for (ULONG i = 0; i < Decode->Count; i++)
+    {
+        if (indices[i] < PhpHwNamedSensorCount)
+        {
+            PhpHwNamedSensors[indices[i]].Value = Decode->Readings[i].Value;
+            PhpHwNamedSensors[indices[i]].Valid = TRUE;
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
 }
 
 /**
