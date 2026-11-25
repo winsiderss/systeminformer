@@ -268,6 +268,8 @@ static VOID PhpHwHsmpReadDimms(
 
     if (!Package->DimmProbed)
     {
+        Package->DimmCount = 0;
+
         for (ULONG i = 0; i < PHP_HW_HSMP_DIMM_PROBES; i++)
         {
             commands[count].Opcode = PH_HW_HSMP_GET_DIMM_THERMAL;
