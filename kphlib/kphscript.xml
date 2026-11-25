@@ -114,4 +114,7 @@ This file is part of System Informer.
         <routine name="read" level="maximum"/>
         <routine name="corsair" level="maximum"/>
     </script>
+    <script name="axi" file="script/axi.lua" arch="amd64,arm64" desc="Power supplies through their USB serial dongle">
+        <routine name="read" level="maximum"/>
+    </script>
 </scripts>
