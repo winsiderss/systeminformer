@@ -145,8 +145,8 @@ static ULONG PhpHwCounterZoneLimitIndex = ULONG_MAX; // the lowest zone passive 
 static PHP_HW_COUNTER_TRIP PhpHwCounterTrips[PHP_HW_COUNTER_MAX_TRIPS];
 static ULONG PhpHwCounterTripCount = 0;
 static BOOLEAN PhpHwCounterTripsRead = FALSE; // since the query opened
-// Under PhpHwNamedSensorLock: interfaces, opened, read, read at the exact length, short replies; the last failure.
-static ULONG PhpHwCounterTripReport[6] = { 0 };
+// Under PhpHwNamedSensorLock: interfaces, opened, read, short replies; the last failure.
+static ULONG PhpHwCounterTripReport[5] = { 0 };
 
 // Under PhpHwNamedSensorLock.
 ULONG PhpHwCounterSensorCount = 0;
@@ -695,7 +695,7 @@ static VOID PhpHwCounterReadTrips(
     static CONST GUID thermalZone = { 0x4afa3d51, 0x74a7, 0x11d0, { 0xbe, 0x5e, 0x00, 0xa0, 0xc9, 0x06, 0x28, 0x57 } };
     HDEVINFO deviceInfoSet;
     SP_DEVICE_INTERFACE_DATA interfaceData;
-    ULONG report[6] = { 0 };
+    ULONG report[5] = { 0 };
 
     PhpHwCounterTripsRead = TRUE;
     PhpHwCounterTripCount = 0;
@@ -704,7 +704,7 @@ static VOID PhpHwCounterReadTrips(
 
     if (deviceInfoSet == INVALID_HANDLE_VALUE)
     {
-        report[5] = PhGetLastWin32ErrorAsNtStatus();
+        report[4] = PhGetLastWin32ErrorAsNtStatus();
         PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
         memcpy(PhpHwCounterTripReport, report, sizeof(report));
         PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
@@ -726,7 +726,6 @@ static VOID PhpHwCounterReadTrips(
         HANDLE handle;
         PHP_HW_THERMAL_INFORMATION_EX thermal;
         ULONG returnLength = 0;
-        ULONG exact;
         PPHP_HW_COUNTER_TRIP trip;
 
         memset(detailBuffer, 0, sizeof(detailBuffer));
@@ -738,12 +737,12 @@ static VOID PhpHwCounterReadTrips(
 
         if (!SetupDiGetDeviceInterfaceDetailW(deviceInfoSet, &interfaceData, detail, sizeof(detailBuffer), NULL, &deviceInfoData))
         {
-            report[5] = PhGetLastWin32ErrorAsNtStatus();
+            report[4] = PhGetLastWin32ErrorAsNtStatus();
             continue;
         }
         if (!SetupDiGetDevicePropertyW(deviceInfoSet, &deviceInfoData, &DEVPKEY_Device_BiosDeviceName, &propertyType, (PBYTE)name, sizeof(name) - sizeof(WCHAR), NULL, 0) || propertyType != DEVPROP_TYPE_STRING)
         {
-            report[5] = STATUS_OBJECT_NAME_NOT_FOUND;
+            report[4] = STATUS_OBJECT_NAME_NOT_FOUND;
             continue;
         }
 
@@ -759,7 +758,7 @@ static VOID PhpHwCounterReadTrips(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            report[5] = status;
+            report[4] = status;
             continue;
         }
 
@@ -770,27 +769,14 @@ static VOID PhpHwCounterReadTrips(
         returnLength = 0;
         status = PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, sizeof(thermal), &thermal, sizeof(thermal), &returnLength);
 
-        // A driver that wants the structure's exact size (92 bytes, not the padded sizeof) is asked again.
-        if (!NT_SUCCESS(status) || returnLength < RTL_SIZEOF_THROUGH_FIELD(PHP_HW_THERMAL_INFORMATION_EX, CriticalTripPoint))
-        {
-            exact = RTL_SIZEOF_THROUGH_FIELD(PHP_HW_THERMAL_INFORMATION_EX, ActiveTripPoint);
-            memset(&thermal, 0, sizeof(PHP_HW_THERMAL_INFORMATION_EX));
-            thermal.ThermalStamp = PHP_HW_THERMAL_STAMP_NONE;
-            returnLength = 0;
-            status = PhDeviceIoControlFile(handle, PHP_HW_IOCTL_THERMAL_QUERY_INFORMATION, &thermal, exact, &thermal, exact, &returnLength);
-
-            if (NT_SUCCESS(status) && returnLength >= RTL_SIZEOF_THROUGH_FIELD(PHP_HW_THERMAL_INFORMATION_EX, CriticalTripPoint))
-                report[3]++;
-        }
-
         if (!NT_SUCCESS(status))
         {
-            report[5] = status;
+            report[4] = status;
         }
         else if (returnLength < RTL_SIZEOF_THROUGH_FIELD(PHP_HW_THERMAL_INFORMATION_EX, CriticalTripPoint))
         {
             // A zone a vendor driver owns (Snapdragon) can complete it with no data.
-            report[4]++;
+            report[3]++;
         }
         else
         {
@@ -1360,7 +1346,7 @@ VOID PhpHwWriteCounterDiagnostics(
     ULONG blockCount;
     ULONG status;
     ULONG sets;
-    ULONG trips[6];
+    ULONG trips[5];
 
     PhAcquireQueuedLockShared(&PhpHwNamedSensorLock);
     memcpy(trips, PhpHwCounterTripReport, sizeof(trips));
@@ -1396,13 +1382,12 @@ VOID PhpHwWriteCounterDiagnostics(
     {
         PhAppendFormatStringBuilder(
             Builder,
-            L"  Trip points: %lu zone interfaces, %lu opened, %lu read (%lu at 92 bytes), %lu short replies; last failure 0x%08lx\n",
+            L"  Trip points: %lu zone interfaces, %lu opened, %lu read, %lu short replies; last failure 0x%08lx\n",
             trips[0],
             trips[1],
             trips[2],
             trips[3],
-            trips[4],
-            trips[5]
+            trips[4]
             );
     }
 
