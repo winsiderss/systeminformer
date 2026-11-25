@@ -357,14 +357,14 @@ typedef enum _KPH_HW_SPBM_POWER
     KphHwSpbmPowerCpuGpu,
     KphHwSpbmPowerCpuP,
     KphHwSpbmPowerCpuE,
-    KphHwSpbmPowerMemoryA,
-    KphHwSpbmPowerDcInput,
     KphHwSpbmPowerGpu,
+    KphHwSpbmPowerMemoryA,
     KphHwSpbmPowerMemoryB,
+    KphHwSpbmPowerMemoryC,
+    KphHwSpbmPowerDcInput,
     KphHwSpbmPowerPackageAverage,
     KphHwSpbmPowerSystemAverage,
     KphHwSpbmPowerSystemShortAverage,
-    KphHwSpbmPowerMemoryC,
     KphHwSpbmPowerMaximum
 } KPH_HW_SPBM_POWER;
 

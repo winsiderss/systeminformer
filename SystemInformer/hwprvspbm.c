@@ -50,10 +50,10 @@ static CONST PHP_HW_SPBM_NAMED PhpHwSpbmPowers[] =
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerCpuE, L"CPU E-cores" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerGpu, L"GPU" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerCpuGpu, L"CPU + GPU" },
-    { PhHwNamedSensorRaplPower, KphHwSpbmPowerDcInput, L"DC input" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerMemoryA, L"Memory rail A" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerMemoryB, L"Memory rail B" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerMemoryC, L"Memory rail C" },
+    { PhHwNamedSensorRaplPower, KphHwSpbmPowerDcInput, L"DC input" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerPackageAverage, L"Package average" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerSystemAverage, L"System average" },
     { PhHwNamedSensorRaplPower, KphHwSpbmPowerSystemShortAverage, L"System short average" },
@@ -80,14 +80,14 @@ static CONST ULONG PhpHwSpbmPowerEnergy[KphHwSpbmPowerMaximum] =
     KphHwSpbmEnergyMaximum, // CpuGpu
     KphHwSpbmEnergyCpuP, // CpuP
     KphHwSpbmEnergyCpuE, // CpuE
-    KphHwSpbmEnergyMaximum, // MemoryA
-    KphHwSpbmEnergyMaximum, // DcInput
     KphHwSpbmEnergyGpu, // Gpu
+    KphHwSpbmEnergyMaximum, // MemoryA
     KphHwSpbmEnergyMaximum, // MemoryB
+    KphHwSpbmEnergyMaximum, // MemoryC
+    KphHwSpbmEnergyMaximum, // DcInput
     KphHwSpbmEnergyMaximum, // PackageAverage
     KphHwSpbmEnergyMaximum, // SystemAverage
     KphHwSpbmEnergyMaximum, // SystemShortAverage
-    KphHwSpbmEnergyMaximum, // MemoryC
 };
 
 static KPH_HW_SPBM_SAMPLE PhpHwSpbmSample; // the last read, for the report
