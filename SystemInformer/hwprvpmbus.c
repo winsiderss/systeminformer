@@ -264,6 +264,11 @@ static ULONG PhpHwVrmUnidentified = 0; // devices that answered and were not ide
 static NTSTATUS PhpHwVrmStatus = STATUS_NOT_SUPPORTED; // the last read, for the report
 static UCHAR PhpHwVrmStrikes = 0;
 static BOOLEAN PhpHwVrmEnded = FALSE;
+static ULONG PhpHwVrmHosts[PHP_HW_VRM_MAX_HOSTS];
+static ULONG PhpHwVrmHostCount = 0;
+static BOOLEAN PhpHwVrmProbing = FALSE; // another tool held the bus: the probe goes on from the host and address below
+static ULONG PhpHwVrmProbeHost = 0;
+static ULONG PhpHwVrmProbeAddress = 0;
 
 /**
  * Lists a controller's sensors: per page its output voltage, temperature and output power.
@@ -315,50 +320,34 @@ static BOOLEAN PhpHwVrmBoardHasRow(
 }
 
 /**
- * Finds the PMBus controllers once a session on a board without a row: each SMBus host's port 0 is asked at every
- * address of the range, and a device is kept only when its answers identify a family SI decodes; the first host with
- * one is the host.
- *
- * \return STATUS_SUCCESS, STATUS_RETRY when another tool held the bus, or STATUS_NOT_SUPPORTED when none is found or
- * the board has a row.
+ * Asks the addresses from the probe's host and address on: each SMBus host's port 0 at every address of the range,
+ * a device kept only when its answers identify a family SI decodes; the first host with one is the host. Another tool
+ * holding the bus stops it there.
  */
-NTSTATUS PhpHwVrmProbe(
+static VOID PhpHwVrmProbeAddresses(
     VOID
     )
 {
-    ULONG hosts[PHP_HW_VRM_MAX_HOSTS];
-    ULONG hostCount;
+    PhpHwVrmProbing = FALSE;
 
-    PhpHwVrmCount = 0;
-    PhpHwVrmUnidentified = 0;
-    PhpHwVrmRowBoard = PhpHwVrmBoardHasRow();
-
-    if (PhpHwVrmRowBoard)
-        return STATUS_NOT_SUPPORTED;
-
-    hostCount = PhpHwEnumeratePciFunctions(
-        PHP_HW_ANY_VENDOR_ID,
-        PHP_HW_ANY_VENDOR_ID,
-        0x0C05,
-        NULL,
-        0,
-        FALSE,
-        hosts,
-        RTL_NUMBER_OF(hosts)
-        );
-
-    for (ULONG h = 0; h < hostCount && !PhpHwVrmCount; h++)
+    while (PhpHwVrmProbeHost < PhpHwVrmHostCount)
     {
-        for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwVrmAddresses) && PhpHwVrmCount < PHP_HW_VRM_MAX; i++)
+        ULONG host = PhpHwVrmHosts[PhpHwVrmProbeHost];
+
+        for (; PhpHwVrmProbeAddress < RTL_NUMBER_OF(PhpHwVrmAddresses) && PhpHwVrmCount < PHP_HW_VRM_MAX; PhpHwVrmProbeAddress++)
         {
+            ULONG i = PhpHwVrmProbeAddress;
             KPH_HW_PMBUS_IDENTITY identity;
             PHP_HW_PMBUS_FAMILY family;
             NTSTATUS status;
 
-            status = KphHwPmbusIdentify(hosts[h], 0, PhpHwVrmAddresses[i], &identity);
+            status = KphHwPmbusIdentify(host, 0, PhpHwVrmAddresses[i], &identity);
 
             if (status == STATUS_RETRY)
-                return STATUS_RETRY;
+            {
+                PhpHwVrmProbing = TRUE;
+                return;
+            }
 
             if (!NT_SUCCESS(status))
                 continue;
@@ -381,11 +370,52 @@ NTSTATUS PhpHwVrmProbe(
 
             PhpHwVrms[PhpHwVrmCount].Address = PhpHwVrmAddresses[i];
             PhpHwVrms[PhpHwVrmCount].Family = family;
-            PhpHwVrmHost = hosts[h];
+            PhpHwVrmHost = host;
             PhpHwVrmList(PhpHwVrmCount);
             PhpHwVrmCount++;
         }
+
+        if (PhpHwVrmCount)
+            break;
+
+        PhpHwVrmProbeHost++;
+        PhpHwVrmProbeAddress = 0;
     }
+}
+
+/**
+ * Finds the PMBus controllers once a session on a board without a row.
+ *
+ * \return STATUS_SUCCESS (also when another tool held the bus: the pass goes on with the probe), or
+ * STATUS_NOT_SUPPORTED when none is found or the board has a row.
+ */
+NTSTATUS PhpHwVrmProbe(
+    VOID
+    )
+{
+    PhpHwVrmCount = 0;
+    PhpHwVrmUnidentified = 0;
+    PhpHwVrmRowBoard = PhpHwVrmBoardHasRow();
+
+    if (PhpHwVrmRowBoard)
+        return STATUS_NOT_SUPPORTED;
+
+    PhpHwVrmHostCount = PhpHwEnumeratePciFunctions(
+        PHP_HW_ANY_VENDOR_ID,
+        PHP_HW_ANY_VENDOR_ID,
+        0x0C05,
+        NULL,
+        0,
+        FALSE,
+        PhpHwVrmHosts,
+        RTL_NUMBER_OF(PhpHwVrmHosts)
+        );
+    PhpHwVrmProbeHost = 0;
+    PhpHwVrmProbeAddress = 0;
+    PhpHwVrmProbeAddresses();
+
+    if (PhpHwVrmProbing)
+        return STATUS_SUCCESS;
 
     return PhpHwVrmCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
 }
@@ -406,6 +436,14 @@ NTSTATUS PhpHwVrmPass(
     ULONG count = 0;
     ULONG capabilities = 0;
     BOOLEAN read;
+
+    if (PhpHwVrmProbing)
+    {
+        PhpHwVrmProbeAddresses();
+
+        if (PhpHwVrmProbing)
+            return STATUS_RETRY;
+    }
 
     if (PhpHwVrmEnded || !PhpHwVrmCount)
         return STATUS_NOT_SUPPORTED;
@@ -481,6 +519,7 @@ VOID PhpHwVrmEnd(
     PhpHwVrmCount = 0;
     PhpHwVrmStrikes = 0;
     PhpHwVrmEnded = FALSE;
+    PhpHwVrmProbing = FALSE;
 }
 
 /**
