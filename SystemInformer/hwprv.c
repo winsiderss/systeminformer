@@ -252,8 +252,6 @@ static VOID PhpHwEndSession(
     PhpHwAvailable = FALSE;
     PhpHwCapabilities = 0;
     PhpHwChipsetTemperatureValid = FALSE;
-    PhHwCpuTemperature = 0.0f;
-    PhHwCpuPower = 0.0f;
 
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
         PhpHwCpuSensors[i].Valid = 0;
