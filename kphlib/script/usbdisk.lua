@@ -300,8 +300,8 @@ local function registers(sense)
   return nil
 end
 
--- STATUS_SUCCESS and the count register (00h is standby) from CHECK POWER MODE,
--- or a status.
+-- STATUS_SUCCESS and the count register (00h, 01h and 40h: spun down) from
+-- CHECK POWER MODE, or a status.
 local function power_mode(device)
   local scsiStatus, sense = ata(device, 3, 0x20, 0, 0, 0, 0, 0xe5, DATA_NONE, 0)
   if not scsiStatus then
@@ -376,11 +376,21 @@ local function disk(device)
     ksi.trace('%04x:%04x is not a listed bridge', vendor, product)
     return record(nt.STATUS_NOT_SUPPORTED, vendor, product, 0, 0), id, ''
   end
+  -- A unit Windows has powered down is sent nothing.
+  local power, powerKind = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_PowerData)
+  if
+    power
+    and powerKind == nt.DEVPROP_TYPE_BINARY
+    and #power == 56
+    and string.unpack('<I4', power, 5) ~= nt.PowerDeviceD0
+  then
+    return record(nt.STATUS_DEVICE_POWERED_OFF, vendor, product, 0, KIND_ATA), id, ''
+  end
   local status, count = power_mode(device)
   if not nt.NT_SUCCESS(status) then
     return record(status, vendor, product, 0, KIND_ATA), id, ''
   end
-  if count == 0 then
+  if count == 0x00 or count == 0x01 or count == 0x40 then
     return record(nt.STATUS_DEVICE_POWERED_OFF, vendor, product, 0, KIND_ATA), id, ''
   end
   local data, failed = smart(device)
