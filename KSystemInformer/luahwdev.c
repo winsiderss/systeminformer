@@ -702,8 +702,8 @@ NTSTATUS KphpLuaHwPrepareRequest(
 /**
  * \brief Sends a prepared request; its completion signals the request's event.
  *
- * \param[in] Request The request; the completion holds a reference until it
- * runs.
+ * \param[in,out] Request The request; the completion holds a reference until
+ * it runs.
  * \param[out] MajorFunction Receives the major function of the request.
  * \param[out] IoControlCode Receives the control code, 0 for a read or write.
  */

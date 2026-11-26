@@ -1320,9 +1320,6 @@ static VOID PhpHwCpuDropIdleEnergy(
 }
 
 /**
- * Decodes the pass and publishes it: the values first, then their bits.
- */
-/**
  * Sums the accumulator power of the compute units of an AMD family 15h or 16h package over the sample interval.
  *
  * \return FALSE unless every compute unit of the package has two samples.
@@ -1628,6 +1625,9 @@ static VOID PhpHwCpuPublishResidencies(
     }
 }
 
+/**
+ * Decodes the pass and publishes it: the values first, then their bits.
+ */
 static VOID PhpHwCpuPublish(
     VOID
     )

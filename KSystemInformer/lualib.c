@@ -626,8 +626,7 @@ int KphpLuaUlt(
  * and nothing can fail, unless the trace is being collected.
  *
  * \param[in] State The Lua state, with the text or the format and its
- * arguments.
- * The first upvalue is the format of Lua.
+ * arguments. The first upvalue is the format of Lua.
  *
  * \return Zero, the number of results.
  */

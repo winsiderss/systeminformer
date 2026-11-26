@@ -3333,7 +3333,6 @@ Exit:
  *
  * \details Advisory. KphScriptCall checks again.
  *
- * \param[in] Process The process that holds the handle.
  * \param[in] ScriptHandle The handle to the script object.
  * \param[in] Routine The name of the routine.
  * \param[in] AccessMode The mode in which to perform access checks.

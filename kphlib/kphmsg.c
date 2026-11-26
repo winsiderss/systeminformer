@@ -42,6 +42,8 @@ VOID KphMsgQuerySystemTime(
 
 /**
  * \brief Gets the current unbiased interrupt time, which excludes time spent asleep.
+ *
+ * \param[out] UnbiasedInterruptTime Receives the unbiased interrupt time.
  */
 VOID KphMsgQueryUnbiasedInterruptTime(
     _Out_ PLARGE_INTEGER UnbiasedInterruptTime
