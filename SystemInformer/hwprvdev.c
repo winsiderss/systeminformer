@@ -369,10 +369,9 @@ static ULONG PhpHwParseLocation(
     _Out_writes_(4) PULONG Numbers
     )
 {
+    ULONG numbers[4] = { 0 };
     ULONG numberCount = 0;
     BOOLEAN inNumber = FALSE;
-
-    memset(Numbers, 0, sizeof(ULONG) * 4);
 
     for (ULONG i = 0; i < Count && Location[i] != UNICODE_NULL; i++)
     {
@@ -393,11 +392,14 @@ static ULONG PhpHwParseLocation(
             numberCount++;
         }
 
-        Numbers[numberCount - 1] = Numbers[numberCount - 1] * 10 + (c - L'0');
+        numbers[numberCount - 1] = numbers[numberCount - 1] * 10 + (c - L'0');
 
-        if (Numbers[numberCount - 1] > USHRT_MAX)
+        if (numbers[numberCount - 1] > USHRT_MAX)
             return 0;
     }
+
+    if (numberCount)
+        memcpy(Numbers, numbers, sizeof(numbers));
 
     return numberCount;
 }
