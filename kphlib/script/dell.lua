@@ -252,6 +252,7 @@ function identify(input)
     ksi.trace('no Dell SMM signature')
     return nt.STATUS_NOT_FOUND
   end
+  kept.signature = true
   local multiplier = FAN_MULTIPLIER
   local fans = {}
   for fan = 0, FANS_MAX - 1 do
@@ -309,6 +310,16 @@ function read(input)
   if fanMask >> FANS_MAX ~= 0 or tempMask >> TEMPS_MAX ~= 0 or (fanMask ~= 0 and not m.fans) then
     ksi.trace('masks 0x%x 0x%x', fanMask, tempMask)
     return nt.STATUS_INVALID_PARAMETER
+  end
+  if not kept.signature then
+    if not signature_present() then
+      if kept.slow then
+        return nt.STATUS_IO_TIMEOUT
+      end
+      ksi.trace('no Dell SMM signature')
+      return nt.STATUS_NOT_FOUND
+    end
+    kept.signature = true
   end
   local output = {}
   for fan = 0, FANS_MAX - 1 do
