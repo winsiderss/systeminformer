@@ -97,6 +97,8 @@ static NTSTATUS KphpHwAcquireScript(
     NTSTATUS status;
     PPH_STRING fileName;
 
+    *ScriptHandle = NULL;
+
     for (;;)
     {
         PhAcquireQueuedLockShared(&Script->Lock);
@@ -302,6 +304,8 @@ NTSTATUS KphHwCpuIdentify(
     KPH_HW_CPU_IDENTITY identity;
     ULONG returnLength;
 
+    memset(Identity, 0, sizeof(KPH_HW_CPU_IDENTITY));
+
     processor[0] = Group;
     processor[1] = Number;
 
@@ -428,6 +432,8 @@ static NTSTATUS KphpHwCreateBusMutant(
     OBJECT_ATTRIBUTES objectAttributes;
     HANDLE mutantHandle;
     NTSTATUS status;
+
+    *MutantHandle = NULL;
 
     if (!PhStringRefToUnicodeString(ObjectName, &objectName))
         return STATUS_NAME_TOO_LONG;
@@ -574,6 +580,8 @@ NTSTATUS KphHwSuperIoIdentify(
     KPH_HW_SUPERIO_CHIP chip;
     ULONG returnLength;
 
+    memset(Chip, 0, sizeof(KPH_HW_SUPERIO_CHIP));
+
     if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
         return status;
 
@@ -687,6 +695,8 @@ NTSTATUS KphHwSmnIdentify(
     NTSTATUS status;
     KPH_HW_SMN_IDENTITY identity;
     ULONG returnLength;
+
+    memset(Identity, 0, sizeof(KPH_HW_SMN_IDENTITY));
 
     if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
         return status;
@@ -804,6 +814,8 @@ NTSTATUS KphHwSmuIdentify(
     KPH_HW_SMU_IDENTITY identity;
     ULONG returnLength;
 
+    memset(Identity, 0, sizeof(KPH_HW_SMU_IDENTITY));
+
     if (!NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
         return status;
 
@@ -858,6 +870,9 @@ NTSTATUS KphHwSmuReadTable(
     ULONG outputLength;
     ULONG returnLength;
     PKPH_HW_SMU_TABLE output;
+
+    memset(Header, 0, sizeof(KPH_HW_SMU_TABLE));
+    *ReturnLength = 0;
 
     if (!NT_SUCCESS(status = RtlULongAdd(Length, sizeof(KPH_HW_SMU_TABLE), &outputLength)))
         return status;
@@ -995,6 +1010,8 @@ NTSTATUS KphHwHsmpIdentify(
     ULONG input[2];
     KPH_HW_HSMP_IDENTITY identity;
     ULONG returnLength;
+
+    memset(Identity, 0, sizeof(KPH_HW_HSMP_IDENTITY));
 
     input[0] = Locator;
     input[1] = Socket;
@@ -1261,6 +1278,8 @@ NTSTATUS KphHwSmbusIdentify(
     ULONG returnLength;
     BOOLEAN isa;
 
+    memset(Host, 0, sizeof(KPH_HW_SMBUS_HOST));
+
     if (!NT_SUCCESS(status = KphpHwAcquireSmbus(FALSE, &isa)))
         return status;
 
@@ -1408,6 +1427,8 @@ NTSTATUS KphHwPmbusIdentify(
     ULONG at = sizeof(records);
     BOOLEAN isa;
 
+    memset(Identity, 0, sizeof(KPH_HW_PMBUS_IDENTITY));
+
     input.Locator = Locator;
     input.Port = Port;
 
@@ -1497,6 +1518,8 @@ NTSTATUS KphHwPciMmioIdentify(
     NTSTATUS status;
     KPH_HW_PCI_MMIO device;
     ULONG returnLength;
+
+    memset(Device, 0, sizeof(KPH_HW_PCI_MMIO));
 
     status = KphpHwScriptCall(
         &KphpHwPciMmioScript,
@@ -1603,6 +1626,8 @@ NTSTATUS KphHwPciConfigIdentify(
     NTSTATUS status;
     KPH_HW_PCI_CONFIG device;
     ULONG returnLength;
+
+    memset(Device, 0, sizeof(KPH_HW_PCI_CONFIG));
 
     status = KphpHwScriptCall(
         &KphpHwPciConfigScript,
@@ -1755,6 +1780,8 @@ NTSTATUS KphHwCrosEcIdentify(
     KPH_HW_CROSEC_IDENTITY identity;
     ULONG returnLength;
 
+    memset(Identity, 0, sizeof(KPH_HW_CROSEC_IDENTITY));
+
     if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
 
@@ -1861,6 +1888,8 @@ NTSTATUS KphHwEcIdentify(
     KPH_HW_EC_IDENTITY identity;
     ULONG returnLength;
 
+    memset(Identity, 0, sizeof(KPH_HW_EC_IDENTITY));
+
     if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
 
@@ -1908,6 +1937,8 @@ NTSTATUS KphHwEcSensors(
     UCHAR output[0x1000];
     ULONG returnLength;
     ULONG count = 0;
+
+    *Count = 0;
 
     if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
@@ -1972,6 +2003,8 @@ NTSTATUS KphHwAlienwareIdentify(
     UCHAR output[2 + 2 * KPH_HW_ALIENWARE_RESOURCES];
     KPH_HW_ALIENWARE_IDENTITY identity;
     ULONG returnLength = 0;
+
+    memset(Identity, 0, sizeof(KPH_HW_ALIENWARE_IDENTITY));
 
     status = KphpHwScriptCall(
         &KphpHwAlienwareScript,
@@ -2069,6 +2102,8 @@ NTSTATUS KphHwHpIdentify(
     KPH_HW_HP_SENSOR sensors[KPH_HW_HP_SENSORS];
     ULONG returnLength = 0;
     ULONG count;
+
+    *Count = 0;
 
     status = KphpHwScriptCall(
         &KphpHwHpScript,
@@ -2222,6 +2257,8 @@ static NTSTATUS KphpHwHidCall(
     PKPH_HW_HID_DEVICE devices;
     ULONG returnLength = 0;
 
+    *Count = 0;
+
     devices = PhAllocate(KPH_HW_HID_DEVICES * sizeof(KPH_HW_HID_DEVICE));
 
     if (Bus == KphHwBusMaximum || NT_SUCCESS(status = KphpHwAcquireBus(Bus, KPH_HW_BUS_TIMEOUT)))
@@ -2269,6 +2306,8 @@ NTSTATUS KphHwHidRead(
 {
     static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
 
+    *Count = 0;
+
     return KphpHwHidCall(&KphpHwHidScript, &routine, KphHwBusMaximum, Devices, Count);
 }
 
@@ -2287,6 +2326,8 @@ NTSTATUS KphHwCorsairRead(
 {
     static const ANSI_STRING routine = RTL_CONSTANT_STRING("corsair");
 
+    *Count = 0;
+
     return KphpHwHidCall(&KphpHwHidScript, &routine, KphHwBusCorsair, Devices, Count);
 }
 
@@ -2304,6 +2345,8 @@ NTSTATUS KphHwAxiRead(
     )
 {
     static const ANSI_STRING routine = RTL_CONSTANT_STRING("read");
+
+    *Count = 0;
 
     return KphpHwHidCall(&KphpHwAxiScript, &routine, KphHwBusCorsair, Devices, Count);
 }
@@ -2325,6 +2368,8 @@ NTSTATUS KphHwUsbDiskRead(
     NTSTATUS status;
     PKPH_HW_USB_DISK disks;
     ULONG returnLength = 0;
+
+    *Count = 0;
 
     disks = PhAllocate(KPH_HW_USB_DISKS * sizeof(KPH_HW_USB_DISK));
 
@@ -2529,6 +2574,8 @@ NTSTATUS KphHwGpdReadFan(
     ULONG rpm;
     ULONG returnLength;
 
+    *Rpm = 0;
+
     if (!NT_SUCCESS(status = KphpHwAcquireEc()))
         return status;
 
@@ -2619,6 +2666,8 @@ NTSTATUS KphHwDellIdentify(
     KPH_HW_DELL_IDENTITY identity;
     ULONG returnLength;
 
+    memset(Identity, 0, sizeof(KPH_HW_DELL_IDENTITY));
+
     status = KphpHwScriptCall(
         &KphpHwDellScript,
         &routine,
@@ -2704,6 +2753,8 @@ NTSTATUS KphHwAsusWmiIdentify(
     NTSTATUS status;
     KPH_HW_ASUSWMI_IDENTITY identity;
     ULONG returnLength = 0;
+
+    memset(Identity, 0, sizeof(KPH_HW_ASUSWMI_IDENTITY));
 
     memset(&identity, 0, sizeof(KPH_HW_ASUSWMI_IDENTITY));
 
@@ -2841,6 +2892,8 @@ NTSTATUS KphHwVsecIdentify(
     KPH_HW_VSEC device;
     ULONG returnLength;
 
+    memset(Device, 0, sizeof(KPH_HW_VSEC));
+
     status = KphpHwScriptCall(
         &KphpHwVsecScript,
         &routine,
@@ -2889,6 +2942,8 @@ NTSTATUS KphHwVsecRegions(
     ULONG returnLength;
     PKPH_HW_VSEC_REGION regions;
     PVOID outputBuffer;
+
+    *ReturnCount = 0;
 
     if (!Regions)
         Count = 0;
@@ -3087,6 +3142,8 @@ NTSTATUS KphHwAcpiIdentify(
     PKPH_HW_ACPI_DEVICE devices;
     PVOID outputBuffer;
 
+    *ReturnCount = 0;
+
     if (!Devices)
         Count = 0;
 
@@ -3157,6 +3214,8 @@ NTSTATUS KphHwAcpiEval(
     PVOID output;
     PVOID outputBuffer;
 
+    *ReturnLength = 0;
+
     if (!NT_SUCCESS(status = RtlULongAdd(EvalsLength, sizeof(ULONG), &inputLength)))
         return status;
 
@@ -3208,6 +3267,8 @@ NTSTATUS KphHwTsensIdentify(
     NTSTATUS status;
     KPH_HW_TSENS_IDENTITY identity;
     ULONG returnLength;
+
+    memset(Identity, 0, sizeof(KPH_HW_TSENS_IDENTITY));
 
     status = KphpHwScriptCall(
         &KphpHwTsensScript,
@@ -3285,6 +3346,8 @@ NTSTATUS KphHwSpbmRead(
     NTSTATUS status;
     KPH_HW_SPBM_SAMPLE sample;
     ULONG returnLength;
+
+    memset(Sample, 0, sizeof(KPH_HW_SPBM_SAMPLE));
 
     status = KphpHwScriptCall(
         &KphpHwSpbmScript,
