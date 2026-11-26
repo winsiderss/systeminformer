@@ -2500,7 +2500,7 @@ NTSTATUS KphpScriptValidate(
                       "KphpScriptRequiredState failed: %!STATUS!",
                       status);
 
-        return STATUS_INVALID_PARAMETER;
+        return status;
     }
 
     routines = Add2Ptr(File, File->RoutinesOffset);
@@ -2523,7 +2523,19 @@ NTSTATUS KphpScriptValidate(
         }
 
         status = KphpScriptRequiredState(routine->Level, &state);
-        if (!NT_SUCCESS(status) || (routine->Level < File->Level))
+        if (!NT_SUCCESS(status))
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Script file routine %lu level is not valid: "
+                          "%!STATUS!",
+                          i,
+                          status);
+
+            return status;
+        }
+
+        if (routine->Level < File->Level)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SCRIPT,
