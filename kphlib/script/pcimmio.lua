@@ -1416,6 +1416,7 @@ local function session(locator)
         id = k.id,
         rows = k.rows,
         header = k.type,
+        pm = k.pm,
       }
     end
     ksi.trace('the function kept for 0x%x changed', locator)
@@ -1585,6 +1586,9 @@ local function check_d0(s)
       return failed
     end
     s.pm = pm
+    if s.kept then
+      s.kept.pm = pm
+    end
   end
   local pm = s.pm
   if pm == 0 then
