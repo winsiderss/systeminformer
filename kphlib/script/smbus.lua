@@ -1098,6 +1098,30 @@ function identify(input)
   return nt.STATUS_SUCCESS, string.pack('<I2I2I4I4I4', s.vendor, s.id, s.revision, 1, s.base)
 end
 
+-- For a read that ends inside a transfer: a transfer of ours still running is
+-- killed, KILL is not left set and the status bits in clear are cleared.
+local function settle(s, clear)
+  if
+    s.sent
+    and host_in(s, HST_STS) & 0x01 ~= 0
+    and host_in(s, HST_ADD) == s.sent
+    and host_in(s, HST_CMD) == s.sent_command
+  then
+    s.killing = true
+    host_out(s, HST_CNT, (host_in(s, HST_CNT) & ~0x40) | 0x02)
+    poll(25, 0, 0, 1, function()
+      return host_in(s, HST_STS) & 0x01 == 0
+    end)
+  end
+  if s.killing then
+    host_out(s, HST_CNT, host_in(s, HST_CNT) & ~0x42)
+    local sts = host_in(s, HST_STS)
+    if sts & clear ~= 0 then
+      host_out(s, HST_STS, sts & clear)
+    end
+  end
+end
+
 -- The transaction up to the end of the wait; a transfer that does not end
 -- is killed.
 local function transact(s, hs, c, n, d)
@@ -1120,6 +1144,7 @@ local function transact(s, hs, c, n, d)
     host_out(s, HST_DAT0, d)
   end
   host_out(s, HST_CNT, n)
+  s.sent, s.sent_command = hs, c
   host_out(s, HST_CNT, n | 0x40)
   ksi.stall(250)
   local done = false
@@ -1130,10 +1155,13 @@ local function transact(s, hs, c, n, d)
   end)
   if not done then
     local k = host_in(s, HST_CNT)
+    s.killing = true
     host_out(s, HST_CNT, (k & ~0x40) | 0x02)
     ksi.sleep(1)
     k = host_in(s, HST_CNT)
     host_out(s, HST_CNT, k & ~0x42)
+    s.killing = false
+    s.sent = nil
     k = host_in(s, HST_STS)
     if k & 0x1e ~= 0 then
       host_out(s, HST_STS, k & 0x1e)
@@ -1141,6 +1169,7 @@ local function transact(s, hs, c, n, d)
     ksi.trace('transaction to 0x%x timed out', hs)
     return nt.STATUS_IO_TIMEOUT
   end
+  s.sent = nil
   return nt.STATUS_SUCCESS, sts
 end
 
@@ -1220,9 +1249,11 @@ local function i801_block_bytes(s, hs)
     end)
     if not ready then
       local k = host_in(s, HST_CNT)
+      s.killing = true
       host_out(s, HST_CNT, (k & ~0x40) | 0x02)
       ksi.sleep(1)
       host_out(s, HST_CNT, host_in(s, HST_CNT) & ~0x42)
+      s.killing = false
       ksi.trace('block from 0x%x timed out', hs)
       return nil, 0, nt.STATUS_IO_TIMEOUT
     end
@@ -1232,9 +1263,11 @@ local function i801_block_bytes(s, hs)
     if not count then
       count = host_in(s, HST_DAT0)
       if count < 1 or count > BLOCK_MAX then
+        s.killing = true
         host_out(s, HST_CNT, 0x14 | 0x02)
         ksi.sleep(1)
         host_out(s, HST_CNT, 0x14)
+        s.killing = false
         sts = host_in(s, HST_STS)
         if sts & 0x9e ~= 0 then
           host_out(s, HST_STS, sts & 0x9e)
@@ -1272,6 +1305,7 @@ local function i801_transact(s, hs, c, n, d)
   if d then
     host_out(s, HST_DAT0, d)
   end
+  s.sent, s.sent_command = hs, c
   host_out(s, HST_CNT, n | 0x40)
   ksi.stall(25)
   local done = false
@@ -1282,10 +1316,13 @@ local function i801_transact(s, hs, c, n, d)
   end)
   if not done then
     local k = host_in(s, HST_CNT)
+    s.killing = true
     host_out(s, HST_CNT, (k & ~0x40) | 0x02)
     ksi.sleep(1)
     k = host_in(s, HST_CNT)
     host_out(s, HST_CNT, k & ~0x42)
+    s.killing = false
+    s.sent = nil
     k = host_in(s, HST_STS)
     if k & 0x9e ~= 0 then
       host_out(s, HST_STS, k & 0x9e)
@@ -1293,6 +1330,7 @@ local function i801_transact(s, hs, c, n, d)
     ksi.trace('transaction to 0x%x timed out', hs)
     return nt.STATUS_IO_TIMEOUT
   end
+  s.sent = nil
   return nt.STATUS_SUCCESS, sts
 end
 
@@ -1400,8 +1438,10 @@ local function i801_xfer(s, address, command, protocol, data)
     s.started = true
     host_out(s, HST_ADD, hs)
     host_out(s, HST_CMD, command)
+    s.sent, s.sent_command = hs, command
     host_out(s, HST_CNT, cnt | 0x40)
     block, sts, es = i801_block_bytes(s, hs)
+    s.sent = nil
   else
     es, sts = i801_transact(s, hs, command, cnt, data)
   end
@@ -1643,6 +1683,9 @@ local function i801_read(s, entries, port)
 
   local putback <close> = setmetatable({}, {
     __close = function()
+      if s.owned then
+        settle(s, 0)
+      end
       if s.owned or (s.claim and s.claim & 0x40 == 0) then
         i801_release(s)
       end
@@ -1772,6 +1815,9 @@ function read(input)
   s.isa_held = isa ~= false
   local putback <close> = setmetatable({}, {
     __close = function(_, err)
+      if err and s.owned then
+        settle(s, 0x1e)
+      end
       if err and (s.owned or (s.requested and host_in(s, SMB_CTL) & 0x10 ~= 0)) then
         release(s)
       end
