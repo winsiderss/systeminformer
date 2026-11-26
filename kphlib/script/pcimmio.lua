@@ -1711,9 +1711,9 @@ local function derive(s, row, length)
       return nil, failed
     end
     if length then
-      local size = range_length(s, base)
+      local size, sizeFailed = range_length(s, base)
       if not size then
-        return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
+        return nil, sizeFailed
       end
       if math.ult(size, row.size) then
         ksi.trace('BAR length 0x%x below window size 0x%x', size, row.size)
