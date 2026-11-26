@@ -72,6 +72,8 @@ typedef struct _PHP_HW_NODE
             BOOLEAN Listed; // source and named sensors: removed when no longer listed by the provider
             BOOLEAN Current;
             BOOLEAN RangeValid;
+            BOOLEAN ValueChanged; // since ValueText was formatted
+            BOOLEAN RangeChanged; // since MinimumText and MaximumText were formatted
             FLOAT Value;
             FLOAT Minimum;
             FLOAT Maximum;
@@ -103,6 +105,8 @@ typedef struct _PHP_HW_SENSORS_CONTEXT
     struct { GUID Class; HICON Icon; } Icons[16]; // the component icons loaded at the window's DPI; NULL when none loads
     ULONG ProcessorCount;
     BOOLEAN StructureChanged;
+    BOOLEAN NamesNeeded; // a nameless enumeration met a node to create
+    ULONG TemperatureUnit; // PhCsTemperatureUnitFahrenheit when the texts were formatted
 
     HDC GraphContext;
     HBITMAP GraphBitmap;
@@ -313,6 +317,9 @@ static PPHP_HW_NODE PhpHwGetComponent(
         return component;
     }
 
+    if (!Entry->ComponentName)
+        return NULL;
+
     component = PhpHwCreateNode(PhpHwNodeComponent, Entry->ComponentKey, PhReferenceObject(Entry->ComponentName));
     component->Component.Kind = Entry->ComponentKind;
     PhpHwSetComponentClass(component, Entry);
@@ -375,6 +382,9 @@ static VOID PhpHwSensorUpdateValue(
     _In_ FLOAT Value
     )
 {
+    if (Value != Sensor->Sensor.Value)
+        Sensor->Sensor.ValueChanged = TRUE;
+
     Sensor->Sensor.Current = TRUE;
     Sensor->Sensor.Value = Value;
 
@@ -383,13 +393,21 @@ static VOID PhpHwSensorUpdateValue(
         Sensor->Sensor.Minimum = Value;
         Sensor->Sensor.Maximum = Value;
         Sensor->Sensor.RangeValid = TRUE;
+        Sensor->Sensor.RangeChanged = TRUE;
     }
     else
     {
         if (Value < Sensor->Sensor.Minimum)
+        {
             Sensor->Sensor.Minimum = Value;
+            Sensor->Sensor.RangeChanged = TRUE;
+        }
+
         if (Value > Sensor->Sensor.Maximum)
+        {
             Sensor->Sensor.Maximum = Value;
+            Sensor->Sensor.RangeChanged = TRUE;
+        }
     }
 }
 
@@ -411,7 +429,12 @@ static VOID NTAPI PhpHwCollectSensor(
 
     if (Entry->Current || Entry->ComponentKind == PhHwComponentSource)
     {
-        component = PhpHwGetComponent(context, Entry);
+        if (!(component = PhpHwGetComponent(context, Entry)))
+        {
+            context->NamesNeeded = TRUE;
+            return;
+        }
+
         group = PhpHwGetGroup(context, component, Entry->Group);
     }
     else
@@ -428,6 +451,12 @@ static VOID NTAPI PhpHwCollectSensor(
     {
         if (!Entry->Current && Entry->ComponentKind != PhHwComponentSource)
             return;
+
+        if (!Entry->SensorName)
+        {
+            context->NamesNeeded = TRUE;
+            return;
+        }
 
         sensor = PhpHwInsertSensor(context, group, position, Entry);
     }
@@ -462,22 +491,28 @@ static VOID PhpHwSensorUpdateText(
         return;
     }
 
-    if (Sensor->Sensor.Current)
-        PhMoveReference(&Sensor->Sensor.ValueText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Value));
-    else
+    if (!Sensor->Sensor.Current)
         PhClearReference(&Sensor->Sensor.ValueText);
+    else if (Sensor->Sensor.ValueChanged || !Sensor->Sensor.ValueText)
+        PhMoveReference(&Sensor->Sensor.ValueText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Value));
 
     // The gear is a mode, not a measurement; it has no range.
     if (Sensor->Sensor.RangeValid && Sensor->Sensor.Unit != PhHwUnitGear)
     {
-        PhMoveReference(&Sensor->Sensor.MinimumText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Minimum));
-        PhMoveReference(&Sensor->Sensor.MaximumText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Maximum));
+        if (Sensor->Sensor.RangeChanged || !Sensor->Sensor.MinimumText)
+        {
+            PhMoveReference(&Sensor->Sensor.MinimumText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Minimum));
+            PhMoveReference(&Sensor->Sensor.MaximumText, PhHwFormatSensorValue(Sensor->Sensor.Unit, Sensor->Sensor.Maximum));
+        }
     }
     else
     {
         PhClearReference(&Sensor->Sensor.MinimumText);
         PhClearReference(&Sensor->Sensor.MaximumText);
     }
+
+    Sensor->Sensor.ValueChanged = FALSE;
+    Sensor->Sensor.RangeChanged = FALSE;
 }
 
 // A source that unregisters leaves empty groups and components behind.
@@ -624,6 +659,10 @@ static VOID PhpHwSensorsUpdate(
     )
 {
     ULONG capabilities;
+    BOOLEAN unitChanged;
+
+    unitChanged = Context->TemperatureUnit != PhCsTemperatureUnitFahrenheit;
+    Context->TemperatureUnit = PhCsTemperatureUnitFahrenheit;
 
     for (ULONG i = 0; i < Context->SensorList->Count; i++)
     {
@@ -631,9 +670,21 @@ static VOID PhpHwSensorsUpdate(
 
         sensor->Sensor.Current = FALSE;
         sensor->Sensor.Listed = FALSE;
+
+        if (unitChanged)
+        {
+            sensor->Sensor.ValueChanged = TRUE;
+            sensor->Sensor.RangeChanged = TRUE;
+        }
     }
 
-    PhHwEnumerateSensors(PhpHwCollectSensor, Context);
+    // Names are taken only when a node is created.
+    Context->NamesNeeded = FALSE;
+    PhpHwEnumerateSensorsEx(PhpHwCollectSensor, Context, PHP_HW_ENUM_NO_NAMES);
+
+    if (Context->NamesNeeded)
+        PhHwEnumerateSensors(PhpHwCollectSensor, Context);
+
     capabilities = PhHwGetCapabilities();
 
     for (ULONG i = 0; i < Context->SensorList->Count; )
@@ -688,6 +739,7 @@ static VOID PhpHwSensorsResetRange(
         sensor->Sensor.RangeValid = sensor->Sensor.Current;
         sensor->Sensor.Minimum = sensor->Sensor.Value;
         sensor->Sensor.Maximum = sensor->Sensor.Value;
+        sensor->Sensor.RangeChanged = TRUE;
 
         PhpHwSensorUpdateText(sensor);
     }
