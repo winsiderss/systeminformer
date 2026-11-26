@@ -305,7 +305,7 @@ static PPHP_HW_ACPI_VALUE PhpHwAcpiAddValue(
     value->ControlIndex = ULONG_MAX;
 
     if (Label)
-        PhCopyStringZ(Label, SIZE_MAX, value->Label, RTL_NUMBER_OF(value->Label), NULL);
+        PhCopyStringZ(Label, RTL_NUMBER_OF(value->Label) - 1, value->Label, RTL_NUMBER_OF(value->Label), NULL);
 
     return value;
 }
@@ -1155,6 +1155,7 @@ static VOID PhpHwAcpiNameValues(
             PPH_STRING name;
             BOOLEAN sharedName = FALSE;
             BOOLEAN sharedSegment = FALSE;
+            SIZE_T nameCount;
             ULONG sensorId;
 
             if (value->Named)
@@ -1199,11 +1200,34 @@ static VOID PhpHwAcpiNameValues(
             }
 
             if (sharedName && device->Path[0])
-                name = PhFormatString(L"%s (%hs)", base->Buffer, sharedSegment ? device->Path : segment);
-            else
-                name = PhReferenceObject(base);
+            {
+                PCSTR suffix = segment;
+                SIZE_T room = RTL_NUMBER_OF(value->Name) - 1;
+                SIZE_T baseCount = base->Length / sizeof(WCHAR);
+                SIZE_T suffixCount;
 
-            PhCopyStringZ(name->Buffer, name->Length / sizeof(WCHAR), value->Name, RTL_NUMBER_OF(value->Name), NULL);
+                if (sharedSegment)
+                    suffix = device->Path;
+
+                // the base is cut, not the suffix that tells the rows apart
+                suffixCount = strlen(suffix) + 3;
+
+                if (suffixCount < room && baseCount > room - suffixCount)
+                    baseCount = room - suffixCount;
+
+                name = PhFormatString(L"%.*s (%hs)", (INT)baseCount, base->Buffer, suffix);
+            }
+            else
+            {
+                name = PhReferenceObject(base);
+            }
+
+            nameCount = name->Length / sizeof(WCHAR);
+
+            if (nameCount > RTL_NUMBER_OF(value->Name) - 1)
+                nameCount = RTL_NUMBER_OF(value->Name) - 1;
+
+            PhCopyStringZ(name->Buffer, nameCount, value->Name, RTL_NUMBER_OF(value->Name), NULL);
             value->Named = TRUE;
             PhDereferenceObject(name);
             PhDereferenceObject(base);

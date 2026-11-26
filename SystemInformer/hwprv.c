@@ -441,7 +441,7 @@ ULONG PhpHwAddNamedSensor(
         sensor->PackageIndex = PackageIndex;
         sensor->Id = Id;
         sensor->Active = TRUE;
-        PhCopyStringZ(Name, SIZE_MAX, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
+        PhCopyStringZ(Name, RTL_NUMBER_OF(sensor->Name) - 1, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
     }
 
     PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
