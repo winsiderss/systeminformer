@@ -80,8 +80,6 @@ static NTSTATUS DiskTemperatureQuerySmart(
     ULONG found = 0;
     ULONG value = 0;
 
-    *Celsius = 0.0f;
-
     if (!NT_SUCCESS(status = DiskDriveQueryImminentFailure(Handle, &attributes)))
         return status;
 
