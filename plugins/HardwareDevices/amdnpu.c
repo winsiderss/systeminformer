@@ -15,10 +15,12 @@
 // The NPU of AMD family 1Ah models 80h to 8Fh from the metrics table of socket 0's HSMP mailbox (the hsmp script's
 // metrics) as a hardware sensor source: the table holds accumulators, so each value is the change of an accumulator
 // over the change of the table's counter between two reads AP_INTERVAL_MS apart, in Q10. Only the fields with a known
-// scale are reported. A processor the script does not list ends the source for the session.
+// scale are reported. A processor the script does not list, or AP_STRIKE_LIMIT failures in a row other than
+// contention, end the source for the session.
 //
 
 #define AP_INTERVAL_MS 2000
+#define AP_STRIKE_LIMIT 3
 #define AP_COUNTER 0x000
 #define AP_NPU_POWER 0x1D0
 #define AP_AIE_CLOCK 0x210
@@ -34,6 +36,7 @@ typedef struct _AP_CONTEXT
     BOOLEAN Stopped;
     BOOLEAN HavePrevious;
     BOOLEAN Valid;
+    UCHAR Strikes;
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
     FLOAT Values[AP_SENSORS];
@@ -102,7 +105,9 @@ static VOID AmdNpuPoll(
 
     Context->LastStatus = status;
 
-    if (status == STATUS_NOT_SUPPORTED)
+    if (NT_SUCCESS(status))
+        Context->Strikes = 0;
+    else if (status == STATUS_NOT_SUPPORTED || (status != STATUS_RETRY && ++Context->Strikes >= AP_STRIKE_LIMIT))
         Context->Stopped = TRUE;
 
     if (NT_SUCCESS(status))
