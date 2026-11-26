@@ -19,6 +19,7 @@
 #define PHP_HW_SPBM_ID_BASE 0x53500000 // named sensor ids: base + kind * 0x100 + channel
 #define PHP_HW_SPBM_STRIKE_LIMIT 3 // failed reads in a row before the sensors end for the session
 #define PHP_HW_SPBM_ENERGY_MAX_WATTS 10000.0f // above this an energy count restarted
+#define PHP_HW_SPBM_MAX_INTERVAL 10.0f // seconds; a longer interval is a gap
 #define PHP_HW_SPBM_PACKAGE_CAPS (PH_HW_CAP_PACKAGE_TEMP | PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE | \
     PH_HW_CAP_RAPL_PSYS | PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_POWER_LIMIT2) // package bits this collector owns
 
@@ -220,7 +221,7 @@ static BOOLEAN PhpHwSpbmPower(
     if (!(PhpHwSpbmSample.PowerMask & (1UL << Channel)))
         return FALSE;
 
-    if (energy < KphHwSpbmEnergyMaximum && (PhpHwSpbmSample.EnergyMask & (1UL << energy)) && Seconds > 0.0f)
+    if (energy < KphHwSpbmEnergyMaximum && (PhpHwSpbmSample.EnergyMask & (1UL << energy)) && Seconds > 0.0f && Seconds <= PHP_HW_SPBM_MAX_INTERVAL)
     {
         ULONG millijoules = PhpHwSpbmSample.Energy[energy] - PhpHwSpbmLastSample.Energy[energy];
         FLOAT watts = (FLOAT)millijoules / 1000.0f / Seconds;
