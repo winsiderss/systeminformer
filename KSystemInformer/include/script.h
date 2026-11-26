@@ -70,6 +70,9 @@ typedef struct _KPH_LUA_ALLOCATOR
     SIZE_T Used;
     SIZE_T CollectAt;
     ULONG Failures;
+    PVOID Held;
+    SIZE_T HeldSize;
+    SIZE_T HeldUsed;
 } KPH_LUA_ALLOCATOR, *PKPH_LUA_ALLOCATOR;
 
 typedef

@@ -721,6 +721,9 @@ VOID KphLuaInitializeAllocator(
     Allocator->Used = 0;
     Allocator->CollectAt = Limit - (Limit / 4);
     Allocator->Failures = 0;
+    Allocator->Held = NULL;
+    Allocator->HeldSize = Reserve;
+    Allocator->HeldUsed = 0;
 }
 
 /**
@@ -754,6 +757,12 @@ VOID KphLuaDeleteAllocator(
         KphFree(block, KPH_TAG_LUA_BLOCK);
     }
 
+    if (Allocator->Held)
+    {
+        KphFree(Allocator->Held, KPH_TAG_LUA_RESERVE);
+        Allocator->Held = NULL;
+    }
+
     Allocator->Used = 0;
 }
 
@@ -784,6 +793,7 @@ void* KphpLuaAllocate(
     SIZE_T oldSize;
     SIZE_T used;
     SIZE_T size;
+    BOOLEAN held;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -805,12 +815,22 @@ void* KphpLuaAllocate(
 
     NT_ASSERT(allocator->Used >= oldSize);
 
+    held = (block &&
+            allocator->Held &&
+            ((ULONG_PTR)block >= (ULONG_PTR)allocator->Held) &&
+            ((ULONG_PTR)block < ((ULONG_PTR)allocator->Held +
+                                 allocator->HeldSize)));
+
     if (NewSize == 0)
     {
         if (block)
         {
-            RemoveEntryList(&block->Link);
-            KphFree(block, KPH_TAG_LUA_BLOCK);
+            if (!held)
+            {
+                RemoveEntryList(&block->Link);
+                KphFree(block, KPH_TAG_LUA_BLOCK);
+            }
+
             allocator->Used -= oldSize;
         }
 
@@ -859,6 +879,14 @@ void* KphpLuaAllocate(
         return NULL;
     }
 
+    //
+    // A pool refusal is final until the reserve is released.
+    //
+    if ((allocator->Failures != 0) && (allocator->Reserve != 0))
+    {
+        return NULL;
+    }
+
     newBlock = KphAllocatePaged(size, KPH_TAG_LUA_BLOCK);
     if (!newBlock)
     {
@@ -866,7 +894,30 @@ void* KphpLuaAllocate(
                       SCRIPT,
                       "Failed to allocate Lua block");
 
-        return NULL;
+        allocator->Failures++;
+
+        if (allocator->Reserve != 0)
+        {
+            return NULL;
+        }
+
+        size = ALIGN_UP_BY(size, MEMORY_ALLOCATION_ALIGNMENT);
+
+        if ((allocator->HeldSize - allocator->HeldUsed) < size)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Lua reserve exhausted");
+
+            return NULL;
+        }
+
+        newBlock = Add2Ptr(allocator->Held, allocator->HeldUsed);
+        allocator->HeldUsed += size;
+    }
+    else
+    {
+        InsertTailList(&allocator->Blocks, &newBlock->Link);
     }
 
     memory = Add2Ptr(newBlock, sizeof(KPH_LUA_BLOCK));
@@ -874,11 +925,13 @@ void* KphpLuaAllocate(
     if (block)
     {
         RtlCopyMemory(memory, Block, oldSize);
-        RemoveEntryList(&block->Link);
-        KphFree(block, KPH_TAG_LUA_BLOCK);
-    }
 
-    InsertTailList(&allocator->Blocks, &newBlock->Link);
+        if (!held)
+        {
+            RemoveEntryList(&block->Link);
+            KphFree(block, KPH_TAG_LUA_BLOCK);
+        }
+    }
 
     allocator->Used = used;
 
@@ -987,6 +1040,20 @@ NTSTATUS KphLuaCreateState(
     KPH_PAGED_CODE_PASSIVE();
 
     *State = NULL;
+
+    if (!Allocator->Held && (Allocator->HeldSize != 0))
+    {
+        Allocator->Held = KphAllocatePaged(Allocator->HeldSize,
+                                           KPH_TAG_LUA_RESERVE);
+        if (!Allocator->Held)
+        {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          SCRIPT,
+                          "Failed to allocate the Lua reserve");
+
+            return STATUS_INSUFFICIENT_RESOURCES;
+        }
+    }
 
     seed = KphLuaSeed();
 

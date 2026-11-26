@@ -150,6 +150,7 @@
 #define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        '8LpK'
 #define KPH_TAG_LUA_HARDWARE_GUARD              '9LpK'
 #define KPH_TAG_LUA_HARDWARE_NAMED_DEVICE       'ALpK'
+#define KPH_TAG_LUA_RESERVE                     'BLpK'
 
 // script
 
