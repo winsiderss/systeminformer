@@ -520,13 +520,30 @@ Exit:
 
 /**
  * Finds or adds the instance of a set.
+ *
+ * \param Hint The index to test first; receives the index after the item found or added.
  */
 static PPHP_HW_COUNTER_ITEM PhpHwCounterFindItem(
     _In_ PHP_HW_COUNTER_SET Set,
-    _In_ PCPH_STRINGREF Name
+    _In_ PCPH_STRINGREF Name,
+    _Inout_ PULONG Hint
     )
 {
     PPHP_HW_COUNTER_ITEM item;
+
+    if (*Hint < PhpHwCounterItemCount)
+    {
+        PH_STRINGREF itemName;
+
+        item = &PhpHwCounterItems[*Hint];
+        PhInitializeStringRefLongHint(&itemName, item->Name);
+
+        if (item->Set == Set && PhEqualStringRef(&itemName, Name, FALSE))
+        {
+            (*Hint)++;
+            return item;
+        }
+    }
 
     for (ULONG i = 0; i < PhpHwCounterItemCount; i++)
     {
@@ -536,7 +553,10 @@ static PPHP_HW_COUNTER_ITEM PhpHwCounterFindItem(
         PhInitializeStringRefLongHint(&itemName, item->Name);
 
         if (item->Set == Set && PhEqualStringRef(&itemName, Name, FALSE))
+        {
+            *Hint = i + 1;
             return item;
+        }
     }
 
     if (Name->Length / sizeof(WCHAR) >= PH_HW_NAMED_SENSOR_NAME_LENGTH)
@@ -551,6 +571,7 @@ static PPHP_HW_COUNTER_ITEM PhpHwCounterFindItem(
     item->TripIndex[0] = ULONG_MAX;
     item->TripIndex[1] = ULONG_MAX;
     item->LimitIndex = ULONG_MAX;
+    *Hint = PhpHwCounterItemCount;
 
     return item;
 }
@@ -566,6 +587,7 @@ static VOID PhpHwCounterReadBlock(
 {
     PPERF_MULTI_INSTANCES instances;
     PPERF_INSTANCE_HEADER instance;
+    ULONG hint = 0;
 
     if (Header->dwType != PERF_MULTIPLE_INSTANCES)
         return;
@@ -608,7 +630,7 @@ static VOID PhpHwCounterReadBlock(
         else
             value = 0;
 
-        if (data->dwDataSize && (item = PhpHwCounterFindItem(Counter->Set, &name)))
+        if (data->dwDataSize && (item = PhpHwCounterFindItem(Counter->Set, &name, &hint)))
         {
             item->Values[Counter->Slot] = value;
             item->Sizes[Counter->Slot] = (UCHAR)data->dwDataSize;
