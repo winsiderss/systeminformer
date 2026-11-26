@@ -60,6 +60,7 @@ typedef struct _KPH_LUA_HW_REQUEST_SPEC
     PCVOID Data;
     ULONG DataLength;
     PKPH_LUA_HW_BUFFERS Buffers;
+    BOOLEAN InputArgument;
 } KPH_LUA_HW_REQUEST_SPEC, *PKPH_LUA_HW_REQUEST_SPEC;
 
 typedef const KPH_LUA_HW_REQUEST_SPEC* PCKPH_LUA_HW_REQUEST_SPEC;
@@ -597,6 +598,7 @@ NTSTATUS KphpLuaHwCreateRequest(
  * \param[in] Offset The byte offset of a read or write.
  * \param[in] InputLength The number of input bytes.
  * \param[in] DataLength The number of data bytes.
+ * \param[in] InputArgument Whether Argument1 is the input's address.
  *
  * \return Successful or errant status.
  */
@@ -608,7 +610,8 @@ NTSTATUS KphpLuaHwPrepareRequest(
     _In_ ULONG IoControlCode,
     _In_ LONGLONG Offset,
     _In_ ULONG InputLength,
-    _In_ ULONG DataLength
+    _In_ ULONG DataLength,
+    _In_ BOOLEAN InputArgument
     )
 {
     PIRP irp;
@@ -685,6 +688,11 @@ NTSTATUS KphpLuaHwPrepareRequest(
         else
         {
             stack->Parameters.DeviceIoControl.Type3InputBuffer = NULL;
+        }
+
+        if (InputArgument)
+        {
+            stack->Parameters.Others.Argument1 = Request->Input;
         }
     }
 
@@ -1327,7 +1335,8 @@ NTSTATUS KphpLuaHwBuildRequest(
                                      Spec->IoControlCode,
                                      Spec->Offset,
                                      Spec->InputLength,
-                                     Spec->DataLength);
+                                     Spec->DataLength,
+                                     Spec->InputArgument);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2286,7 +2295,9 @@ Exit:
  * \brief Sends a device control request (ksi.hw.device_control).
  *
  * \details May raise a Lua error. The output is a length, or the initial bytes
- * for a direct or neither code; the options are { internal, buffers }.
+ * for a direct or neither code; the options are { internal, argument,
+ * buffers }, argument putting the input's address in Argument1 of an internal
+ * request.
  *
  * \param[in] State The Lua state.
  *
@@ -2309,6 +2320,7 @@ int KphpLuaHwDeviceControl(
     lua_Integer outputLength;
     ULONG milliseconds;
     BOOLEAN internal;
+    BOOLEAN inputArgument;
     UCHAR majorFunction;
     KPH_LUA_HW_BUFFERS bufferList;
     PKPH_LUA_HW_BUFFERS buffers;
@@ -2349,6 +2361,7 @@ int KphpLuaHwDeviceControl(
     }
 
     internal = FALSE;
+    inputArgument = FALSE;
     buffers = NULL;
 
     if (!lua_isnoneornil(State, 6))
@@ -2357,6 +2370,14 @@ int KphpLuaHwDeviceControl(
 
         lua_getfield(State, 6, "internal");
         internal = !!lua_toboolean(State, -1);
+
+        lua_getfield(State, 6, "argument");
+        inputArgument = !!lua_toboolean(State, -1);
+
+        luaL_argcheck(State,
+                      internal || !inputArgument,
+                      6,
+                      "an argument of an internal request only");
 
         lua_getfield(State, 6, "buffers");
 
@@ -2393,6 +2414,7 @@ int KphpLuaHwDeviceControl(
     spec.Data = data;
     spec.DataLength = (ULONG)dataLength;
     spec.Buffers = buffers;
+    spec.InputArgument = inputArgument;
 
     target = KphpLuaHwCheckTarget(State, 1, &fileObject);
 
