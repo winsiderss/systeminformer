@@ -1679,7 +1679,7 @@ local function identify_chip(s)
   for _, family in ipairs(family_order(s)) do
     if not s.open_family or s.open_family == family then
       status = finish(s, configure(s, family))
-      if s.identified and nt.NT_SUCCESS(status) then
+      if s.identified then
         remember_family(s)
       end
       if s.identified or s.busy then
