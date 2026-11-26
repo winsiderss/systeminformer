@@ -633,7 +633,8 @@ static NTSTATUS PhpHwAcpiAtkStatic(
 
 /**
  * Reads a ThinkPad HKEY's DYTC query, get, function capabilities and MMC get, for the report; the profile is a label,
- * so the device is not read after. Without bit 8 of the query DYTC is not enabled; MMC get needs its function
+ * so the device is not read after. The static call answers the query; without its bit 8 DYTC is not enabled and
+ * nothing more is sent, else get, function capabilities and MMC get go in a second call. MMC get needs its function
  * capability.
  */
 static NTSTATUS PhpHwAcpiDytcStatic(
@@ -642,23 +643,45 @@ static NTSTATUS PhpHwAcpiDytcStatic(
     _In_ ULONG Length
     )
 {
-    for (ULONG i = 0; i < PH_HW_DYTC_COMMANDS; i++)
-    {
-        ULONG64 value;
-        NTSTATUS status;
+    static CONST ULONG commands[PH_HW_DYTC_COMMANDS - 1] = { 0x2, 0x3, 0x8 }; // get, capabilities, MMC get
+    PH_BYTES_BUILDER evals;
+    PUCHAR output;
+    ULONG returnLength = 0;
+    ULONG64 value;
+    NTSTATUS status;
 
+    for (ULONG i = 0; i < PH_HW_DYTC_COMMANDS; i++)
         Device->Report.Dytc[i] = ULONG_MAX;
 
-        if (PhpHwAcpiRecordInteger(Output, Length, i, &value, &status) && value < ULONG_MAX)
+    if (PhpHwAcpiRecordInteger(Output, Length, 0, &value, &status) && value < ULONG_MAX)
+        Device->Report.Dytc[0] = (ULONG)value;
+
+    if (Device->Report.Dytc[0] == ULONG_MAX || !(Device->Report.Dytc[0] & 0x100))
+        return STATUS_SUCCESS;
+
+    PhInitializeBytesBuilder(&evals, 64);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(commands); i++)
+        PhpHwAcpiAppendArgument(&evals, Device, "DYTC", TRUE, commands[i]);
+
+    output = PhAllocate(PHP_HW_ACPI_STATIC_LENGTH);
+    status = KphHwAcpiEval(PhpHwAcpiMilliseconds(RTL_NUMBER_OF(commands)), evals.Bytes->Buffer, (ULONG)evals.Bytes->Length, output, PHP_HW_ACPI_STATIC_LENGTH, &returnLength);
+
+    for (ULONG i = 1; NT_SUCCESS(status) && i < PH_HW_DYTC_COMMANDS; i++)
+    {
+        NTSTATUS recordStatus;
+
+        if (PhpHwAcpiRecordInteger(output, returnLength, i - 1, &value, &recordStatus) && value < ULONG_MAX)
             Device->Report.Dytc[i] = (ULONG)value;
 
-        if (i == 0 && (Device->Report.Dytc[0] == ULONG_MAX || !(Device->Report.Dytc[0] & 0x100)))
-            break;
         if (i == 2 && (Device->Report.Dytc[2] == ULONG_MAX || !(Device->Report.Dytc[2] & (1UL << PHP_HW_ACPI_DYTC_FC_MMC))))
             break;
     }
 
-    return STATUS_SUCCESS;
+    PhFree(output);
+    PhDeleteBytesBuilder(&evals);
+
+    return status;
 }
 
 /**
@@ -997,8 +1020,8 @@ static VOID PhpHwAcpiReadStatic(
     static CONST PCSTR meter[] = { "_STA", "_PMC", "_GAI" };
     static CONST PCSTR power[] = { "_STA", "PTYP", "PSRC", "ARTG", "CTYP", "RBHF", "VBNL", "CMPP" };
     static CONST PCSTR atk[] = { "TSIF", "VSIF", "FSIF" };
-    static CONST PCSTR dytc[] = { "DYTC", "DYTC", "DYTC", "DYTC" };
-    static CONST ULONG dytcCommands[PH_HW_DYTC_COMMANDS] = { 0x0, 0x2, 0x3, 0x8 }; // query, get, capabilities, MMC get
+    static CONST PCSTR dytc[] = { "DYTC" };
+    static CONST ULONG dytcCommands[] = { 0x0 }; // query
     static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7" };
     static CONST PCSTR system76[] = { "NFAN", "NTMP" };
     const PCSTR* methods;
