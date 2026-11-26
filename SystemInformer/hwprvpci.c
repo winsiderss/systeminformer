@@ -650,6 +650,7 @@ VOID NTAPI PhpHwPciDiagnostics(
  *
  * \return TRUE if every byte of the register was read.
  */
+_Success_(return)
 static BOOLEAN PhpHwPciConfigValue(
     _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config,
     _In_ ULONG Offset,
@@ -786,8 +787,11 @@ static VOID PhpHwPciAppendExtendedList(
 
 /**
  * Appends one register of the error-policy census, or that it was not read.
+ *
+ * \return TRUE if the register was read.
  */
-static VOID PhpHwPciAppendRegister(
+_Success_(return)
+static BOOLEAN PhpHwPciAppendRegister(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ PPHP_HW_PCI_BRIDGE_CONFIG Config,
     _In_ PCWSTR Name,
@@ -797,11 +801,17 @@ static VOID PhpHwPciAppendRegister(
     )
 {
     if (!PhpHwPciConfigValue(Config, Offset, Size, Value))
+    {
         PhAppendFormatStringBuilder(Builder, L"\n    %s not read", Name);
-    else if (Size == 4)
+        return FALSE;
+    }
+
+    if (Size == 4)
         PhAppendFormatStringBuilder(Builder, L"\n    %s 0x%08lx", Name, *Value);
     else
         PhAppendFormatStringBuilder(Builder, L"\n    %s 0x%04lx", Name, *Value);
+
+    return TRUE;
 }
 
 /**
@@ -891,9 +901,7 @@ VOID PhHwWriteBridgeDiagnostics(
             PhAppendFormatStringBuilder(Builder, L", %s", typeName);
         }
 
-        PhpHwPciAppendRegister(Builder, config, L"Device Control", express + 0x08, 2, &value);
-
-        if (PhpHwPciConfigValue(config, express + 0x08, 2, &value))
+        if (PhpHwPciAppendRegister(Builder, config, L"Device Control", express + 0x08, 2, &value))
         {
             PhAppendFormatStringBuilder(
                 Builder,
@@ -907,9 +915,7 @@ VOID PhHwWriteBridgeDiagnostics(
 
         if (portType == 4 || portType == 10)
         {
-            PhpHwPciAppendRegister(Builder, config, L"Root Control", express + 0x1C, 2, &value);
-
-            if (PhpHwPciConfigValue(config, express + 0x1C, 2, &value))
+            if (PhpHwPciAppendRegister(Builder, config, L"Root Control", express + 0x1C, 2, &value))
             {
                 PhAppendFormatStringBuilder(
                     Builder,
@@ -981,9 +987,7 @@ VOID PhHwWriteBridgeDiagnostics(
         {
             static CONST PCWSTR triggers[] = { L"disabled", L"on ERR_FATAL", L"on ERR_NONFATAL or ERR_FATAL", L"reserved" };
 
-            PhpHwPciAppendRegister(Builder, config, L"DPC Control", dpc + 0x06, 2, &value);
-
-            if (PhpHwPciConfigValue(config, dpc + 0x06, 2, &value))
+            if (PhpHwPciAppendRegister(Builder, config, L"DPC Control", dpc + 0x06, 2, &value))
                 PhAppendFormatStringBuilder(Builder, L": trigger %s, interrupt %lu, ERR_COR %lu", triggers[value & 3], (value >> 3) & 1, (value >> 4) & 1);
         }
         else

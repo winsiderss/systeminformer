@@ -369,6 +369,7 @@ ULONG64 PhpHwQueryTime(
  *
  * \return The number of groups (3, or 4 with a segment), or 0 when malformed.
  */
+_Success_(return != 0)
 static ULONG PhpHwParseLocation(
     _In_reads_(Count) PCWSTR Location,
     _In_ ULONG Count,

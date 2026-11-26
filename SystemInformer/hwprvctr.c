@@ -308,6 +308,7 @@ static ULONG PhpHwCounterId(
  *
  * \return TRUE when the information is in the buffer; Length receives its size.
  */
+_Success_(return)
 static BOOLEAN PhpHwCounterQueryRegistration(
     _In_ PCGUID Set,
     _In_ PerfRegInfoType Request,

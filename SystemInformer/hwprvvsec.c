@@ -353,6 +353,7 @@ static VOID PhpHwVsecReadPlr(
  *
  * \return The regions, to free; NULL when the list failed.
  */
+_Success_(return != NULL)
 static PKPH_HW_VSEC_REGION PhpHwVsecListRegions(
     _In_ ULONG Locator,
     _Out_ PULONG Count
