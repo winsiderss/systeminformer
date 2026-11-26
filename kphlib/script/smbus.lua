@@ -1235,6 +1235,10 @@ local function i801_block_bytes(s, hs)
         host_out(s, HST_CNT, 0x14 | 0x02)
         ksi.sleep(1)
         host_out(s, HST_CNT, 0x14)
+        sts = host_in(s, HST_STS)
+        if sts & 0x9e ~= 0 then
+          host_out(s, HST_STS, sts & 0x9e)
+        end
         ksi.trace('block count %d from 0x%x', count, hs)
         return nil, 0, nt.STATUS_DEVICE_DATA_ERROR
       end
@@ -1402,7 +1406,8 @@ local function i801_xfer(s, address, command, protocol, data)
     es, sts = i801_transact(s, hs, command, cnt, data)
   end
   if not nt.NT_SUCCESS(es) then
-    return es, 0, true
+    -- A block killed for its count leaves the host free: the read goes on.
+    return es, 0, es ~= nt.STATUS_DEVICE_DATA_ERROR
   end
   local v = 0
   if data then
