@@ -33,6 +33,7 @@ typedef const PH_CPU_IDENTITY* PCPH_CPU_IDENTITY;
 #define PH_INTEL_MSR_THERM_STATUS 0x19C
 #define PH_INTEL_MSR_TEMPERATURE_TARGET 0x1A2
 #define PH_INTEL_MSR_TURBO_RATIO_LIMIT 0x1AD
+#define PH_INTEL_MSR_TURBO_RATIO_LIMIT_CORES 0x1AE // Skylake-SP and later server
 #define PH_INTEL_MSR_PACKAGE_THERM_STATUS 0x1B1
 #define PH_INTEL_MSR_RAPL_POWER_UNIT 0x606
 #define PH_INTEL_MSR_PKG_POWER_LIMIT 0x610
@@ -351,6 +352,20 @@ FLOAT
 NTAPI
 PhIntelPerfStatusToVolts(
     _In_ ULONG64 PerfStatus,
+    _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhIntelTurboRatioLimitMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhIntelTurboRatioCoresMsr(
     _In_ PCPH_CPU_IDENTITY Identity
     );
 

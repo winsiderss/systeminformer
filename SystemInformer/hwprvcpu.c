@@ -98,7 +98,7 @@ typedef enum _PHP_HW_REG
     PhpHwRegEnergyPerfBias, // Intel IA32_ENERGY_PERF_BIAS
     PhpHwRegSmiCount, // Intel MSR_SMI_COUNT, the report only
     PhpHwRegTurboRatioLimit, // Intel MSR_TURBO_RATIO_LIMIT
-    PhpHwRegTurboRatioCores, // Intel MSR_TURBO_RATIO_LIMIT1, the core counts of the groups where defined
+    PhpHwRegTurboRatioCores, // Intel MSR_TURBO_RATIO_LIMIT_CORES, the core counts of the groups
     PhpHwRegConfigTdpNominal, // Intel MSR_CONFIG_TDP_NOMINAL
     PhpHwRegConfigTdpLevel1, // Intel MSR_CONFIG_TDP_LEVEL_1
     PhpHwRegConfigTdpLevel2, // Intel MSR_CONFIG_TDP_LEVEL_2
@@ -342,8 +342,8 @@ static VOID PhpHwCpuInitializePlan(
         PhpHwCpuSetRegister(PhpHwRegHwpRequest, 0x774, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegEnergyPerfBias, 0x1B0, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegSmiCount, 0x34, PhpHwScopeThread);
-        PhpHwCpuSetRegister(PhpHwRegTurboRatioLimit, 0x1AD, PhpHwScopeThread);
-        PhpHwCpuSetRegister(PhpHwRegTurboRatioCores, 0x1AE, PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegTurboRatioLimit, PhIntelTurboRatioLimitMsr(&PhpHwCpuIdentity), PhpHwScopeThread);
+        PhpHwCpuSetRegister(PhpHwRegTurboRatioCores, PhIntelTurboRatioCoresMsr(&PhpHwCpuIdentity), PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegConfigTdpNominal, 0x648, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegConfigTdpLevel1, 0x649, PhpHwScopeThread);
         PhpHwCpuSetRegister(PhpHwRegConfigTdpLevel2, 0x64A, PhpHwScopeThread);

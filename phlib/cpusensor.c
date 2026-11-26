@@ -673,6 +673,46 @@ FLOAT NTAPI PhIntelPerfStatusToVolts(
 }
 
 /**
+ * Retrieves the MSR that holds a turbo ratio limit a byte for groups of active cores.
+ *
+ * \param Identity The CPU identity.
+ * \return MSR_TURBO_RATIO_LIMIT, or 0 on Xeon Phi, which packs it differently.
+ */
+ULONG NTAPI PhIntelTurboRatioLimitMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    static const UCHAR phiModels[] = { 0x57, 0x85 };
+
+    if (!PhCpuIdentityIsIntel(Identity))
+        return 0;
+    if (PhpCpuIdentityIsModel(Identity, 0x06, phiModels, RTL_NUMBER_OF(phiModels)))
+        return 0;
+
+    return PH_INTEL_MSR_TURBO_RATIO_LIMIT;
+}
+
+/**
+ * Retrieves the MSR that holds the active core count of each MSR_TURBO_RATIO_LIMIT group.
+ *
+ * \param Identity The CPU identity.
+ * \return MSR_TURBO_RATIO_LIMIT_CORES from Skylake-SP on, or 0 where the groups are 1 to 8 cores.
+ */
+ULONG NTAPI PhIntelTurboRatioCoresMsr(
+    _In_ PCPH_CPU_IDENTITY Identity
+    )
+{
+    static const UCHAR models[] = { 0x55, 0x6A, 0x6C, 0x8F, 0xCF };
+
+    if (!PhCpuIdentityIsIntel(Identity))
+        return 0;
+    if (!PhpCpuIdentityIsModel(Identity, 0x06, models, RTL_NUMBER_OF(models)))
+        return 0;
+
+    return PH_INTEL_MSR_TURBO_RATIO_LIMIT_CORES;
+}
+
+/**
  * Retrieves the MSR that selects the bus clock, which MSR_PLATFORM_INFO multiplies.
  *
  * \param Identity The CPU identity.
