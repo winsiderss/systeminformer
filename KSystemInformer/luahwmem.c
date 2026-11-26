@@ -62,6 +62,7 @@ int KphpLuaHwMemoryRanges(
     PPHYSICAL_MEMORY_RANGE ranges;
     PPHYSICAL_MEMORY_RANGE range;
     ULONG count;
+    SIZE_T size;
     int cleanup;
     luaL_Buffer buffer;
     PCHAR data;
@@ -92,7 +93,9 @@ int KphpLuaHwMemoryRanges(
 
     KphScriptCharge(State, count);
 
-    data = luaL_buffinitsize(State, &buffer, (SIZE_T)count * 16);
+    NT_VERIFY(NT_SUCCESS(RtlSizeTMult(count, 16, &size)));
+
+    data = luaL_buffinitsize(State, &buffer, size);
 
     for (ULONG i = 0; i < count; i++)
     {
@@ -101,7 +104,7 @@ int KphpLuaHwMemoryRanges(
         data += 16;
     }
 
-    luaL_pushresultsize(&buffer, (SIZE_T)count * 16);
+    luaL_pushresultsize(&buffer, size);
 
     KphScriptReleaseCleanup(State, cleanup);
     lua_remove(State, cleanup);

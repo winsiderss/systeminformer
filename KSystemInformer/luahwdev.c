@@ -1009,6 +1009,8 @@ VOID KphpLuaHwCheckBuffers(
         lua_Integer at;
         lua_Integer into;
         lua_Integer lengthAt;
+        lua_Integer lengthEnd;
+        lua_Integer atEnd;
         int source;
 
         lua_rawgeti(State, Table, i);
@@ -1118,9 +1120,14 @@ VOID KphpLuaHwCheckBuffers(
                           ((lengthAt % sizeof(ULONG)) == 0),
                           6,
                           "a length_at out of range or not ULONG-aligned");
+            NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(lengthAt,
+                                                sizeof(ULONG),
+                                                &lengthEnd)));
+            NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(at,
+                                                sizeof(PVOID),
+                                                &atEnd)));
             luaL_argcheck(State,
-                          ((lengthAt + (lua_Integer)sizeof(ULONG)) <= at) ||
-                          (lengthAt >= (at + (lua_Integer)sizeof(PVOID))),
+                          (lengthEnd <= at) || (lengthAt >= atEnd),
                           6,
                           "a length_at over its at");
         }
@@ -1166,6 +1173,8 @@ VOID KphpLuaHwCheckBuffers(
         ULONG into;
         ULONG targetLength;
         lua_Integer lengthAt;
+        lua_Integer lengthEnd;
+        lua_Integer atEnd;
 
         slot = KphpLuaHwBufferSlot(Buffers, i + 1);
         at = lua_tointeger(State, slot + 1);
@@ -1180,16 +1189,19 @@ VOID KphpLuaHwCheckBuffers(
             targetLength = KphpLuaHwBufferLength(State, Buffers, into);
         }
 
+        NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(at, sizeof(PVOID), &atEnd)));
         luaL_argcheck(State,
-                      (at + (lua_Integer)sizeof(PVOID)) <= targetLength,
+                      atEnd <= targetLength,
                       6,
                       "an at past the end of its target");
 
         lengthAt = lua_tointeger(State, slot + 4);
 
+        NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(lengthAt,
+                                            sizeof(ULONG),
+                                            &lengthEnd)));
         luaL_argcheck(State,
-                      (lengthAt < 0) ||
-                      ((lengthAt + (lua_Integer)sizeof(ULONG)) <= targetLength),
+                      (lengthAt < 0) || (lengthEnd <= targetLength),
                       6,
                       "a length_at past the end of its target");
     }
