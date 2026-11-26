@@ -1581,11 +1581,13 @@ local function configure(s, family)
     return nt.STATUS_NOT_FOUND
   end
   -- An ITE chip takes AAh as an index; a chip that leaves on AAh is not one.
+  -- One that still answers, with another word, is still entered.
   if family.family == FAMILY_ITE and s.entered then
     ksi.hw.port_write(s.port, 1, 0xaa)
-    if rcw(s, 0x20) ~= id then
+    local again = rcw(s, 0x20)
+    if again ~= id then
       ksi.trace('chip 0x%04x at port 0x%02x left on AAh: not ITE', id, s.port)
-      s.entered = false
+      s.entered = answers(again)
       return nt.STATUS_NOT_FOUND
     end
   end
