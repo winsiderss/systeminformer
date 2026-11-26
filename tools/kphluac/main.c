@@ -2715,11 +2715,14 @@ static Proto* CompileUnit(
                         L"%ls\\%hs.lua",
                         Context->LibraryFolder,
                         child.Script) < 0) ||
-            (sprintf_s(display,
-                       sizeof(display),
-                       "%ls\\%s.lua",
-                       Context->LibraryFolder,
-                       child.Script) < 0))
+            (WideCharToMultiByte(CP_UTF8,
+                                 0,
+                                 path,
+                                 -1,
+                                 display,
+                                 sizeof(display),
+                                 NULL,
+                                 NULL) <= 0))
         {
             Report(Context, Context->Requires[i].Line, "the path is too long");
             continue;
@@ -2953,11 +2956,14 @@ static int ReadStatuses(
                     L"%ls\\%hs.lua",
                     LibraryFolder,
                     KPHLUAC_LIBRARY_ENTRY) < 0) ||
-        (sprintf_s(display,
-                   sizeof(display),
-                   "%ls\\%s.lua",
-                   LibraryFolder,
-                   KPHLUAC_LIBRARY_ENTRY) < 0))
+        (WideCharToMultiByte(CP_UTF8,
+                             0,
+                             path,
+                             -1,
+                             display,
+                             sizeof(display),
+                             NULL,
+                             NULL) <= 0))
     {
         return 1;
     }
