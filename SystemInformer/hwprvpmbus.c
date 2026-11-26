@@ -681,6 +681,13 @@ static VOID PhpHwSch5027ProbeHosts(
 
         status = KphHwSmbusRead(PhpHwSch5027Hosts[h], 0, items, RTL_NUMBER_OF(items), values);
 
+        // Another tool on the bus at an item leaves the rest unread: the host is asked again.
+        for (ULONG i = 0; NT_SUCCESS(status) && i < RTL_NUMBER_OF(items); i++)
+        {
+            if (values[i].Status == STATUS_RETRY)
+                status = STATUS_RETRY;
+        }
+
         if (status == STATUS_RETRY)
         {
             PhpHwSch5027Probing = TRUE;

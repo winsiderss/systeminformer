@@ -1479,6 +1479,10 @@ NTSTATUS KphHwPmbusIdentify(
     {
         ULONG length;
 
+        // Another tool on the bus at a block: what the device is, is not known.
+        if (records[i + 1].Status == STATUS_RETRY)
+            return STATUS_RETRY;
+
         if (!NT_SUCCESS(records[i + 1].Status))
             continue;
 
