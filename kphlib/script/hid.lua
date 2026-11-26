@@ -317,15 +317,17 @@ local function psu(opened, values)
   })
   for rail = 0, 2 do
     selected.sent = true
-    local _, selectFailed = psu_command(opened, 2, 0x00, rail)
+    local selection, selectFailed = psu_command(opened, 2, 0x00, rail)
     if selectFailed then
       return selectFailed
     end
-    status = read_value(KIND_VOLTAGE, 1 + rail, 0x8b, 1000)
-      or read_value(KIND_CURRENT, rail, 0x8c, 1000)
-      or read_value(KIND_POWER, 1 + rail, 0x96, 1000)
-    if status then
-      return status
+    if selection then
+      status = read_value(KIND_VOLTAGE, 1 + rail, 0x8b, 1000)
+        or read_value(KIND_CURRENT, rail, 0x8c, 1000)
+        or read_value(KIND_POWER, 1 + rail, 0x96, 1000)
+      if status then
+        return status
+      end
     end
   end
   return nt.STATUS_SUCCESS
