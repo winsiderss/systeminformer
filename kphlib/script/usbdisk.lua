@@ -326,15 +326,35 @@ local function smart(device)
   )
 end
 
+-- The unit's own instance ID (UTF-16, to its terminator), or nil and a status.
+local function instance(device)
+  local bytes, kind = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_InstanceId)
+  if not bytes then
+    return nil, kind
+  end
+  if kind ~= nt.DEVPROP_TYPE_STRING or #bytes > ID_MAX + 2 or #bytes % 2 ~= 0 then
+    return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
+  end
+  local length = 0
+  while length + 2 <= #bytes and string.sub(bytes, length + 1, length + 2) ~= '\0\0' do
+    length = length + 2
+  end
+  return string.sub(bytes, 1, length)
+end
+
 local function record(status, vendor, product, count, kind)
   return string.pack('<i4I2I2BBxx', status, vendor, product, count, kind)
 end
 
 local function disk(device)
-  local id, vendor, product = parent(device)
-  if not id then
+  local found, vendor, product = parent(device)
+  if not found then
     local failed = vendor
     return record(failed, 0, 0, 0, 0), '', ''
+  end
+  local id, refused = instance(device)
+  if not id then
+    return record(refused, vendor, product, 0, 0), '', ''
   end
   local ids = ksi.hw.device_property_data(device, nt.DEVPKEY_Device_HardwareIds) or ''
   if
@@ -372,7 +392,7 @@ end
 
 -- Reads every disk of the USB storage drivers; no input. Returns a status and
 -- per disk: status, bridge vendor and product (2 bytes each), power mode count
--- (1), kind (1, KIND_* or 0; 2 reserved), parent instance ID (UTF-16, 400
+-- (1), kind (1, KIND_* or 0; 2 reserved), the unit's instance ID (UTF-16, 400
 -- bytes) and data (512 bytes, zero unless STATUS_SUCCESS); STATUS_NOT_SUPPORTED
 -- is a bridge not listed, STATUS_DEVICE_POWERED_OFF a drive in standby.
 function read(input)

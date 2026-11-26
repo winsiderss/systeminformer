@@ -751,7 +751,7 @@ typedef struct _KPH_HW_USB_DISK
     UCHAR PowerCount;
     UCHAR Kind; // KPH_HW_USB_DISK_*
     UCHAR Reserved[2];
-    WCHAR ParentId[KPH_HW_USB_DISK_ID];
+    WCHAR InstanceId[KPH_HW_USB_DISK_ID]; // the disk unit's
     UCHAR Data[512];
 } KPH_HW_USB_DISK, *PKPH_HW_USB_DISK;
 

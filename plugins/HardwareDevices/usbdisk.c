@@ -15,7 +15,7 @@
 // Drives behind USB bridges as a hardware sensor source, read through the driver every UB_INTERVAL_MS while it is
 // connected: an ATA drive's SMART temperature (attribute 194, else 190), an NVMe drive's composite temperature, the
 // percentage of its rated life used and its available spare. A drive in standby keeps its rows without values; the
-// script does not wake it. Each disk keeps its component id while its parent device stays.
+// script does not wake it. Each disk keeps its component id while its disk unit stays.
 //
 
 #define UB_INTERVAL_MS 60000
@@ -23,7 +23,7 @@
 
 typedef struct _UB_DISK
 {
-    WCHAR ParentId[KPH_HW_USB_DISK_ID];
+    WCHAR InstanceId[KPH_HW_USB_DISK_ID];
     PPH_STRING Name;
     USHORT VendorId;
     USHORT ProductId;
@@ -103,21 +103,19 @@ static VOID UsbDiskDecode(
 }
 
 /**
- * Names a disk by the friendly name of its parent device's child, else by its bridge.
+ * Names a disk by its disk unit's friendly name, else by its bridge.
  */
 static PPH_STRING UsbDiskName(
     _In_ PKPH_HW_USB_DISK Record
     )
 {
-    DEVINST parent;
-    DEVINST child;
+    DEVINST unit;
     WCHAR friendlyName[128];
     DEVPROPTYPE type;
     ULONG size = sizeof(friendlyName);
 
-    if (CM_Locate_DevNodeW(&parent, Record->ParentId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS &&
-        CM_Get_Child(&child, parent, 0) == CR_SUCCESS &&
-        CM_Get_DevNode_PropertyW(child, &DEVPKEY_Device_FriendlyName, &type, (PBYTE)friendlyName, &size, 0) == CR_SUCCESS &&
+    if (CM_Locate_DevNodeW(&unit, Record->InstanceId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS &&
+        CM_Get_DevNode_PropertyW(unit, &DEVPKEY_Device_FriendlyName, &type, (PBYTE)friendlyName, &size, 0) == CR_SUCCESS &&
         type == DEVPROP_TYPE_STRING && size >= sizeof(WCHAR))
     {
         friendlyName[RTL_NUMBER_OF(friendlyName) - 1] = UNICODE_NULL;
@@ -128,7 +126,7 @@ static PPH_STRING UsbDiskName(
 }
 
 /**
- * Reads every bridge disk and merges the records into the disk slots by parent ID. Called on the provider thread.
+ * Reads every bridge disk and merges the records into the disk slots by instance ID. Called on the provider thread.
  */
 static VOID UsbDiskPoll(
     _Inout_ PUB_CONTEXT Context
@@ -160,14 +158,14 @@ static VOID UsbDiskPoll(
         PUB_DISK disk = NULL;
 
         // A bridge the script does not know is not listed.
-        if (record->Status == STATUS_NOT_SUPPORTED || !record->ParentId[0])
+        if (record->Status == STATUS_NOT_SUPPORTED || !record->InstanceId[0])
             continue;
 
-        record->ParentId[KPH_HW_USB_DISK_ID - 1] = UNICODE_NULL;
+        record->InstanceId[KPH_HW_USB_DISK_ID - 1] = UNICODE_NULL;
 
         for (ULONG i = 0; i < Context->Count; i++)
         {
-            if (PhEqualStringZ(Context->Disks[i].ParentId, record->ParentId, TRUE))
+            if (PhEqualStringZ(Context->Disks[i].InstanceId, record->InstanceId, TRUE))
             {
                 disk = &Context->Disks[i];
                 break;
@@ -180,7 +178,7 @@ static VOID UsbDiskPoll(
                 continue;
 
             disk = &Context->Disks[Context->Count++];
-            memcpy(disk->ParentId, record->ParentId, sizeof(disk->ParentId));
+            memcpy(disk->InstanceId, record->InstanceId, sizeof(disk->InstanceId));
             disk->Name = UsbDiskName(record);
         }
 
