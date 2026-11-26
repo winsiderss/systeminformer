@@ -371,6 +371,9 @@ NTSTATUS NTAPI PhpHwPciProbe(
         RTL_NUMBER_OF(PhpHwPciBridges)
         );
 
+    if (PhpHwCpuPending())
+        return STATUS_RETRY;
+
     if (!PhpHwCpuQueryAmdLegacy(&PhpHwPciIdentity))
         return PhpHwPciBridgeCount ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
 

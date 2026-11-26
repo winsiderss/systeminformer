@@ -72,7 +72,8 @@ typedef enum _PHP_HW_FAMILY_ID
 } PHP_HW_FAMILY_ID;
 
 // A probe or pass returns STATUS_SUCCESS, STATUS_RETRY (no strike; see PHP_HW_RETRY_BACKOFF), STATUS_NOT_SUPPORTED
-// (the family is absent for the session) or another status (a failed pass, handled by the collector).
+// (the family is absent for the session) or another status (a failed pass, handled by the collector). A probe that
+// fails with a status that does not say the family is absent is tried again.
 _Function_class_(PHP_HW_FAMILY_PROBE)
 typedef NTSTATUS (NTAPI PHP_HW_FAMILY_PROBE)(
     VOID
@@ -613,6 +614,10 @@ VOID NTAPI PhpHwPlatformDiagnostics(
 // What cpu's probe found, for the families that depend on it (called on the provider thread, after cpu's probe).
 
 BOOLEAN PhpHwCpuIsArm64(
+    VOID
+    );
+
+BOOLEAN PhpHwCpuPending(
     VOID
     );
 

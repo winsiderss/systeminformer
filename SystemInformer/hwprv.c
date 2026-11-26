@@ -137,6 +137,29 @@ BOOLEAN PhpHwStatusNotShipped(
 }
 
 /**
+ * Determines whether a probe's status says the family is not on this machine.
+ *
+ * \param Status A status a probe returned.
+ * \return TRUE for no row, nothing at the locator, a refused range and a locator that is not the row's device.
+ */
+static BOOLEAN PhpHwStatusAbsent(
+    _In_ NTSTATUS Status
+    )
+{
+    switch (Status)
+    {
+    case STATUS_NOT_SUPPORTED:
+    case STATUS_NOT_FOUND:
+    case STATUS_ACCESS_DENIED:
+    case STATUS_CONFLICTING_ADDRESSES:
+    case STATUS_DEVICE_CONFIGURATION_ERROR:
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
  * Initializes the hardware provider.
  */
 VOID PhHwProviderInitialization(
@@ -220,7 +243,7 @@ static VOID PhpHwBeginSession(
         {
             NTSTATUS status = family->Probe();
 
-            if (status == STATUS_NOT_SUPPORTED)
+            if (PhpHwStatusAbsent(status))
             {
                 family->Absent = TRUE;
             }
@@ -313,7 +336,7 @@ static VOID PhpHwRunFamily(
         {
             Family->ProbePending = FALSE;
         }
-        else if (status == STATUS_NOT_SUPPORTED)
+        else if (PhpHwStatusAbsent(status))
         {
             Family->Absent = TRUE;
         }

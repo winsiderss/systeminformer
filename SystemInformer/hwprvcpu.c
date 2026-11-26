@@ -2172,6 +2172,17 @@ BOOLEAN PhpHwCpuIsArm64(
 }
 
 /**
+ * Determines whether the session has not identified the processor yet: a family that needs the identity is probed
+ * again with this one.
+ */
+BOOLEAN PhpHwCpuPending(
+    VOID
+    )
+{
+    return PhpHwFamilies[PhpHwFamilyCpu].ProbePending;
+}
+
+/**
  * Retrieves the processor identity of the session when the processor is Intel.
  *
  * \param Identity Receives the identity.

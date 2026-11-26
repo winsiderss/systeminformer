@@ -131,6 +131,9 @@ NTSTATUS NTAPI PhpHwPlatformProbe(
     ULONG64 frequency;
     FLOAT celsius;
 
+    if (PhpHwCpuPending())
+        return STATUS_RETRY;
+
     if (PhpHwQueryMachine() == IMAGE_FILE_MACHINE_ARM64 || !PhpHwCpuQueryIntel(&identity) || !PhpHwPackageCount)
         return STATUS_NOT_SUPPORTED;
 

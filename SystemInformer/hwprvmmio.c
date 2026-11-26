@@ -1168,6 +1168,9 @@ NTSTATUS NTAPI PhpHwMmioProbe(
     if (!PhpHwPackageCount)
         return STATUS_NOT_SUPPORTED;
 
+    if (PhpHwCpuPending())
+        return STATUS_RETRY;
+
     // The script gates the controllers by model; they need no processor identity here.
     PhpHwMmioProbeMcs();
 
