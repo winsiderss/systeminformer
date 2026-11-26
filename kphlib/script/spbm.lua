@@ -32,6 +32,7 @@ local TEMPERATURE = {
   dla = 8,
 }
 local TEMPERATURE_MAX = 9
+local CELSIUS_MAX = 200 -- a hotter word is not a reading
 
 local POWER = {
   system = 0,
@@ -226,12 +227,21 @@ local function word(m, at)
   return ksi.hw.map_read(m, at, 4)
 end
 
+-- Milli-degrees Celsius; 0 K (-273150) for a word not written or above
+-- CELSIUS_MAX.
 local function temperature(m, at)
   local value = ksi.hw.map_read(m, at[1], 4)
+  local milli = value * 100 - 273150
   if at[2] == 'c' then
-    return value * 1000
+    if value == 0 then
+      return -273150
+    end
+    milli = value * 1000
   end
-  return value * 100 - 273150
+  if milli > CELSIUS_MAX * 1000 then
+    return -273150
+  end
+  return milli
 end
 
 -- Returns a KPH_HW_SPBM_SAMPLE.
