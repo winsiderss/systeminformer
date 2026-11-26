@@ -183,7 +183,9 @@ local function smm(eax, ebx)
   local results, failed = ksi.hw.smi(item)
   if ksi.time() - started > SLOW_MS * 10000 then
     ksi.trace('command 0x%04x took more than %d ms', eax, SLOW_MS)
-    kept.slow = kept.late
+    if kept.late then
+      kept.slow = true
+    end
     kept.late = true
   else
     kept.late = nil
