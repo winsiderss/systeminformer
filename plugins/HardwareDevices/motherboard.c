@@ -18,6 +18,7 @@
 #define MB_MIN_INTERVAL_MS 900
 #define MB_STALE_LIMIT 5
 #define MB_STRIKE_LIMIT 2
+#define MB_NOINTERFACE_POLLS 10 // polls between tries of a slot that has no hardware data yet
 
 typedef enum _MB_SLOT_STATE
 {
@@ -33,6 +34,7 @@ typedef struct _MB_SLOT
     NTSTATUS LastStatus;
     UCHAR Strikes;
     UCHAR Rejected; // consecutive snapshots the decoder rejected
+    UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     KPH_HW_SUPERIO_CHIP Identity;
     MB_CHIP_STATE Chip;
     ULONG RegisterCount;
@@ -185,6 +187,7 @@ static VOID MotherboardResetSlot(
 
     Slot->State = MbSlotProbe;
     Slot->Strikes = 0;
+    Slot->Backoff = 0;
     Slot->RegisterCount = 0;
     memset(&Slot->Identity, 0, sizeof(KPH_HW_SUPERIO_CHIP));
 }
@@ -380,6 +383,13 @@ static VOID MotherboardPollSlot(
     if (Slot->State == MbSlotStopped)
         return;
 
+    if (Slot->Backoff)
+    {
+        Slot->Backoff--;
+        MotherboardAgeSlot(Context, Slot);
+        return;
+    }
+
     if (Slot->State == MbSlotProbe)
     {
         KPH_HW_SUPERIO_CHIP identity;
@@ -418,9 +428,12 @@ static VOID MotherboardPollSlot(
     case STATUS_CONFLICTING_ADDRESSES:
         MotherboardStopSlot(Context, Slot, status);
         break;
+    case STATUS_NOINTERFACE: // no hardware data yet: a later activation can supply it
+        Slot->Backoff = MB_NOINTERFACE_POLLS - 1;
+        MotherboardAgeSlot(Context, Slot);
+        break;
     case STATUS_RETRY: // another tool held the bus: not a strike
     case STATUS_IO_TIMEOUT: // another tool held the NCT668x EC page
-    case STATUS_NOINTERFACE: // no hardware data yet: a later activation can supply it
         MotherboardAgeSlot(Context, Slot);
         break;
     default:
