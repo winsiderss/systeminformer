@@ -15,6 +15,7 @@
 
 return function(nt)
   local M = {}
+  local concat = table.concat
 
   -- UTF-16 text as one byte a code unit: the unit itself below 80h, FFh above.
   local function units(text)
@@ -23,7 +24,7 @@ return function(nt)
       local low, high = string.byte(text, i, i + 1)
       out[#out + 1] = (high == 0 and low < 0x80) and string.char(low) or '\255'
     end
-    return table.concat(out)
+    return concat(out)
   end
 
   -- Whether every character of a string is one of A-Z, _ and, past the first
@@ -125,7 +126,7 @@ return function(nt)
       segments[#segments + 1] = string.sub(segment, 1, last)
       at = stop + 1
     end
-    return '\\' .. table.concat(segments, '.')
+    return '\\' .. concat(segments, '.')
   end
 
   -- The devices of \Driver\ACPI, nil when they cannot be listed.
