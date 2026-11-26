@@ -580,26 +580,27 @@ static NTSTATUS PhpHwSch5027Status = STATUS_NOT_SUPPORTED; // the last read, for
 static UCHAR PhpHwSch5027Strikes = 0;
 static BOOLEAN PhpHwSch5027Ended = FALSE;
 static BOOLEAN PhpHwSch5027Found = FALSE;
+static ULONG PhpHwSch5027Hosts[PHP_HW_VRM_MAX_HOSTS];
+static ULONG PhpHwSch5027HostCount = 0;
+static BOOLEAN PhpHwSch5027Probing = FALSE; // another tool held the bus: the probe goes on from the host below
+static ULONG PhpHwSch5027ProbeHost = 0;
 
 /**
- * Finds an SCH5027 once a session: each Intel SMBus host's port 0 is asked at 2Ch-2Eh for the identification bytes,
- * and the chip is accepted only on company 5Ch and stepping 69h.
- *
- * \return STATUS_SUCCESS, STATUS_RETRY when another tool held the bus, or STATUS_NOT_SUPPORTED when there is none.
+ * Asks the hosts from the probe's host on: each Intel SMBus host's port 0 at 2Ch-2Eh for the identification bytes,
+ * the chip accepted only on company 5Ch and stepping 69h, and its sensors listed. Another tool holding the bus stops
+ * it there.
  */
-NTSTATUS PhpHwSch5027Probe(
+static VOID PhpHwSch5027ProbeHosts(
     VOID
     )
 {
     static CONST UCHAR addresses[3] = { 0x2C, 0x2D, 0x2E };
-    ULONG hosts[PHP_HW_VRM_MAX_HOSTS];
-    ULONG hostCount;
 
-    PhpHwSch5027Found = FALSE;
-    hostCount = PhpHwEnumeratePciFunctions(0x8086, 0x8086, 0x0C05, NULL, 0, FALSE, hosts, RTL_NUMBER_OF(hosts));
+    PhpHwSch5027Probing = FALSE;
 
-    for (ULONG h = 0; h < hostCount && !PhpHwSch5027Found; h++)
+    for (; PhpHwSch5027ProbeHost < PhpHwSch5027HostCount && !PhpHwSch5027Found; PhpHwSch5027ProbeHost++)
     {
+        ULONG h = PhpHwSch5027ProbeHost;
         KPH_HW_SMBUS_ITEM items[9];
         KPH_HW_VALUE32 values[9];
         NTSTATUS status;
@@ -612,10 +613,13 @@ NTSTATUS PhpHwSch5027Probe(
             items[i].Reserved = 0;
         }
 
-        status = KphHwSmbusRead(hosts[h], 0, items, RTL_NUMBER_OF(items), values);
+        status = KphHwSmbusRead(PhpHwSch5027Hosts[h], 0, items, RTL_NUMBER_OF(items), values);
 
         if (status == STATUS_RETRY)
-            return STATUS_RETRY;
+        {
+            PhpHwSch5027Probing = TRUE;
+            return;
+        }
 
         if (!NT_SUCCESS(status))
             continue;
@@ -626,7 +630,7 @@ NTSTATUS PhpHwSch5027Probe(
 
             if (NT_SUCCESS(id[1].Status) && NT_SUCCESS(id[2].Status) && id[1].Value == 0x5C && id[2].Value == 0x69)
             {
-                PhpHwSch5027Host = hosts[h];
+                PhpHwSch5027Host = PhpHwSch5027Hosts[h];
                 PhpHwSch5027Address = addresses[a];
                 PhpHwSch5027Found = TRUE;
             }
@@ -634,7 +638,7 @@ NTSTATUS PhpHwSch5027Probe(
     }
 
     if (!PhpHwSch5027Found)
-        return STATUS_NOT_SUPPORTED;
+        return;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(PhpHwSch5027Named); i++)
     {
@@ -664,8 +668,27 @@ NTSTATUS PhpHwSch5027Probe(
         PhpHwSch5027Named[i] = PhpHwAddNamedSensor(kind, 0, PHP_HW_SCH5027_ID_BASE + ((ULONG)kind << 8) + index, name->Buffer);
         PhDereferenceObject(name);
     }
+}
 
-    return STATUS_SUCCESS;
+/**
+ * Finds an SCH5027 once a session.
+ *
+ * \return STATUS_SUCCESS (also when another tool held the bus: the pass goes on with the probe), or
+ * STATUS_NOT_SUPPORTED when there is none.
+ */
+NTSTATUS PhpHwSch5027Probe(
+    VOID
+    )
+{
+    PhpHwSch5027Found = FALSE;
+    PhpHwSch5027HostCount = PhpHwEnumeratePciFunctions(0x8086, 0x8086, 0x0C05, NULL, 0, FALSE, PhpHwSch5027Hosts, RTL_NUMBER_OF(PhpHwSch5027Hosts));
+    PhpHwSch5027ProbeHost = 0;
+    PhpHwSch5027ProbeHosts();
+
+    if (PhpHwSch5027Probing)
+        return STATUS_SUCCESS;
+
+    return PhpHwSch5027Found ? STATUS_SUCCESS : STATUS_NOT_SUPPORTED;
 }
 
 /**
@@ -683,6 +706,14 @@ NTSTATUS PhpHwSch5027Pass(
     KPH_HW_VALUE32 values[PHP_HW_SCH5027_ITEMS];
     ULONG capabilities = 0;
     BOOLEAN read;
+
+    if (PhpHwSch5027Probing)
+    {
+        PhpHwSch5027ProbeHosts();
+
+        if (PhpHwSch5027Probing)
+            return STATUS_RETRY;
+    }
 
     if (PhpHwSch5027Ended || !PhpHwSch5027Found)
         return STATUS_NOT_SUPPORTED;
@@ -771,6 +802,7 @@ VOID PhpHwSch5027End(
     PhpHwSch5027Found = FALSE;
     PhpHwSch5027Strikes = 0;
     PhpHwSch5027Ended = FALSE;
+    PhpHwSch5027Probing = FALSE;
 }
 
 /**
