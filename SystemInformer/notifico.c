@@ -354,6 +354,7 @@ VOID PhNfLoadStage2(
     )
 {
     PPH_NF_ICON icon;
+    BOOLEAN hwAvailable;
     ULONG hwIconFlags;
 
     PhNfMiniInfoEnabled = !!PhGetIntegerSetting(SETTING_MINI_INFO_WINDOW_ENABLED);
@@ -386,7 +387,8 @@ VOID PhNfLoadStage2(
     }
 
     // Registered after the plugin icons, which take their IconId from the registration count.
-    hwIconFlags = PhHwSensorsEnabled() ? 0 : PH_NF_ICON_UNAVAILABLE;
+    hwAvailable = PhHwSensorsEnabled() || PhHwSensorsAvailable();
+    hwIconFlags = hwAvailable ? 0 : PH_NF_ICON_UNAVAILABLE;
     icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY, &PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_HISTORY], NULL, L"CPU &temperature history", hwIconFlags, PhNfpCpuTemperatureHistoryIconUpdateCallback, NULL);
     icon->IconId = PH_TRAY_ICON_UID_FIXED_BASE + PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY;
     icon = PhNfRegisterIcon(NULL, PH_TRAY_ICON_ID_CPU_TEMPERATURE_TEXT, &PhNfpTrayIconItemGuids[PH_TRAY_ICON_GUID_CPU_TEMPERATURE_TEXT], NULL, L"CPU temperature (text)", hwIconFlags, PhNfpCpuTemperatureTextIconUpdateCallback, NULL);
@@ -2584,10 +2586,11 @@ static VOID PhNfpHwUpdateIconAvailability(
 {
     static ULONG closedShown = 0; // bit per hardware icon: an update without a value was shown
     ULONG bit = 1UL << (Icon->SubId - PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY);
+    BOOLEAN available = PhHwSensorsEnabled() || PhHwSensorsAvailable();
 
     C_ASSERT(PH_TRAY_ICON_ID_CPU_POWER_TEXT - PH_TRAY_ICON_ID_CPU_TEMPERATURE_HISTORY < 32);
 
-    if (PhHwSensorsEnabled())
+    if (available)
     {
         closedShown &= ~bit;
 
