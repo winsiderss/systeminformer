@@ -860,8 +860,8 @@ typedef enum _KPH_HW_OC_PLANES
     KphHwOcPlaneCore,
     KphHwOcPlaneGpu,
     KphHwOcPlaneCache,
-    KphHwOcPlaneSystemAgent,
-    KphHwOcPlaneAnalogIo,
+    KphHwOcPlane3,
+    KphHwOcPlane4,
     MaxKphHwOcPlane,
 } KPH_HW_OC_PLANES_ENUM;
 

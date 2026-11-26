@@ -2223,17 +2223,43 @@ FLOAT PhpHwCpuQueryPowerUnit(
     return PhpHwCpuPowerUnit;
 }
 
+static CONST PCWSTR PhpHwCpuOcPlanesAnalog[MaxKphHwOcPlane] = { L"core", L"GPU", L"cache", L"system agent", L"analog I/O" };
+static CONST PCWSTR PhpHwCpuOcPlanesMedia[MaxKphHwOcPlane] = { L"core", L"GPU", L"cache", L"GPU media", L"system agent" };
+static CONST PCWSTR PhpHwCpuOcPlanesUnslice[MaxKphHwOcPlane] = { L"core", L"GPU", L"cache", L"GPU unslice", L"system agent" };
+
 /**
  * Appends the overclocking mailbox planes that answered the probe's read; a refused or failed plane is left out.
+ * Planes 3 and 4 are named by the processor's model.
  */
 static VOID PhpHwCpuAppendOc(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
-    static CONST PCWSTR names[MaxKphHwOcPlane] = { L"core", L"GPU", L"cache", L"system agent", L"analog I/O" };
+    const PCWSTR* names;
 
     if (!PhpHwCpuOcValid)
         return;
+
+    switch (PhpHwCpuIdentity.DisplayModel)
+    {
+    case 0x3C:
+    case 0x3D:
+    case 0x45:
+    case 0x46:
+    case 0x47:
+        names = PhpHwCpuOcPlanesAnalog;
+        break;
+    case 0x97:
+    case 0x9A:
+    case 0xB7:
+    case 0xBA:
+    case 0xBF:
+        names = PhpHwCpuOcPlanesMedia;
+        break;
+    default:
+        names = PhpHwCpuOcPlanesUnslice;
+        break;
+    }
 
     for (ULONG i = 0; i < MaxKphHwOcPlane; i++)
     {

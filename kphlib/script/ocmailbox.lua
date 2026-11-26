@@ -138,8 +138,8 @@ local function read_plane(plane)
   return nt.STATUS_SUCCESS, 0, value & 0xffffffff
 end
 
--- Returns for each plane (core, GPU, cache, system agent, analog I/O) a
--- status, the completion code and the data of the read command (4 bytes each).
+-- Returns for each plane (core, GPU, cache, planes 3 and 4) a status, the
+-- completion code and the data of the read command (4 bytes each).
 function read(input)
   if #input ~= 0 then
     ksi.trace('input of %d bytes', #input)
