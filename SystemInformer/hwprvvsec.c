@@ -630,6 +630,9 @@ static VOID PhpHwVsecProbeUncore(
     PPHP_HW_VSEC_REGION region;
     ULONG64 header;
     ULONG64 clusterOffsets;
+    PCWSTR prefix = L"Uncore ";
+    ULONG namedPackage = PackageIndex;
+    ULONG unmappedId = 0;
     ULONG clusterCount = 0;
     ULONG domain;
 
@@ -652,6 +655,13 @@ static VOID PhpHwVsecProbeUncore(
 
     domain = (*DomainIndex)++;
 
+    if (PackageIndex == ULONG_MAX)
+    {
+        prefix = L"Uncore (unmapped) ";
+        namedPackage = 0;
+        unmappedId = PHP_HW_VSEC_UNMAPPED_ID;
+    }
+
     for (ULONG i = 0; i < clusterCount; i++)
     {
         ULONG offset = (ULONG)((clusterOffsets >> (i * 8)) & 0xFF) * 8;
@@ -664,15 +674,15 @@ static VOID PhpHwVsecProbeUncore(
             break;
 
         if (clusterCount > 1)
-            name = PhFormatString(L"%s%lu.%lu", PackageIndex == ULONG_MAX ? L"Uncore (unmapped) " : L"Uncore ", domain, i);
+            name = PhFormatString(L"%s%lu.%lu", prefix, domain, i);
         else
-            name = PhFormatString(L"%s%lu", PackageIndex == ULONG_MAX ? L"Uncore (unmapped) " : L"Uncore ", domain);
+            name = PhFormatString(L"%s%lu", prefix, domain);
 
         // Unmapped domains share package 0 with its mapped ones; their ids are kept apart.
         entry->NamedIndex = PhpHwAddNamedSensor(
             PhHwNamedSensorUncoreClock,
-            PackageIndex == ULONG_MAX ? 0 : PackageIndex,
-            (PackageIndex == ULONG_MAX ? PHP_HW_VSEC_UNMAPPED_ID : 0) | (domain << 3) | i,
+            namedPackage,
+            unmappedId | (domain << 3) | i,
             name->Buffer
             );
         PhDereferenceObject(name);
@@ -689,13 +699,17 @@ static VOID PhpHwVsecProbeUncore(
         for (ULONG limit = 0; limit < 2; limit++)
         {
             ULONG id = (PackageIndex == ULONG_MAX ? PHP_HW_VSEC_UNMAPPED_ID : 0) | (limit ? PHP_HW_VSEC_UNCORE_MAX_ID : PHP_HW_VSEC_UNCORE_MIN_ID) | (domain << 3) | i;
+            PCWSTR bound = L"min";
+
+            if (limit)
+                bound = L"max";
 
             if (clusterCount > 1)
-                name = PhFormatString(L"%s%lu.%lu %s", PackageIndex == ULONG_MAX ? L"Uncore (unmapped) " : L"Uncore ", domain, i, limit ? L"max" : L"min");
+                name = PhFormatString(L"%s%lu.%lu %s", prefix, domain, i, bound);
             else
-                name = PhFormatString(L"%s%lu %s", PackageIndex == ULONG_MAX ? L"Uncore (unmapped) " : L"Uncore ", domain, limit ? L"max" : L"min");
+                name = PhFormatString(L"%s%lu %s", prefix, domain, bound);
 
-            *(limit ? &entry->MaximumIndex : &entry->NamedIndex) = PhpHwAddNamedSensor(PhHwNamedSensorUncoreClock, PackageIndex == ULONG_MAX ? 0 : PackageIndex, id, name->Buffer);
+            *(limit ? &entry->MaximumIndex : &entry->NamedIndex) = PhpHwAddNamedSensor(PhHwNamedSensorUncoreClock, namedPackage, id, name->Buffer);
             PhDereferenceObject(name);
         }
 
@@ -779,6 +793,7 @@ static VOID PhpHwVsecProbePmt(
         PCPHP_HW_PMT_SAMPLE sample = &PhpHwPmtSamples[samples[i]];
         PPHP_HW_VSEC_ENTRY entry;
         ULONG64 value;
+        PH_HW_NAMED_SENSOR_KIND kind = PhHwNamedSensorUncoreClock;
 
         // A field that reads 0 at the probe may be idle; it is listed and shown once it reads.
         if (!PhpHwVsecValue(i, &value))
@@ -787,8 +802,12 @@ static VOID PhpHwVsecProbePmt(
             break;
 
         entry->Sample = samples[i];
+
+        if (sample->Transform == PhpHwPmtTemperature)
+            kind = PhHwNamedSensorPmtTemperature;
+
         entry->NamedIndex = PhpHwAddNamedSensor(
-            sample->Transform == PhpHwPmtTemperature ? PhHwNamedSensorPmtTemperature : PhHwNamedSensorUncoreClock,
+            kind,
             0,
             PHP_HW_VSEC_PMT_ID_BASE | ((Device - PhpHwVsecOobmsmCount) << 16) | ((ULONG)(Region->Index & 0xFF) << 8) | samples[i],
             sample->Name
@@ -896,7 +915,10 @@ NTSTATUS PhpHwVsecProbe(
                 PhpHwVsecProbeRapl(i, &regions[j], packageIndex);
                 break;
             case PH_INTEL_TPMI_ID_UNCORE:
-                PhpHwVsecProbeUncore(i, &regions[j], packageIndex, packageIndex == ULONG_MAX ? &unmappedDomainIndex : &domainIndex[packageIndex]);
+                if (packageIndex == ULONG_MAX)
+                    PhpHwVsecProbeUncore(i, &regions[j], packageIndex, &unmappedDomainIndex);
+                else
+                    PhpHwVsecProbeUncore(i, &regions[j], packageIndex, &domainIndex[packageIndex]);
                 break;
             case PH_INTEL_TPMI_ID_SST:
             case PH_INTEL_TPMI_ID_PLR:
@@ -1265,23 +1287,45 @@ VOID PhpHwVsecDiagnostics(
     for (ULONG r = 0; r < PhpHwVsecRegionCount; r++)
     {
         PPHP_HW_VSEC_REGION region = &PhpHwVsecRegions[r];
+        PCWSTR ended = L"";
 
-        PhAppendFormatStringBuilder(
-            Builder,
-            region->Discovery == KPH_HW_VSEC_DISCOVERY_PMT ? L"  Device %lu region 0x%lx (PMT 0x%08lx): %lu entries%s\n" : L"  Device %lu region 0x%lx (TPMI 0x%02lx): %lu entries%s\n",
-            region->Device,
-            region->Position,
-            region->Id,
-            region->EntryCount,
-            region->Disabled ? L", ended" : L""
-            );
+        if (region->Disabled)
+            ended = L", ended";
+
+        if (region->Discovery == KPH_HW_VSEC_DISCOVERY_PMT)
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"  Device %lu region 0x%lx (PMT 0x%08lx): %lu entries%s\n",
+                region->Device,
+                region->Position,
+                region->Id,
+                region->EntryCount,
+                ended
+                );
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"  Device %lu region 0x%lx (TPMI 0x%02lx): %lu entries%s\n",
+                region->Device,
+                region->Position,
+                region->Id,
+                region->EntryCount,
+                ended
+                );
+        }
     }
 
     for (ULONG i = 0; i < PhpHwVsecReportCount; i++)
     {
         PPHP_HW_VSEC_REPORT report = &PhpHwVsecReports[i];
 
-        PhAppendFormatStringBuilder(Builder, L"  TPMI %s ", report->Region.Id == PH_INTEL_TPMI_ID_SST ? L"SST" : L"PLR");
+        if (report->Region.Id == PH_INTEL_TPMI_ID_SST)
+            PhAppendStringBuilder2(Builder, L"  TPMI SST ");
+        else
+            PhAppendStringBuilder2(Builder, L"  TPMI PLR ");
 
         if (report->PackageIndex == ULONG_MAX)
             PhAppendStringBuilder2(Builder, L"(unmapped)");
@@ -1296,13 +1340,18 @@ VOID PhpHwVsecDiagnostics(
         }
         else if (report->Region.Id == PH_INTEL_TPMI_ID_SST)
         {
+            PCWSTR locked = L"";
+
+            if (report->Locked)
+                locked = L" (locked)";
+
             PhAppendFormatStringBuilder(
                 Builder,
                 L"version %u.%u, level %u%s, TDP %.3f W, TjMax %lu C, P0 %lu MHz, P1 %lu MHz, Pn %lu MHz, Pm %lu MHz\n",
                 (report->Version >> 5) & 0x7,
                 report->Version & 0x1F,
                 report->Level,
-                report->Locked ? L" (locked)" : L"",
+                locked,
                 (DOUBLE)((report->Value >> 32) & 0x7FFF) / 8.0,
                 (ULONG)((report->Value >> 47) & 0xFF),
                 (ULONG)(report->Ratios & 0xFF) * 100,

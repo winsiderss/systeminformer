@@ -275,6 +275,7 @@ NTSTATUS PhpHwTsensPass(
         {
             PPH_HW_CPU_SENSOR sensor = &PhpHwCpuSensors[i];
             PPHP_HW_TSENS_CORE core = &PhpHwTsensCores[i];
+            ULONG coreValid = 0;
 
             if (sensor->PackageIndex != p || !core->Listed)
                 continue;
@@ -283,7 +284,10 @@ NTSTATUS PhpHwTsensPass(
             if (core->Valid)
                 sensor->Temperature = core->Maximum;
 
-            WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PH_HW_CAP_CORE_TEMP) | (core->Valid ? PH_HW_CAP_CORE_TEMP : 0));
+            if (core->Valid)
+                coreValid = PH_HW_CAP_CORE_TEMP;
+
+            WriteULongRelease(&sensor->Valid, (ReadULongAcquire(&sensor->Valid) & ~PH_HW_CAP_CORE_TEMP) | coreValid);
 
             if (!core->Valid)
                 continue;
@@ -346,11 +350,16 @@ VOID PhpHwTsensDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
     if (PhpHwTsensIdentifyStatus == STATUS_NOT_SUPPORTED)
     {
         PhAppendStringBuilder2(Builder, L"  Controllers: not identified\n");
         return;
     }
+
+    if (PhpHwTsensEnded)
+        ended = L", ended";
 
     PhAppendFormatStringBuilder(
         Builder,
@@ -359,7 +368,7 @@ VOID PhpHwTsensDiagnostics(
         PhpHwTsensIdentity.Count,
         PhpHwTsensCoreSensors,
         PhpHwTsensStatus,
-        PhpHwTsensEnded ? L", ended" : L""
+        ended
         );
 
     for (ULONG c = 0; c < PhpHwTsensIdentity.Count && c < KPH_HW_TSENS_CONTROLLERS; c++)

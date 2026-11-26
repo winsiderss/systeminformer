@@ -374,6 +374,14 @@ VOID PhpHwSmuDiagnostics(
     for (ULONG i = 0; i < PhpHwPackageCount; i++)
     {
         PPHP_HW_SMU_PACKAGE package = &PhpHwSmuPackages[i];
+        PCWSTR table;
+
+        if (!package->HasTable)
+            table = L"not read";
+        else if (package->Decoded)
+            table = L"decoded";
+        else
+            table = L"read";
 
         PhAppendFormatStringBuilder(
             Builder,
@@ -382,7 +390,7 @@ VOID PhpHwSmuDiagnostics(
             package->FirmwareVersion,
             package->Version,
             package->Length,
-            package->HasTable ? (package->Decoded ? L"decoded" : L"read") : L"not read",
+            table,
             package->Status,
             package->Sensors.Count
             );

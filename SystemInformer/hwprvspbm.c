@@ -399,18 +399,23 @@ VOID PhpHwSpbmDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
     if (PhpHwSpbmStatus == STATUS_NOT_SUPPORTED)
     {
         PhAppendStringBuilder2(Builder, L"  Page: not read\n");
         return;
     }
 
+    if (PhpHwSpbmEnded)
+        ended = L", ended";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  Page: last read 0x%08lx%s; channels: temperatures 0x%lx, powers 0x%lx, energies 0x%lx, limits 0x%lx, "
         L"voltages 0x%lx\n",
         PhpHwSpbmStatus,
-        PhpHwSpbmEnded ? L", ended" : L"",
+        ended,
         PhpHwSpbmSample.TemperatureMask,
         PhpHwSpbmSample.PowerMask,
         PhpHwSpbmSample.EnergyMask,

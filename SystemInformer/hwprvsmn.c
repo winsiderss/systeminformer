@@ -174,7 +174,12 @@ static ULONG PhpHwSmnReadPackage(
 
     for (ULONG i = 0; i < itemCount; i++)
     {
-        if (!PhpHwSmnApplyStatus(&Package->Items[items[i]], NT_SUCCESS(status) ? values[i].Status : status))
+        NTSTATUS itemStatus = status;
+
+        if (NT_SUCCESS(status))
+            itemStatus = values[i].Status;
+
+        if (!PhpHwSmnApplyStatus(&Package->Items[items[i]], itemStatus))
             continue;
 
         Values[items[i]] = values[i].Value;
@@ -469,7 +474,11 @@ NTSTATUS PhpHwSmnProbe(
         return status;
 
     memset(&PhpHwSmnIdentity, 0, sizeof(PH_CPU_IDENTITY));
-    memcpy(PhpHwSmnIdentity.Vendor, PhpHwSmnRootIdentity.Vendor == PHP_HW_SMN_HYGON_VENDOR_ID ? "HygonGenuine" : "AuthenticAMD", 12);
+
+    if (PhpHwSmnRootIdentity.Vendor == PHP_HW_SMN_HYGON_VENDOR_ID)
+        memcpy(PhpHwSmnIdentity.Vendor, "HygonGenuine", 12);
+    else
+        memcpy(PhpHwSmnIdentity.Vendor, "AuthenticAMD", 12);
     PhpHwSmnIdentity.DisplayFamily = (USHORT)PhpHwSmnRootIdentity.Family;
     PhpHwSmnIdentity.DisplayModel = (UCHAR)PhpHwSmnRootIdentity.Model;
     PhpHwSmnIdentity.Stepping = (UCHAR)PhpHwSmnRootIdentity.Stepping;
@@ -738,30 +747,47 @@ VOID PhpHwSmnDiagnostics(
 
         if (package->Items[PHP_HW_SMN_MEMORY].Address)
         {
+            PCWSTR timings;
+
+            if (package->TimingsValid)
+                timings = L"read";
+            else if (package->TimingsPending)
+                timings = L"pending";
+            else
+                timings = L"none";
+
             PhAppendFormatStringBuilder(
                 Builder,
                 L"    Memory channel 0x%08lx: %.0f MHz, %.0f MT/s, timings %s\n",
                 package->MemoryChannel,
                 package->MemoryClockMhz,
                 package->MemoryDataRate,
-                package->TimingsValid ? L"read" : package->TimingsPending ? L"pending" : L"none"
+                timings
                 );
         }
         else if (PhpHwSmnChannelCount)
         {
-            PhAppendFormatStringBuilder(Builder, L"    Memory channel: %s\n", package->ChannelSearch ? L"searching" : L"none active");
+            if (package->ChannelSearch)
+                PhAppendStringBuilder2(Builder, L"    Memory channel: searching\n");
+            else
+                PhAppendStringBuilder2(Builder, L"    Memory channel: none active\n");
         }
 
         for (ULONG j = 0; j < PHP_HW_SMN_ITEMS; j++)
         {
+            PCWSTR state = L"read";
+
             if (!package->Items[j].Address)
                 continue;
+
+            if (package->Items[j].Disabled)
+                state = L"left out";
 
             PhAppendFormatStringBuilder(
                 Builder,
                 L"    SMN 0x%08lx: %s\n",
                 package->Items[j].Address,
-                package->Items[j].Disabled ? L"left out" : L"read"
+                state
                 );
         }
     }
