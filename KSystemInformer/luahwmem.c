@@ -254,7 +254,7 @@ PVOID KphpLuaHwCheckAccess(
                   "1, 2, 4 or 8");
     luaL_argcheck(State,
                   (offset >= 0) &&
-                  ((offset % width) == 0) &&
+                  ((((ULONG_PTR)Mapping->Address + offset) % width) == 0) &&
                   (offset <= Mapping->Length) &&
                   (width <= (Mapping->Length - offset)),
                   2,
@@ -412,7 +412,7 @@ int KphpLuaHwMapReadBlock(
                   "out of range");
     luaL_argcheck(State,
                   (offset >= 0) &&
-                  ((offset % width) == 0) &&
+                  ((((ULONG_PTR)mapping->Address + offset) % width) == 0) &&
                   (offset <= (mapping->Length - length)),
                   2,
                   "out of range");
@@ -473,7 +473,7 @@ int KphpLuaHwMapWriteBlock(
                   "out of range");
     luaL_argcheck(State,
                   (offset >= 0) &&
-                  ((offset % width) == 0) &&
+                  ((((ULONG_PTR)mapping->Address + offset) % width) == 0) &&
                   (offset <= (lua_Integer)(mapping->Length - length)),
                   2,
                   "out of range");
