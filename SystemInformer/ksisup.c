@@ -2626,6 +2626,7 @@ CleanupExit:
     PhClearReference(&objectName);
     PhClearReference(&portName);
     PhClearReference(&altitude);
+    PhClearReference(&systemProcessName);
     PhClearReference(&ksiFileName);
     PhClearReference(&tempDriverDir);
 
