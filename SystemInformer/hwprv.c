@@ -817,10 +817,16 @@ VOID PhHwProviderUpdate(
     }
     else
     {
+        LIST_ENTRY serving;
+
         PhpHwUpdateCounters(!!PhCsEnableHardwareSensors);
         PhpHwUpdateSources(!!PhCsEnableHardwareSensors);
         PhpHwUpdateCpuValues(!!PhCsEnableHardwareSensors);
         PhpHwAvailable = !!PhpHwCpuFallbackValid;
+
+        // A request queued before the gate closed gets what is held.
+        PhpHwTakeReportRequests(&serving);
+        PhpHwSignalReportRequests(&serving);
     }
 
     memset(&updatedEvent, 0, sizeof(PH_PROVIDER_UPDATED_EVENT));
@@ -974,12 +980,12 @@ VOID PhHwWriteDiagnostics(
     };
     PCWSTR reads;
 
-    if (!PhpHwGateOpen)
-        reads = L"none, hardware sensors are off; the sections show what is held";
-    else if (PhpHwRequestReportReads())
-        reads = L"made by the update";
-    else
+    if (PhpHwGateOpen && !PhpHwRequestReportReads())
         reads = L"the provider did not update within the wait; the sections show what is held";
+    else if (!PhpHwGateOpen)
+        reads = L"none, hardware sensors are off; the sections show what is held";
+    else
+        reads = L"made by the update";
 
     PhAppendFormatStringBuilder(
         Builder,
