@@ -135,14 +135,13 @@ local function identify(device)
   return vendor, product
 end
 
--- The collection opened by its device name with Access, sharing read and write,
--- or nil and a status.
+-- The collection opened by its device name with Access, or nil and a status.
 local function open_collection(device, access)
   local name = text_of((ksi.hw.device_property(device, nt.DevicePropertyPhysicalDeviceObjectName)))
   if not name or #name == 0 then
     return nil, nt.STATUS_OBJECT_NAME_NOT_FOUND
   end
-  local opened, failed = ksi.hw.device_open(name, access, nt.FILE_SHARE_READ | nt.FILE_SHARE_WRITE)
+  local opened, failed = ksi.hw.device_open(name, access)
   if not opened then
     ksi.trace('the collection did not open: 0x%x', failed)
   end
