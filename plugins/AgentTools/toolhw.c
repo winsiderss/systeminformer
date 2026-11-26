@@ -234,12 +234,14 @@ static BOOLEAN AtpHwGetEnumArgument(
 {
     PPH_STRING string;
     PPH_BYTES utf8;
+    ULONG value = ULONG_MAX;
     ULONG i;
 
-    *Value = ULONG_MAX;
-
     if (!Arguments || !PhGetJsonObject(Arguments, Key))
+    {
+        *Value = ULONG_MAX;
         return TRUE;
+    }
 
     if (!(string = AtGetArgumentString(Arguments, Key)))
     {
@@ -254,19 +256,20 @@ static BOOLEAN AtpHwGetEnumArgument(
     {
         if (strcmp(utf8->Buffer, Names[i]) == 0)
         {
-            *Value = i;
+            value = i;
             break;
         }
     }
 
     PhClearReference(&utf8);
 
-    if (*Value == ULONG_MAX)
+    if (value == ULONG_MAX)
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"%hs must be one of %s.", Key, Allowed);
         return FALSE;
     }
 
+    *Value = value;
     return TRUE;
 }
 
