@@ -85,12 +85,12 @@
 #define KPH_TAG_REG_OBJECT_NAME                 '7IpK'
 #define KPH_TAG_REG_VALUE_NAMES                 '8IpK'
 #define KPH_TAG_OB_CALL_CONTEXT                 '9IpK'
-#define KPH_TAG_INFORMER_STATE                  'SIpK'
-#define KPH_TAG_INFORMER_SETTINGS               'sIpK'
-#define KPH_TAG_SILO_NAME                       'aIpK'
-#define KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE    'bIpK'
-#define KPH_TAG_FLT_STREAM_CONTEXT              'cIpK'
-#define KPH_TAG_FLT_INSTANCE_CONTEXT            'dIpK'
+#define KPH_TAG_INFORMER_STATE                  'AIpK'
+#define KPH_TAG_INFORMER_SETTINGS               'BIpK'
+#define KPH_TAG_SILO_NAME                       'CIpK'
+#define KPH_TAG_FLT_FILE_NAME_CACHE_POPULATE    'DIpK'
+#define KPH_TAG_FLT_STREAM_CONTEXT              'EIpK'
+#define KPH_TAG_FLT_INSTANCE_CONTEXT            'FIpK'
 
 // cid_tracking
 
@@ -149,8 +149,11 @@
 #define KPH_TAG_LUA_HARDWARE_DEVICE             '7LpK'
 #define KPH_TAG_LUA_HARDWARE_DEVICE_LIST        '8LpK'
 #define KPH_TAG_LUA_HARDWARE_GUARD              '9LpK'
+#define KPH_TAG_LUA_HARDWARE_NAMED_DEVICE       'ALpK'
 
 // script
 
 #define KPH_TAG_SCRIPT_INPUT                    '0SpK'
 #define KPH_TAG_SCRIPT_FILE                     '1SpK'
+#define KPH_TAG_SCRIPT_OBJECT                   '2SpK'
+#define KPH_TAG_SCRIPT_SIGNATURE                '3SpK'

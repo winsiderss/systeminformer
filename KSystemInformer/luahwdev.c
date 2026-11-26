@@ -2877,7 +2877,7 @@ VOID KphLuaInitializeHardwareDevice(
 
     KphInitializePagedLookaside(&KphpLuaHwNamedDeviceLookaside,
                                 sizeof(KPH_LUA_HW_NAMED_DEVICE),
-                                KPH_TAG_LUA_HARDWARE_DEVICE);
+                                KPH_TAG_LUA_HARDWARE_NAMED_DEVICE);
 
     typeInfo.Allocate = KphpLuaHwAllocateRequest;
     typeInfo.Initialize = KphpLuaHwInitializeRequest;

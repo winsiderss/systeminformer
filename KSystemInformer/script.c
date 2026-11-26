@@ -2648,7 +2648,7 @@ PVOID KSIAPI KphpAllocateScript(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    return KphAllocateNPaged(Size, KPH_TAG_SCRIPT_FILE);
+    return KphAllocateNPaged(Size, KPH_TAG_SCRIPT_OBJECT);
 }
 
 /**
@@ -2775,7 +2775,7 @@ VOID KSIAPI KphpFreeScript(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    KphFree(Object, KPH_TAG_SCRIPT_FILE);
+    KphFree(Object, KPH_TAG_SCRIPT_OBJECT);
 }
 
 /**
@@ -2872,7 +2872,7 @@ NTSTATUS KphCreateScript(
         goto Exit;
     }
 
-    signature = KphAllocatePaged(SignatureLength, KPH_TAG_SCRIPT_FILE);
+    signature = KphAllocatePaged(SignatureLength, KPH_TAG_SCRIPT_SIGNATURE);
     if (!signature)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -3028,7 +3028,7 @@ Exit:
 
     if (signature)
     {
-        KphFree(signature, KPH_TAG_SCRIPT_FILE);
+        KphFree(signature, KPH_TAG_SCRIPT_SIGNATURE);
     }
 
     if (file)
