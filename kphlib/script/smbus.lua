@@ -1224,6 +1224,8 @@ local function i801_block_bytes(s, hs)
       count = host_in(s, HST_DAT0)
       if count < 1 or count > BLOCK_MAX then
         host_out(s, HST_CNT, 0x14 | 0x02)
+        ksi.sleep(1)
+        host_out(s, HST_CNT, 0x14)
         ksi.trace('block count %d from 0x%x', count, hs)
         return nil, 0, nt.STATUS_DEVICE_DATA_ERROR
       end
