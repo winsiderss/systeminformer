@@ -1092,9 +1092,8 @@ static NTSTATUS KsipReadFile(
 {
     NTSTATUS status;
     HANDLE fileHandle;
-
-    *Data = NULL;
-    *Length = 0;
+    PVOID data;
+    ULONG length;
 
     status = PhCreateFile(
         &fileHandle,
@@ -1108,8 +1107,14 @@ static NTSTATUS KsipReadFile(
 
     if (NT_SUCCESS(status))
     {
-        status = PhGetFileData(fileHandle, Data, Length);
+        status = PhGetFileData(fileHandle, &data, &length);
         NtClose(fileHandle);
+
+        if (NT_SUCCESS(status))
+        {
+            *Data = data;
+            *Length = length;
+        }
     }
 
     return status;
@@ -1324,11 +1329,6 @@ static NTSTATUS KsipReadCachedDynData(
     ULONG dataLength;
     PBYTE sig = NULL;
     ULONG sigLength;
-
-    *DynData = NULL;
-    *DynDataLength = 0;
-    *Signature = NULL;
-    *SignatureLength = 0;
 
     if (!(directory = KsipGetDynDataCacheDirectory()))
         return STATUS_NO_SUCH_FILE;
@@ -1811,9 +1811,6 @@ static NTSTATUS KsipExtractZipEntry(
     mz_zip_archive_file_stat stat;
     PBYTE buffer;
 
-    *Buffer = NULL;
-    *Length = 0;
-
     if ((index = mz_zip_reader_locate_file(Zip, EntryName, NULL, 0)) < 0)
         return STATUS_NOT_FOUND;
     if (!mz_zip_reader_file_stat(Zip, (mz_uint)index, &stat))
@@ -1855,9 +1852,8 @@ static NTSTATUS KsipDownloadDynDataArchive(
     NTSTATUS status;
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING header;
-
-    *Buffer = NULL;
-    *BufferLength = 0;
+    PVOID buffer;
+    ULONG bufferLength;
 
     if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
         goto CleanupExit;
@@ -1901,7 +1897,11 @@ static NTSTATUS KsipDownloadDynDataArchive(
     if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
         goto CleanupExit;
 
-    status = PhHttpReadDataToBuffer(httpContext->RequestHandle, 0, Buffer, BufferLength);
+    if (!NT_SUCCESS(status = PhHttpReadDataToBuffer(httpContext->RequestHandle, 0, &buffer, &bufferLength)))
+        goto CleanupExit;
+
+    *Buffer = buffer;
+    *BufferLength = bufferLength;
 
 CleanupExit:
     if (httpContext)
@@ -1940,11 +1940,6 @@ static NTSTATUS KsipDownloadDynData(
     ULONG dataLength;
     PBYTE sig = NULL;
     ULONG sigLength;
-
-    *DynData = NULL;
-    *DynDataLength = 0;
-    *Signature = NULL;
-    *SignatureLength = 0;
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(servers); i++)
     {
