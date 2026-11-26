@@ -460,7 +460,7 @@ NTSTATUS NTAPI PhpHwVrmPass(
                 items[count].Address = PhpHwVrms[i].Address;
                 items[count].Command = commands[c];
                 items[count].Protocol = c ? KPH_HW_SMBUS_PAGED_WORD : KPH_HW_SMBUS_PAGED_BYTE;
-                items[count].Reserved = (UCHAR)page;
+                items[count].Page = (UCHAR)page;
                 count++;
             }
         }
@@ -622,7 +622,7 @@ static VOID PhpHwSch5027ProbeHosts(
             items[i].Address = addresses[i / 3];
             items[i].Command = (UCHAR)(0x3D + i % 3);
             items[i].Protocol = KPH_HW_SMBUS_BYTE;
-            items[i].Reserved = 0;
+            items[i].Page = 0;
         }
 
         status = KphHwSmbusRead(PhpHwSch5027Hosts[h], 0, items, RTL_NUMBER_OF(items), values);
@@ -738,7 +738,7 @@ NTSTATUS NTAPI PhpHwSch5027Pass(
         items[i].Address = PhpHwSch5027Address;
         items[i].Command = PhpHwSch5027Commands[i];
         items[i].Protocol = KPH_HW_SMBUS_BYTE;
-        items[i].Reserved = 0;
+        items[i].Page = 0;
     }
 
     PhpHwSch5027Status = KphHwSmbusRead(PhpHwSch5027Host, 0, items, PHP_HW_SCH5027_ITEMS, values);

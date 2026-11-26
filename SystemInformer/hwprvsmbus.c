@@ -155,7 +155,7 @@ static VOID PhpHwSmbusItem(
     PhpHwSmbusItems[Index].Address = Address;
     PhpHwSmbusItems[Index].Command = Command;
     PhpHwSmbusItems[Index].Protocol = Protocol;
-    PhpHwSmbusItems[Index].Reserved = 0;
+    PhpHwSmbusItems[Index].Page = 0;
 }
 
 /**

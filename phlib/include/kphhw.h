@@ -136,7 +136,7 @@ typedef struct _KPH_HW_SMBUS_ITEM
     UCHAR Address;
     UCHAR Command;
     UCHAR Protocol;
-    UCHAR Reserved;
+    UCHAR Page;
 } KPH_HW_SMBUS_ITEM, *PKPH_HW_SMBUS_ITEM;
 
 typedef const KPH_HW_SMBUS_ITEM* PCKPH_HW_SMBUS_ITEM;

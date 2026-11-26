@@ -1294,7 +1294,8 @@ NTSTATUS KphHwSmbusIdentify(
  * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
  * function.
  * \param Port The host's port.
- * \param Items The reads: address, command, protocol (0 byte, 1 word).
+ * \param Items The reads: address, command, protocol (KPH_HW_SMBUS_BYTE, WORD,
+ * PAGED_WORD or PAGED_BYTE) and the page of a paged read, else 0.
  * \param Count The number of reads.
  * \param Values Receives a status and a value per read, in the order of the
  * reads.
@@ -1415,7 +1416,7 @@ NTSTATUS KphHwPmbusIdentify(
         input.Items[i].Address = Address;
         input.Items[i].Command = commands[i];
         input.Items[i].Protocol = i ? KPH_HW_SMBUS_BLOCK : KPH_HW_SMBUS_BYTE;
-        input.Items[i].Reserved = 0;
+        input.Items[i].Page = 0;
     }
 
     if (!NT_SUCCESS(status = KphpHwAcquireSmbus(FALSE, &isa)))
