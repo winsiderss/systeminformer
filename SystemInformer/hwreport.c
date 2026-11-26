@@ -29,8 +29,9 @@ PCPH_STRINGREF NTAPI PhHwGetSensorsUnavailableReason(
     static CONST PH_STRINGREF driver = PH_STRINGREF_INIT(L"Hardware sensors require the kernel driver with full access.");
     static CONST PH_STRINGREF notShipped = PH_STRINGREF_INIT(L"No hardware sensor script is shipped with this build.");
     static CONST PH_STRINGREF none = PH_STRINGREF_INIT(L"No supported hardware sensors were found on this system.");
+    BOOLEAN kernelAvailable = PhHwSensorsEnabled() && PhHwSensorsAvailable();
 
-    if (PhHwSensorsAvailable() || PhHwSourceSensorsPresent())
+    if (kernelAvailable || PhHwSourceSensorsPresent())
         return NULL;
     if (!PhCsEnableHardwareSensors)
         return &disabled;
