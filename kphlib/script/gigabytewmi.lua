@@ -156,7 +156,6 @@ local function temperature(device, method, index)
     .. string.pack('<I2I2I4', ARGUMENT_BUFFER, 4, index)
   local output, failed = nt.acpi.eval(device, method, MILLISECONDS, args)
   if not output then
-    -- STATUS_TIMEOUT is a success code; the answer is an error
     if failed == nt.STATUS_TIMEOUT then
       failed = nt.STATUS_IO_TIMEOUT
     end

@@ -454,9 +454,6 @@ local PMBUS_READS = {
   { 0x60, 0x67, 0x96, 0x97, false, false, false, true, false },
 }
 local PAGE_MAX = 3
--- The PMBus controllers PAGE is written to, by IC_DEVICE_ID (ADh) and the
--- PMBUS_REVISION (98h) it comes with (false: any); MFR_ID and MFR_MODEL "RI",
--- 6Ch 00h are the IR35221.
 local PMBUS_DEVICES = {
   { 0x33, '\x81' },
   { 0x33, 'TIShP' },

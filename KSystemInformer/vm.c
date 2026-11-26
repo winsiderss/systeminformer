@@ -534,10 +534,6 @@ NTSTATUS KphQueryVirtualMemory(
         IsKernelHandle(ProcessHandle) &&
         !IsPseudoHandle(ProcessHandle))
     {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      GENERAL,
-                      "Process handle is a kernel handle");
-
         status = STATUS_INVALID_HANDLE;
         goto Exit;
     }

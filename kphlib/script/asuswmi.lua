@@ -212,7 +212,6 @@ local function evaluate(device, method, id, value)
     .. string.pack('<I2I2I4', ARGUMENT_INTEGER, 4, id)
     .. string.pack('<I2I2I4', ARGUMENT_BUFFER, 4, value)
   local output, failed = nt.acpi.eval(device, method, MILLISECONDS, args)
-  -- STATUS_TIMEOUT is a success code; the answer is an error
   if failed == nt.STATUS_TIMEOUT then
     failed = nt.STATUS_IO_TIMEOUT
   end
@@ -399,7 +398,6 @@ function read(input)
   local refreshes = {}
   for _, source in ipairs({ SOURCE_SIO, SOURCE_EC }) do
     if string.find(input, string.char(source), 1, true) then
-      -- The refresh is the evaluation: what it returns is not looked at.
       local output, failed = evaluate(device, method, UPDATE_BUFFER, source)
       if not output then
         refreshes[source] = failed

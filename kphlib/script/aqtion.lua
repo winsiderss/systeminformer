@@ -361,7 +361,6 @@ local function mailbox_temperature(m)
       end
     end,
   })
-  -- The read that answers 1 takes the semaphore.
   if
     not poll(function()
       uninterrupted(function()

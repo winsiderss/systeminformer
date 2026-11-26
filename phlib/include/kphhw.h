@@ -48,7 +48,6 @@ typedef struct _KPH_HW_SUPERIO_CHIP
     ULONG Chip;
     ULONG Customer;
 } KPH_HW_SUPERIO_CHIP, *PKPH_HW_SUPERIO_CHIP;
-
 typedef const KPH_HW_SUPERIO_CHIP* PCKPH_HW_SUPERIO_CHIP;
 
 typedef struct _KPH_HW_VALUE32
@@ -296,7 +295,6 @@ typedef struct _KPH_HW_VSEC_REGION
     ULONG Size;
     ULONG Position;
 } KPH_HW_VSEC_REGION, *PKPH_HW_VSEC_REGION;
-
 typedef const KPH_HW_VSEC_REGION* PCKPH_HW_VSEC_REGION;
 
 #define KPH_HW_TSENS_CONTROLLERS 8

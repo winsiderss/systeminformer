@@ -1580,8 +1580,6 @@ local function configure(s, family)
     ksi.trace('chip 0x%04x has no configuration ID 0x%04x', id, config[2])
     return nt.STATUS_NOT_FOUND
   end
-  -- An ITE chip takes AAh as an index; a chip that leaves on AAh is not one.
-  -- One that still answers, with another word, is still entered.
   if family.family == FAMILY_ITE and s.entered then
     ksi.hw.port_write(s.port, 1, 0xaa)
     local again = rcw(s, 0x20)

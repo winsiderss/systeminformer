@@ -817,11 +817,17 @@ void* KphpLuaAllocate(
 
     NT_ASSERT(allocator->Used >= oldSize);
 
-    held = (block &&
-            allocator->Held &&
-            ((ULONG_PTR)block >= (ULONG_PTR)allocator->Held) &&
-            ((ULONG_PTR)block < ((ULONG_PTR)allocator->Held +
-                                 allocator->HeldSize)));
+    if (block &&
+        allocator->Held &&
+        ((PVOID)block >= allocator->Held) &&
+        ((PVOID)block < Add2Ptr(allocator->Held, allocator->HeldSize)))
+    {
+        held = TRUE;
+    }
+    else
+    {
+        held = FALSE;
+    }
 
     if (NewSize == 0)
     {
@@ -884,7 +890,7 @@ void* KphpLuaAllocate(
     //
     // A pool refusal is final until the reserve is released.
     //
-    if ((allocator->Failures != 0) && (allocator->Reserve != 0))
+    if (allocator->Failures && allocator->Reserve)
     {
         return NULL;
     }
@@ -898,7 +904,7 @@ void* KphpLuaAllocate(
 
         allocator->Failures++;
 
-        if (allocator->Reserve != 0)
+        if (allocator->Reserve)
         {
             return NULL;
         }
@@ -907,9 +913,7 @@ void* KphpLuaAllocate(
 
         if ((allocator->HeldSize - allocator->HeldUsed) < size)
         {
-            KphTracePrint(TRACE_LEVEL_VERBOSE,
-                          SCRIPT,
-                          "Lua reserve exhausted");
+            KphTracePrint(TRACE_LEVEL_VERBOSE, SCRIPT, "Lua reserve exhausted");
 
             return NULL;
         }
@@ -1043,7 +1047,7 @@ NTSTATUS KphLuaCreateState(
 
     *State = NULL;
 
-    if (!Allocator->Held && (Allocator->HeldSize != 0))
+    if (!Allocator->Held && Allocator->HeldSize)
     {
         Allocator->Held = KphAllocatePaged(Allocator->HeldSize,
                                            KPH_TAG_LUA_RESERVE);

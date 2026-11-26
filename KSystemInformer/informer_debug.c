@@ -40,20 +40,18 @@ static BOOLEAN KphpDbgPrintInitialized = FALSE;
 static ULONG KphpDbgPrintSlotCount = 0;
 static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots = NULL;
 
-FORCEINLINE
 _IRQL_requires_max_(HIGH_LEVEL)
-KPH_DBG_PRINT_SLOT_STATE
-KphpGetDbgPrintSlotState(
+FORCEINLINE
+KPH_DBG_PRINT_SLOT_STATE KphpGetDbgPrintSlotState(
     _In_ PKPH_DBG_PRINT_SLOT Slot
     )
 {
     return ReadAcquire((PLONG)&Slot->State);
 }
 
-FORCEINLINE
 _IRQL_requires_max_(HIGH_LEVEL)
-VOID
-KphpSetDbgPrintSlotState(
+FORCEINLINE
+VOID KphpSetDbgPrintSlotState(
     _In_ PKPH_DBG_PRINT_SLOT Slot,
     _In_ KPH_DBG_PRINT_SLOT_STATE State
     )
@@ -61,11 +59,10 @@ KphpSetDbgPrintSlotState(
     WriteRelease((PLONG)&Slot->State, State);
 }
 
-FORCEINLINE
 _IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
-BOOLEAN
-KphpTryClaimDbgPrintSlot(
+FORCEINLINE
+BOOLEAN KphpTryClaimDbgPrintSlot(
     _In_ PKPH_DBG_PRINT_SLOT Slot
     )
 {

@@ -2123,8 +2123,8 @@ Exit:
  * \param[out] ReturnLength Receives the length of the output of the routine.
  * \param[in] AccessMode The mode in which to write the output.
  *
- * \return Successful or errant status, STATUS_SI_SCRIPT_FAULTED once a call
- * did not end cleanly.
+ * \return Successful or errant status, STATUS_SI_SCRIPT_FAULTED once a call did
+ * not end cleanly.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -2552,8 +2552,7 @@ NTSTATUS KphpScriptValidate(
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SCRIPT,
-                          "Script file routine %lu level is not valid: "
-                          "%!STATUS!",
+                          "Script file routine %lu level is not valid: %!STATUS!",
                           i,
                           status);
 

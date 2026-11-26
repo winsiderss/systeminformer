@@ -33,19 +33,22 @@ PVOID SYMCRYPT_CALL SymCryptCallbackAlloc(
     _In_ SIZE_T NumberOfBytes
     )
 {
+    NTSTATUS status;
     SIZE_T size;
     PBYTE buffer;
     PBYTE aligned;
 
     KPH_PAGED_CODE_PASSIVE();
 
-    if (!NT_SUCCESS(RtlSizeTAdd(NumberOfBytes,
-                                SYMCRYPT_ASYM_ALIGN_VALUE + sizeof(PVOID),
-                                &size)))
+    status = RtlSizeTAdd(NumberOfBytes,
+                         SYMCRYPT_ASYM_ALIGN_VALUE + sizeof(PVOID),
+                         &size);
+    if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       GENERAL,
-                      "SymCrypt allocation size overflows");
+                      "RtlSizeTAdd failed: %!STATUS!",
+                      status);
 
         return NULL;
     }

@@ -1120,12 +1120,8 @@ VOID KphpLuaHwCheckBuffers(
                           ((lengthAt % sizeof(ULONG)) == 0),
                           6,
                           "a length_at out of range or not ULONG-aligned");
-            NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(lengthAt,
-                                                sizeof(ULONG),
-                                                &lengthEnd)));
-            NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(at,
-                                                sizeof(PVOID),
-                                                &atEnd)));
+            NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(lengthAt, sizeof(ULONG), &lengthEnd)));
+            NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(at, sizeof(PVOID), &atEnd)));
             luaL_argcheck(State,
                           (lengthEnd <= at) || (lengthAt >= atEnd),
                           6,
@@ -1197,9 +1193,7 @@ VOID KphpLuaHwCheckBuffers(
 
         lengthAt = lua_tointeger(State, slot + 4);
 
-        NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(lengthAt,
-                                            sizeof(ULONG),
-                                            &lengthEnd)));
+        NT_VERIFY(NT_SUCCESS(RtlLongLongAdd(lengthAt, sizeof(ULONG), &lengthEnd)));
         luaL_argcheck(State,
                       (lengthAt < 0) || (lengthEnd <= targetLength),
                       6,
@@ -1241,11 +1235,9 @@ VOID KphpLuaHwLayBuffers(
 
             bytes = lua_tolstring(State, slot, &length);
 
-            RtlCopyMemory(
-                KphpLuaHwBufferAddress(State, Request, Buffers, i + 1),
-                bytes,
-                length
-                );
+            RtlCopyMemory(KphpLuaHwBufferAddress(State, Request, Buffers, i + 1),
+                          bytes,
+                          length);
         }
     }
 
@@ -1272,11 +1264,9 @@ VOID KphpLuaHwLayBuffers(
 
             length = KphpLuaHwBufferLength(State, Buffers, i + 1);
 
-            RtlCopyMemory(
-                Add2Ptr(target, (ULONG)lua_tointeger(State, slot + 4)),
-                &length,
-                sizeof(ULONG)
-                );
+            RtlCopyMemory(Add2Ptr(target, (ULONG)lua_tointeger(State, slot + 4)),
+                          &length,
+                          sizeof(ULONG));
         }
     }
 }
@@ -1951,8 +1941,7 @@ Exit:
  * object.
  *
  * \details May raise a Lua error. A named device takes a request at the top of
- * its stack; a device or PCI device object takes it itself, safe only while
- * the script holds an open of it or its driver copes with a removed device.
+ * its stack; a device or PCI device object takes it itself.
  *
  * \param[in] State The Lua state.
  * \param[in] Index The index of the argument.
@@ -2254,8 +2243,7 @@ int KphpLuaHwDeviceGuard(
         return KphLuaNilErrorStatus(State, status);
     }
 
-    guard = KphAllocatePaged(sizeof(KPH_LUA_HW_GUARD),
-                             KPH_TAG_LUA_HARDWARE_GUARD);
+    guard = KphAllocatePaged(sizeof(KPH_LUA_HW_GUARD), KPH_TAG_LUA_HARDWARE_GUARD);
     if (!guard)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2322,8 +2310,7 @@ Exit:
 
         if (length &&
             (((ULONG_PTR)from > request->IoStatus.Information) ||
-             ((ULONG_PTR)length >
-              request->IoStatus.Information - (ULONG_PTR)from)))
+             ((ULONG_PTR)length > (request->IoStatus.Information - (ULONG_PTR)from))))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,

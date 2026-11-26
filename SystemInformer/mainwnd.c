@@ -3777,7 +3777,6 @@ PPH_EMENU PhpCreateToolsMenu(
     )
 {
     PPH_EMENU_ITEM menuItem;
-    ULONG hardwareSensorsFlags = PH_EMENU_DISABLED;
 
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_CREATESERVICE, L"&Create service...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_LIVEDUMP, L"&Create live dump...", NULL, NULL), ULONG_MAX);
@@ -3789,11 +3788,8 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
         (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
-    if (PhHwSensorsWindowAvailable())
-        hardwareSensorsFlags = 0;
-
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
-        hardwareSensorsFlags,
+        PhHwSensorsWindowAvailable() ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_HARDWARESENSORS, L"&Hardware sensors", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
@@ -4798,7 +4794,7 @@ VOID PhMwpSelectionChangedTabControl(
                 // SetFocus on a child activates its top-level parent, and a newly started
                 // process has foreground rights, so focusing the page while the main window
                 // is still hidden (startup runs this before PhMwpShowWindow) steals foreground
-                // from the user. Skip updating the page focus here while hidden; PhMwpOnSetFocus 
+                // from the user. Skip updating the page focus here while hidden; PhMwpOnSetFocus
                 // forwards focus to CurrentPage when the window is actually activated. (#2989) (dmex)
                 if (IsWindowVisible(PhMainWndHandle))
                     SetFocus(page->WindowHandle);

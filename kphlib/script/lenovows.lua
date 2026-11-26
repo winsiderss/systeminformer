@@ -158,11 +158,9 @@ local function signature_present()
     and ksi.hw.port_read(EMI_DATA + 3, 1) == 0x50
 end
 
--- Whether the call wrote its claim of the window.
 local claimed = false
 
--- Releases the window when the scope that claims it ends, while the window
--- reads as this call's.
+-- Releases the window when the scope that claims it ends.
 local release = setmetatable({}, {
   __close = function()
     if claimed then
