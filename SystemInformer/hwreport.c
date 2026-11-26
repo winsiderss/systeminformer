@@ -12,6 +12,7 @@
 #include <hwprvp.h>
 #include <devprv.h>
 #include <phfirmware.h>
+#include <ksisup.h>
 
 // The hardware report: what the provider found and why, the sensors, the devices and SMBIOS.
 
@@ -337,6 +338,14 @@ static VOID PhpHwReportSoftware(
     fileName = PhConcatStringRef2(&directory->sr, &dynDataName);
     PhpHwReportFileLine(Builder, L"Dynamic data", &fileName->sr, FALSE, TRUE);
     PhDereferenceObject(fileName);
+
+    if (fileName = PhGetKsiDynDataCacheFileName())
+    {
+        if (PhDoesFileExistWin32(PhGetString(fileName)))
+            PhpHwReportFileLine(Builder, L"Dynamic data, downloaded", &fileName->sr, FALSE, TRUE);
+
+        PhDereferenceObject(fileName);
+    }
 
     context.Directory = PhConcatStringRef2(&directory->sr, &scriptsName);
     context.Names = PhCreateList(16);

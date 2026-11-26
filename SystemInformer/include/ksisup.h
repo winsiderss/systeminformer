@@ -72,6 +72,11 @@ PWSTR PhKsiStandardHelpText(
     VOID
     );
 
+PPH_STRING
+PhGetKsiDynDataCacheFileName(
+    VOID
+    );
+
 FORCEINLINE
 VOID
 PhShowKsiNotConnected(

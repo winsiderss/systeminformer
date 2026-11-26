@@ -1274,6 +1274,20 @@ CleanupExit:
 }
 
 /**
+ * Get the downloaded dynamic configuration's file.
+ *
+ * \return Referenced Win32 file name, or NULL when the directory could not be determined.
+ */
+PPH_STRING PhGetKsiDynDataCacheFileName(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"ksidyn\\ksidyn.bin");
+
+    return PhGetApplicationDataFileName(&fileName, FALSE);
+}
+
+/**
  * Get the directory holding the downloaded dynamic configuration.
  *
  * \return Referenced native directory name with a trailing separator.
