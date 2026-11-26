@@ -870,7 +870,7 @@ static ULONG PhpHwCounterMeterId(
     _In_ ULONG Index
     )
 {
-    static PCWSTR domains[] = { L"PKG", L"PP0", L"PP1", L"DRAM", L"PSYS" };
+    static CONST PCWSTR domains[] = { L"PKG", L"PP0", L"PP1", L"DRAM", L"PSYS" };
     PCWSTR name = Name;
     ULONG package = 0;
     ULONG core = 0;

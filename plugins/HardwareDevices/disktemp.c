@@ -55,7 +55,7 @@ static PPH_HW_SENSOR_SOURCE_REGISTRATION DiskTemperatureRegistration = NULL;
 // GUID_DEVCLASS_DISKDRIVE
 static CONST GUID DiskTemperatureClass = { 0x4d36e967, 0xe325, 0x11ce, { 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18 } };
 
-static PCWSTR DiskTemperatureSensorNames[DT_SENSORS] =
+static CONST PCWSTR DiskTemperatureSensorNames[DT_SENSORS] =
 {
     L"Composite", L"Sensor 1", L"Sensor 2", L"Sensor 3", L"Sensor 4", L"Sensor 5", L"Sensor 6", L"Sensor 7", L"Sensor 8"
 };

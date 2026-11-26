@@ -1338,7 +1338,7 @@ static BOOLEAN PhpHwOddParity(
     Value ^= Value >> 2;
     Value ^= Value >> 1;
 
-    return Value & 1;
+    return !!(Value & 1);
 }
 
 /**

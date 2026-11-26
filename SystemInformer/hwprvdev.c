@@ -755,9 +755,9 @@ static BOOLEAN NTAPI PhpHwSmbiosMemoryCallback(
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ConfiguredSpeed))
         speed = Entry->MemoryDevice.ConfiguredSpeed;
-    if (speed == MAXUSHORT && PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedConfiguredSpeed))
+    if (speed == USHRT_MAX && PH_SMBIOS_CONTAINS_FIELD(Entry, MemoryDevice, ExtendedConfiguredSpeed))
         speed = Entry->MemoryDevice.ExtendedConfiguredSpeed;
-    if (speed != MAXUSHORT && speed > devices->ConfiguredSpeed)
+    if (speed != USHRT_MAX && speed > devices->ConfiguredSpeed)
         devices->ConfiguredSpeed = speed;
 
     return FALSE;

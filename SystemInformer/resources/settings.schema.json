@@ -6575,6 +6575,21 @@
         }
       ]
     },
+    "HardwareDevices.MotherboardEnabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Reads the motherboard's sensor chips.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
     "NetworkTools.AddressHistory": {
       "type": "string",
       "description": "Setting: Stores history of addresses used in Network Tools."
