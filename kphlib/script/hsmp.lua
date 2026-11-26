@@ -683,19 +683,22 @@ end
 local function smn_read(s, address)
   local m = s.mailbox
   for _ = 1, 2 do
-    if not ksi.hw.pci_write(s.device, m.index, 4, address) then
+    local written, failed = ksi.hw.pci_write(s.device, m.index, 4, address)
+    if not written then
       ksi.trace('index write for SMN 0x%x failed', address)
-      return nt.STATUS_DEVICE_NOT_READY, 0
+      return failed, 0
     end
-    local value = ksi.hw.pci_read(s.device, m.data, 4)
+    local value
+    value, failed = ksi.hw.pci_read(s.device, m.data, 4)
     if not value then
       ksi.trace('data read of SMN 0x%x failed', address)
-      return nt.STATUS_DEVICE_NOT_READY, 0
+      return failed, 0
     end
-    local check = ksi.hw.pci_read(s.device, m.index, 4)
+    local check
+    check, failed = ksi.hw.pci_read(s.device, m.index, 4)
     if not check then
       ksi.trace('index read for SMN 0x%x failed', address)
-      return nt.STATUS_DEVICE_NOT_READY, 0
+      return failed, 0
     end
     if check == address then
       return nt.STATUS_SUCCESS, value
@@ -723,18 +726,18 @@ local function smn_write(s, address, value, before, after)
   if before then
     before()
   end
-  local written = ksi.hw.pci_write(s.device, m.data, 4, value)
+  local written, failed = ksi.hw.pci_write(s.device, m.data, 4, value)
   if after then
     after()
   end
   if not written then
     ksi.trace('data write of SMN 0x%x failed', address)
-    return nt.STATUS_DEVICE_NOT_READY
+    return failed
   end
-  check = ksi.hw.pci_read(s.device, m.index, 4)
+  check, failed = ksi.hw.pci_read(s.device, m.index, 4)
   if not check then
     ksi.trace('index read for SMN 0x%x failed', address)
-    return nt.STATUS_DEVICE_NOT_READY
+    return failed
   end
   if check ~= address then
     ksi.trace('the index of SMN 0x%x moved during the write', address)
