@@ -1580,6 +1580,15 @@ local function configure(s, family)
     ksi.trace('chip 0x%04x has no configuration ID 0x%04x', id, config[2])
     return nt.STATUS_NOT_FOUND
   end
+  -- An ITE chip takes AAh as an index; a chip that leaves on AAh is not one.
+  if family.family == FAMILY_ITE and s.entered then
+    ksi.hw.port_write(s.port, 1, 0xaa)
+    if rcw(s, 0x20) ~= id then
+      ksi.trace('chip 0x%04x at port 0x%02x left on AAh: not ITE', id, s.port)
+      s.entered = false
+      return nt.STATUS_NOT_FOUND
+    end
+  end
   s.identified = true
   s.orig_ldn = rc(s, 0x07)
   s.ldn_select = true
