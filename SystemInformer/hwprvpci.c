@@ -818,22 +818,24 @@ VOID PhHwWriteBridgeDiagnostics(
         L"PCI Express to PCI bridge", L"PCI to PCI Express bridge", L"root complex integrated endpoint", L"root complex event collector"
     };
 
+    PhAcquireQueuedLockShared(&PhpHwFamilyLock);
+
     if (!PhpHwPciProbed)
     {
         PhAppendStringBuilder2(Builder, L"Not read: hardware sensors are off\n");
-        return;
+        goto CleanupExit;
     }
 
     if (!PhpHwPciBridgeCount)
     {
         PhAppendStringBuilder2(Builder, L"None\n");
-        return;
+        goto CleanupExit;
     }
 
     if (!PhpHwPciBridgeConfigs)
     {
         PhAppendStringBuilder2(Builder, L"Not read: no update made the report reads\n");
-        return;
+        goto CleanupExit;
     }
 
     for (ULONG i = 0; i < PhpHwPciBridgeCount; i++)
@@ -991,6 +993,9 @@ VOID PhHwWriteBridgeDiagnostics(
 
         PhAppendCharStringBuilder(Builder, L'\n');
     }
+
+CleanupExit:
+    PhReleaseQueuedLockShared(&PhpHwFamilyLock);
 }
 
 #define PHP_HW_PROM21_ID_BASE 0x50320000 // named sensor ids of the second and later chipset dies: + die

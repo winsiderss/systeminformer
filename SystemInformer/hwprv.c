@@ -60,6 +60,7 @@ ULONG PhpHwCapabilities = 0;
 BOOLEAN PhpHwChipsetTemperatureValid = FALSE;
 FLOAT PhpHwChipsetTemperature = 0.0f;
 
+PH_QUEUED_LOCK PhpHwFamilyLock = PH_QUEUED_LOCK_INIT; // the families' state, between the provider and the report
 PH_QUEUED_LOCK PhpHwNamedSensorLock = PH_QUEUED_LOCK_INIT;
 PPH_HW_NAMED_SENSOR PhpHwNamedSensors = NULL;
 ULONG PhpHwNamedSensorCount = 0;
@@ -789,6 +790,8 @@ VOID PhHwProviderUpdate(
     now = PhpHwQueryTime();
     open = PhCsEnableHardwareSensors && PhpHwDriverReady();
 
+    PhAcquireQueuedLockExclusive(&PhpHwFamilyLock);
+
     if (open && !PhpHwGateOpen)
         PhpHwBeginSession();
     else if (!open && PhpHwGateOpen)
@@ -808,6 +811,8 @@ VOID PhHwProviderUpdate(
 
         PhpHwReportReads = FALSE;
 
+        PhReleaseQueuedLockExclusive(&PhpHwFamilyLock);
+
         PhpHwUpdateCounters(TRUE);
         PhpHwUpdateSources(TRUE);
         PhpHwUpdateCapabilities();
@@ -818,6 +823,8 @@ VOID PhHwProviderUpdate(
     else
     {
         LIST_ENTRY serving;
+
+        PhReleaseQueuedLockExclusive(&PhpHwFamilyLock);
 
         PhpHwUpdateCounters(!!PhCsEnableHardwareSensors);
         PhpHwUpdateSources(!!PhCsEnableHardwareSensors);
@@ -989,6 +996,8 @@ VOID PhHwWriteDiagnostics(
         { L"platform limits", (PVOID)(ULONG_PTR)PH_HW_CAP_PLATFORM_LIMITS },
     };
     PCWSTR reads;
+    BOOLEAN locked;
+    BOOLEAN shared = FALSE;
     PCWSTR setting = L"disabled";
     PCWSTR driverReady = L"no";
     PCWSTR gateOpen = L"no";
@@ -996,11 +1005,21 @@ VOID PhHwWriteDiagnostics(
     PCWSTR available = L"no";
 
     if (PhpHwGateOpen && !PhpHwRequestReportReads())
+    {
         reads = L"the provider did not update within the wait; the sections show what is held";
-    else if (!PhpHwGateOpen)
-        reads = L"none, hardware sensors are off; the sections show what is held";
+        locked = PhTryAcquireQueuedLockExclusive(&PhpHwFamilyLock);
+    }
     else
+    {
         reads = L"made by the update";
+
+        if (!PhpHwGateOpen)
+            reads = L"none, hardware sensors are off; the sections show what is held";
+
+        PhAcquireQueuedLockShared(&PhpHwFamilyLock);
+        locked = TRUE;
+        shared = TRUE;
+    }
 
     if (PhCsEnableHardwareSensors)
         setting = L"enabled";
@@ -1026,7 +1045,10 @@ VOID PhHwWriteDiagnostics(
     PhAppendFormatStringBuilder(Builder, L"Report reads: %s\n", reads);
     PhpHwHistoryWriteDiagnostics(Builder);
 
-    for (ULONG i = 0; i < PhpHwFamilyMaximum; i++)
+    if (!locked)
+        PhAppendStringBuilder2(Builder, L"\nFamilies\n  Not written: the provider is still updating\n");
+
+    for (ULONG i = 0; locked && i < PhpHwFamilyMaximum; i++)
     {
         PPHP_HW_FAMILY family = &PhpHwFamilies[i];
         PCWSTR state;
@@ -1049,6 +1071,11 @@ VOID PhHwWriteDiagnostics(
         else
             PhAppendStringBuilder2(Builder, L"  Not collected\n");
     }
+
+    if (shared)
+        PhReleaseQueuedLockShared(&PhpHwFamilyLock);
+    else if (locked)
+        PhReleaseQueuedLockExclusive(&PhpHwFamilyLock);
 
     PhAppendCharStringBuilder(Builder, L'\n');
     PhpHwWriteCounterDiagnostics(Builder);

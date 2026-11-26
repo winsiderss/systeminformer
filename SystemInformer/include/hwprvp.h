@@ -31,6 +31,7 @@ extern ULONG PhpHwCapabilities;
 extern BOOLEAN PhpHwChipsetTemperatureValid;
 extern FLOAT PhpHwChipsetTemperature;
 
+extern PH_QUEUED_LOCK PhpHwFamilyLock;
 extern PH_QUEUED_LOCK PhpHwNamedSensorLock;
 extern PPH_HW_NAMED_SENSOR PhpHwNamedSensors;
 extern ULONG PhpHwNamedSensorCount;
