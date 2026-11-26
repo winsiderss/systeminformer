@@ -2427,6 +2427,8 @@ BOOLEAN PhMipCpuListSectionCallback(
             PH_FORMAT format[9];
             ULONG count;
             ULONG valid;
+            FLOAT temperature;
+            FLOAT power;
 
             // CPU    %.2f%%    %.1f°C    %.1f W
             PhInitFormatS(&format[0], L"CPU    ");
@@ -2435,19 +2437,19 @@ BOOLEAN PhMipCpuListSectionCallback(
             count = 3;
 
             // Hottest package temperature and total package power, when reported.
-            valid = PhHwGetCpuValidMask();
+            valid = PhHwGetCpuValues(&temperature, &power);
 
             if (FlagOn(valid, PH_HW_CAP_PACKAGE_TEMP))
             {
                 PhInitFormatS(&format[count++], L"    ");
-                PhHwFormatTemperature(PhHwCpuTemperature, 1, &format[count]);
+                PhHwFormatTemperature(temperature, 1, &format[count]);
                 count += PH_HW_TEMPERATURE_FORMAT_COUNT;
             }
 
             if (FlagOn(valid, PH_HW_CAP_RAPL_PACKAGE))
             {
                 PhInitFormatS(&format[count++], L"    ");
-                PhInitFormatF(&format[count++], PhHwCpuPower, 1);
+                PhInitFormatF(&format[count++], power, 1);
                 PhInitFormatS(&format[count++], L" W");
             }
 

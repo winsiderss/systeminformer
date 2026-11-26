@@ -2635,6 +2635,8 @@ VOID PhNfpCpuTemperatureHistoryIconUpdateCallback(
     ULONG maxDataCount;
     ULONG lineDataCount;
     PFLOAT lineData1;
+    FLOAT temperature;
+    FLOAT power;
     BOOLEAN available;
     HBITMAP bitmap;
     PVOID bits;
@@ -2644,7 +2646,7 @@ VOID PhNfpCpuTemperatureHistoryIconUpdateCallback(
     PH_FORMAT format[3];
 
     PhNfpHwUpdateIconAvailability(Icon);
-    available = BooleanFlagOn(PhHwGetCpuValidMask(), PH_HW_CAP_PACKAGE_TEMP);
+    available = BooleanFlagOn(PhHwGetCpuValues(&temperature, &power), PH_HW_CAP_PACKAGE_TEMP);
 
     // Icon
 
@@ -2689,7 +2691,7 @@ VOID PhNfpCpuTemperatureHistoryIconUpdateCallback(
 
     if (available)
     {
-        PhHwFormatTemperature(PhHwCpuTemperature, 1, &format[1]);
+        PhHwFormatTemperature(temperature, 1, &format[1]);
         *NewText = PhFormat(format, 3, 0);
     }
     else
@@ -2725,6 +2727,8 @@ VOID PhNfpCpuTemperatureTextIconUpdateCallback(
         0,
         0
     };
+    FLOAT temperature;
+    FLOAT power;
     BOOLEAN available;
     HBITMAP bitmap;
     PVOID bits;
@@ -2736,7 +2740,7 @@ VOID PhNfpCpuTemperatureTextIconUpdateCallback(
     WCHAR buffer[PH_INT64_STR_LEN_1];
 
     PhNfpHwUpdateIconAvailability(Icon);
-    available = BooleanFlagOn(PhHwGetCpuValidMask(), PH_HW_CAP_PACKAGE_TEMP);
+    available = BooleanFlagOn(PhHwGetCpuValues(&temperature, &power), PH_HW_CAP_PACKAGE_TEMP);
 
     // Icon
 
@@ -2746,7 +2750,7 @@ VOID PhNfpCpuTemperatureTextIconUpdateCallback(
 
     // The icon shows the value only; the unit is in the tooltip.
     if (available)
-        PhHwFormatTemperature(PhHwCpuTemperature, 0, format);
+        PhHwFormatTemperature(temperature, 0, format);
     else
         PhInitFormatC(&format[0], L'-');
 
@@ -2781,7 +2785,7 @@ VOID PhNfpCpuTemperatureTextIconUpdateCallback(
 
     if (available)
     {
-        PhHwFormatTemperature(PhHwCpuTemperature, 1, &format[1]);
+        PhHwFormatTemperature(temperature, 1, &format[1]);
         *NewText = PhFormat(format, 3, 0);
     }
     else
@@ -2815,6 +2819,8 @@ VOID PhNfpCpuPowerTextIconUpdateCallback(
         0,
         0
     };
+    FLOAT temperature;
+    FLOAT power;
     BOOLEAN available;
     HBITMAP bitmap;
     PVOID bits;
@@ -2826,7 +2832,7 @@ VOID PhNfpCpuPowerTextIconUpdateCallback(
     WCHAR buffer[PH_INT64_STR_LEN_1];
 
     PhNfpHwUpdateIconAvailability(Icon);
-    available = BooleanFlagOn(PhHwGetCpuValidMask(), PH_HW_CAP_RAPL_PACKAGE);
+    available = BooleanFlagOn(PhHwGetCpuValues(&temperature, &power), PH_HW_CAP_RAPL_PACKAGE);
 
     // Icon
 
@@ -2835,7 +2841,7 @@ VOID PhNfpCpuPowerTextIconUpdateCallback(
     drawInfo.TextColor = PhCsColorPowerUsage;
 
     if (available)
-        PhInitFormatF(&format[0], PhHwCpuPower, 0);
+        PhInitFormatF(&format[0], power, 0);
     else
         PhInitFormatC(&format[0], L'-');
 
@@ -2870,7 +2876,7 @@ VOID PhNfpCpuPowerTextIconUpdateCallback(
 
     if (available)
     {
-        PhInitFormatF(&format[1], PhHwCpuPower, 1);
+        PhInitFormatF(&format[1], power, 1);
         PhInitFormatS(&format[2], L" W");
         *NewText = PhFormat(format, 3, 0);
     }
