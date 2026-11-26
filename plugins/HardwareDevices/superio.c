@@ -5039,7 +5039,12 @@ static VOID SuperIoAddW83627hfRegisters(
         SuperIoAddRegister(List, W83627HF_REG_FAN(i));
 
     for (ULONG i = 0; i < Variant->PwmCount; i++)
-        SuperIoAddRegister(List, (Variant->Flags & MB_W83627HF_THF_PWM) ? W83627thfPwmRegisters[i] : W83627hfPwmRegisters[i]);
+    {
+        if (Variant->Flags & MB_W83627HF_THF_PWM)
+            SuperIoAddRegister(List, W83627thfPwmRegisters[i]);
+        else
+            SuperIoAddRegister(List, W83627hfPwmRegisters[i]);
+    }
 }
 
 static VOID SuperIoAddF71805fRegisters(
@@ -5494,7 +5499,12 @@ static VOID SuperIoAddVoltage(
     }
 
     if (sensor = SuperIoAddSensor(Context, PhHwSensorTypeVoltage, Index, value))
-        SuperIoSetName(sensor, entry ? entry->Name : Label);
+    {
+        if (entry)
+            SuperIoSetName(sensor, entry->Name);
+        else
+            SuperIoSetName(sensor, Label);
+    }
 }
 
 static VOID SuperIoAddTemperature(
@@ -5740,8 +5750,13 @@ static VOID SuperIoDecodeNct67(
     // At or below the minimum, the counter has run out and the fan is stopped.
     for (ULONG i = 0; i < variant->FanCount; i++)
     {
-        if (SuperIoRead16(registers, map->FanRegisters[i], &value16))
-            SuperIoAddFan(Context, i, value16 > variant->FanMinimumRpm ? (FLOAT)value16 : 0, FALSE);
+        if (!SuperIoRead16(registers, map->FanRegisters[i], &value16))
+            continue;
+
+        if (value16 > variant->FanMinimumRpm)
+            SuperIoAddFan(Context, i, (FLOAT)value16, FALSE);
+        else
+            SuperIoAddFan(Context, i, 0, FALSE);
     }
 
     for (ULONG i = 0; i < variant->PwmCount; i++)
@@ -5861,8 +5876,13 @@ static VOID SuperIoDecodeNct610x(
     // 16-bit RPM, high byte first.
     for (ULONG i = 0; i < variant->FanCount; i++)
     {
-        if (SuperIoRead16(registers, (USHORT)(NCT610X_REG_FAN_RPM + i * 2), &value16))
-            SuperIoAddFan(Context, i, value16 > NCT610X_FAN_MINIMUM_RPM ? (FLOAT)value16 : 0, FALSE);
+        if (!SuperIoRead16(registers, (USHORT)(NCT610X_REG_FAN_RPM + i * 2), &value16))
+            continue;
+
+        if (value16 > NCT610X_FAN_MINIMUM_RPM)
+            SuperIoAddFan(Context, i, (FLOAT)value16, FALSE);
+        else
+            SuperIoAddFan(Context, i, 0, FALSE);
     }
 
     for (ULONG i = 0; i < variant->PwmCount; i++)
@@ -6028,7 +6048,10 @@ static VOID SuperIoDecodeW836(
                 continue;
 
             // 0 and FFh: no reading.
-            SuperIoAddFan(Context, i, value8 && value8 != 0xff ? 1350000.0f / ((ULONG)value8 << divisors[i]) : 0, FALSE);
+            if (value8 && value8 != 0xff)
+                SuperIoAddFan(Context, i, 1350000.0f / ((ULONG)value8 << divisors[i]), FALSE);
+            else
+                SuperIoAddFan(Context, i, 0, FALSE);
         }
     }
 
@@ -6110,7 +6133,10 @@ static VOID SuperIoDecodeW83627hf(
                 continue;
 
             // 0 and FFh: no reading.
-            SuperIoAddFan(Context, i, value8 && value8 != 0xff ? 1350000.0f / ((ULONG)value8 << divisors[i]) : 0, FALSE);
+            if (value8 && value8 != 0xff)
+                SuperIoAddFan(Context, i, 1350000.0f / ((ULONG)value8 << divisors[i]), FALSE);
+            else
+                SuperIoAddFan(Context, i, 0, FALSE);
         }
     }
 
@@ -6458,7 +6484,10 @@ static VOID SuperIoDecodeF71805f(
         if (!(variant->InputMask & (1u << i)) || !SuperIoRead8(registers, F71805F_REG_IN(i), &value8))
             continue;
 
-        SuperIoAddVoltage(Context, i, value8 * ((F71805F_HALVED_INPUTS & (1u << i)) ? 0.016f : 0.008f), FALSE, F71805fInputLabels[i]);
+        if (F71805F_HALVED_INPUTS & (1u << i))
+            SuperIoAddVoltage(Context, i, value8 * 0.016f, FALSE, F71805fInputLabels[i]);
+        else
+            SuperIoAddVoltage(Context, i, value8 * 0.008f, FALSE, F71805fInputLabels[i]);
     }
 
     for (USHORT i = 0; i < 3; i++)
@@ -6473,7 +6502,11 @@ static VOID SuperIoDecodeF71805f(
         if (SuperIoRead16(registers, F71805F_REG_FAN(i), &value16))
         {
             value16 &= 0xfff;
-            SuperIoAddFan(Context, i, value16 && value16 != 0xfff ? 1500000.0f / value16 : 0, FALSE);
+
+            if (value16 && value16 != 0xfff)
+                SuperIoAddFan(Context, i, 1500000.0f / value16, FALSE);
+            else
+                SuperIoAddFan(Context, i, 0, FALSE);
         }
 
         if (SuperIoRead8(registers, F71805F_REG_PWM_DUTY(i), &value8))
@@ -6603,7 +6636,10 @@ static VOID SuperIoDecodeSmsc(
         if (!SuperIoRead16Le(registers, (USHORT)(SMSC_REG_FAN + i * 2), &count))
             continue;
 
-        SuperIoAddFan(Context, i, count && count != 0xffff ? 5400000.0f / count : 0, FALSE);
+        if (count && count != 0xffff)
+            SuperIoAddFan(Context, i, 5400000.0f / count, FALSE);
+        else
+            SuperIoAddFan(Context, i, 0, FALSE);
     }
 
     for (USHORT i = 0; i < SMSC_PWMS; i++)
