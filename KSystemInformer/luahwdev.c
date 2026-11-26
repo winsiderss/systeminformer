@@ -1248,46 +1248,6 @@ VOID KphpLuaHwLayBuffers(
 }
 
 /**
- * \brief Clears the addresses KphpLuaHwLayBuffers wrote that are still there.
- *
- * \param[in] State The Lua state.
- * \param[in] Request The completed request.
- * \param[in] Buffers The buffers.
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-VOID KphpLuaHwHideBuffers(
-    _In_ lua_State* State,
-    _In_ PKPH_LUA_HW_REQUEST Request,
-    _In_ PKPH_LUA_HW_BUFFERS Buffers
-    )
-{
-    KPH_PAGED_CODE_PASSIVE();
-
-    for (ULONG i = 0; i < Buffers->Count; i++)
-    {
-        int slot;
-        PVOID address;
-        PVOID target;
-        PVOID held;
-
-        slot = KphpLuaHwBufferSlot(Buffers, i + 1);
-        address = KphpLuaHwBufferAddress(State, Request, Buffers, i + 1);
-        target = KphpLuaHwBufferAddress(State,
-                                        Request,
-                                        Buffers,
-                                        (ULONG)lua_tointeger(State, slot + 2));
-        target = Add2Ptr(target, (ULONG)lua_tointeger(State, slot + 1));
-
-        RtlCopyMemory(&held, target, sizeof(PVOID));
-
-        if (held == address)
-        {
-            RtlZeroMemory(target, sizeof(PVOID));
-        }
-    }
-}
-
-/**
  * \brief Creates and prepares a request.
  *
  * \param[in] State The Lua state.
@@ -1452,14 +1412,6 @@ int KphpLuaHwPushRequest(
 
     KphScriptPushCleanup(State, KphpLuaHwReleaseRequest, Request);
     cleanup = lua_gettop(State);
-
-    if (Buffers &&
-        Completed &&
-        ((NT_SUCCESS(Status) ||
-         (Status == STATUS_BUFFER_OVERFLOW))))
-    {
-        KphpLuaHwHideBuffers(State, Request, Buffers);
-    }
 
     if (!Completed && (Status == STATUS_SI_SCRIPT_LIMIT))
     {
