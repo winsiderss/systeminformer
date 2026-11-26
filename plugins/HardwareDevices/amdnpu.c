@@ -198,11 +198,16 @@ static VOID NTAPI AmdNpuSourceDiagnostics(
     }
     else
     {
+        PCWSTR stopped = L"";
+
+        if (context->Stopped)
+            stopped = L" (stopped)";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"AMD NPU: status 0x%08lx%s\n",
             context->LastStatus,
-            context->Stopped ? L" (stopped)" : L""
+            stopped
             );
     }
 

@@ -679,8 +679,10 @@ static PVOID AtpHwCreateHistoryRow(
 
             AtJsonAddTime(sample, "time", &Times[i]);
 
-            if (isnan(Values[i]))
-                AtJsonAddNull(sample, throttle ? "throttle" : "value");
+            if (isnan(Values[i]) && throttle)
+                AtJsonAddNull(sample, "throttle");
+            else if (isnan(Values[i]))
+                AtJsonAddNull(sample, "value");
             else if (throttle)
                 AtJsonAddFlagStrings(sample, "throttle", (ULONG)Values[i], AtpHwThrottleFlags, AtpHwThrottleNames, RTL_NUMBER_OF(AtpHwThrottleFlags));
             else

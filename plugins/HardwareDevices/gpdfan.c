@@ -99,8 +99,10 @@ static VOID NTAPI GpdFanSourceDiagnostics(
 
     PhAcquireQueuedLockShared(&context->Lock);
 
-    if (context->LastPollTime)
-        PhAppendFormatStringBuilder(Builder, L"GPD fan: status 0x%08lx%s\n", context->LastStatus, context->Unsupported ? L" (not a listed handheld)" : L"");
+    if (context->LastPollTime && context->Unsupported)
+        PhAppendFormatStringBuilder(Builder, L"GPD fan: status 0x%08lx (not a listed handheld)\n", context->LastStatus);
+    else if (context->LastPollTime)
+        PhAppendFormatStringBuilder(Builder, L"GPD fan: status 0x%08lx\n", context->LastStatus);
     else
         PhAppendStringBuilder2(Builder, L"GPD fan: not read (no driver)\n");
 

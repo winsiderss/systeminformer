@@ -199,6 +199,8 @@ static VOID MotherboardIdentify(
     ULONG count = 0;
     USHORT registers[MB_MAX_REGISTERS];
     WCHAR componentName[RTL_NUMBER_OF(Slot->ComponentName)];
+    PCPH_STRINGREF manufacturer = NULL;
+    PCPH_STRINGREF product = NULL;
 
     memset(Slot->Snapshot.Valid, 0, sizeof(Slot->Snapshot.Valid));
     memset(&Slot->Chip, 0, sizeof(Slot->Chip));
@@ -207,10 +209,15 @@ static VOID MotherboardIdentify(
     Slot->Identity = *Identity;
     MotherboardPublish(Context, Slot, 0);
 
+    if (Context->Manufacturer)
+        manufacturer = &Context->Manufacturer->sr;
+    if (Context->Product)
+        product = &Context->Product->sr;
+
     if (!SuperIoIdentifyChip(
         Identity,
-        Context->Manufacturer ? &Context->Manufacturer->sr : NULL,
-        Context->Product ? &Context->Product->sr : NULL,
+        manufacturer,
+        product,
         &Slot->Chip
         ))
     {
@@ -514,6 +521,13 @@ static VOID NTAPI MotherboardSensorSourceDiagnostics(
     for (ULONG i = 0; i < MB_SLOTS; i++)
     {
         PMB_SLOT slot = &context->Slots[i];
+        PCWSTR chipName = L"no decoder";
+        PCWSTR board = L"no";
+
+        if (slot->ChipName)
+            chipName = slot->ChipName;
+        if (slot->ReportBoard)
+            board = L"yes";
 
         PhAppendFormatStringBuilder(
             Builder,
@@ -523,8 +537,8 @@ static VOID NTAPI MotherboardSensorSourceDiagnostics(
             slot->ReportIdentity.Family,
             slot->ReportIdentity.Chip,
             slot->ReportIdentity.Customer,
-            slot->ChipName ? slot->ChipName : L"no decoder",
-            slot->ReportBoard ? L"yes" : L"no",
+            chipName,
+            board,
             slot->SensorCount
             );
 
@@ -704,9 +718,14 @@ INT_PTR CALLBACK MotherboardOptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
+            INT check = BST_UNCHECKED;
+
+            if (PhGetIntegerSetting(SETTING_NAME_MOTHERBOARD_ENABLED))
+                check = BST_CHECKED;
+
             Button_SetCheck(
                 GetDlgItem(WindowHandle, IDC_MOTHERBOARD_ENABLE),
-                PhGetIntegerSetting(SETTING_NAME_MOTHERBOARD_ENABLED) ? BST_CHECKED : BST_UNCHECKED
+                check
                 );
 
             if (!MotherboardSupported)

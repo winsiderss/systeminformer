@@ -293,7 +293,11 @@ static VOID DiskTemperatureEnumerate(
         PhInitFormatS(&format[0], L"Disk ");
         PhInitFormatU(&format[1], diskIndex);
         PhInitFormatS(&format[2], L" (");
-        PhInitFormatSR(&format[3], description ? description->sr : path->sr);
+        if (description)
+            PhInitFormatSR(&format[3], description->sr);
+        else
+            PhInitFormatSR(&format[3], path->sr);
+
         PhInitFormatC(&format[4], L')');
         disk->Name = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
@@ -479,13 +483,20 @@ static VOID NTAPI DiskTemperatureSourceDiagnostics(
     for (ULONG i = 0; i < context->Count; i++)
     {
         PDT_DISK disk = &context->Disks[i];
+        PCWSTR bus = L"NVMe";
+        PCWSTR rotational = L"";
+
+        if (disk->Ata)
+            bus = L"ATA";
+        if (disk->Rotational)
+            rotational = L", rotational";
 
         PhAppendFormatStringBuilder(
             Builder,
             L"  %s: %s%s, status 0x%08lx",
             disk->Name->Buffer,
-            disk->Ata ? L"ATA" : L"NVMe",
-            disk->Rotational ? L", rotational" : L"",
+            bus,
+            rotational,
             disk->LastStatus
             );
 

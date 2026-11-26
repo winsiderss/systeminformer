@@ -62,6 +62,8 @@ static VOID DellSmmNameSensors(
         ULONG type = fan ? Context->Identity.FanTypes[i] : Context->Identity.TempTypes[i - KPH_HW_DELL_FANS];
         PCWSTR label;
         BOOLEAN repeated = FALSE;
+        PCWSTR docking = L"";
+        ULONG ordinal;
 
         if (type == 0xFF)
             continue;
@@ -89,15 +91,37 @@ static VOID DellSmmNameSensors(
         }
 
         // Bit 4 of a fan's type is a docking station's fan.
-        _snwprintf_s(
-            Context->Names[i],
-            RTL_NUMBER_OF(Context->Names[i]),
-            _TRUNCATE,
-            repeated ? L"%s%s %lu" : L"%s%s",
-            fan && (type & 0x10) ? L"Docking " : L"",
-            label,
-            (fan ? i : i - KPH_HW_DELL_FANS) + 1
-            );
+        if (fan && (type & 0x10))
+            docking = L"Docking ";
+
+        if (fan)
+            ordinal = i + 1;
+        else
+            ordinal = i - KPH_HW_DELL_FANS + 1;
+
+        if (repeated)
+        {
+            _snwprintf_s(
+                Context->Names[i],
+                RTL_NUMBER_OF(Context->Names[i]),
+                _TRUNCATE,
+                L"%s%s %lu",
+                docking,
+                label,
+                ordinal
+                );
+        }
+        else
+        {
+            _snwprintf_s(
+                Context->Names[i],
+                RTL_NUMBER_OF(Context->Names[i]),
+                _TRUNCATE,
+                L"%s%s",
+                docking,
+                label
+                );
+        }
     }
 }
 
@@ -237,11 +261,18 @@ static VOID NTAPI DellSmmSourceDiagnostics(
     }
     else
     {
+        PCWSTR stopped = L"";
+
+        if (context->LastStatus == STATUS_IO_TIMEOUT)
+            stopped = L" (slow firmware: stopped)";
+        else if (context->Stopped)
+            stopped = L" (stopped)";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"Dell SMM: status 0x%08lx%s; fans 0x%lx, sensors 0x%lx, multiplier %lu\n",
             context->LastStatus,
-            context->LastStatus == STATUS_IO_TIMEOUT ? L" (slow firmware: stopped)" : context->Stopped ? L" (stopped)" : L"",
+            stopped,
             context->FanMask,
             context->TempMask,
             context->Identity.Multiplier

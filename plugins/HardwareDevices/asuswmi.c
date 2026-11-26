@@ -187,11 +187,16 @@ static VOID NTAPI AsusWmiSourceDiagnostics(
     }
     else
     {
+        PCWSTR stopped = L"";
+
+        if (context->Stopped)
+            stopped = L" (stopped)";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"ASUS hardware monitor: status 0x%08lx%s; version %lu, %lu sensors\n",
             context->LastStatus,
-            context->Stopped ? L" (stopped)" : L"",
+            stopped,
             context->Identity.Version,
             context->Identity.Count
             );
