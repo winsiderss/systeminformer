@@ -504,7 +504,10 @@ NTSTATUS NTAPI PhpHwVrmPass(
             if (modePass || !vrm->ModeKnown[page])
             {
                 vrm->ModeKnown[page] = read && NT_SUCCESS(values[at].Status);
-                vrm->Mode[page] = (UCHAR)values[at].Value;
+
+                if (vrm->ModeKnown[page])
+                    vrm->Mode[page] = (UCHAR)values[at].Value;
+
                 at++;
             }
 
