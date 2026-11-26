@@ -153,14 +153,14 @@ static VOID BatteryEnumerate(
 
         memset(&information, 0, sizeof(BATTERY_INFORMATION));
 
-        // A tag of 0 is no battery in the slot.
+        // A tag of 0 is no battery in the slot yet; the slot is kept and polled.
         if (
             !NT_SUCCESS(PhDeviceIoControlFile(battery.Handle, IOCTL_BATTERY_QUERY_TAG, &timeout, sizeof(timeout), &battery.Tag, sizeof(battery.Tag), NULL)) ||
-            !battery.Tag ||
+            (battery.Tag && (
             !NT_SUCCESS(BatteryQueryInformation(&battery, BatteryInformation, &information, sizeof(information))) ||
             (information.Capabilities & BATTERY_CAPACITY_RELATIVE) ||
             !information.FullChargedCapacity || information.FullChargedCapacity == BATTERY_UNKNOWN_CAPACITY
-            )
+            )))
         {
             NtClose(battery.Handle);
             continue;
@@ -210,8 +210,33 @@ static VOID BatteryPoll(
 
     Battery->LastStatus = PhDeviceIoControlFile(Battery->Handle, IOCTL_BATTERY_QUERY_STATUS, &wait, sizeof(wait), &status, sizeof(status), NULL);
 
+    // A new tag (a battery swapped in, or its static data changed): the tag and capacities read again, the status once more.
     if (!NT_SUCCESS(Battery->LastStatus))
-        return;
+    {
+        ULONG timeout = 0;
+        BATTERY_INFORMATION information;
+
+        memset(&information, 0, sizeof(BATTERY_INFORMATION));
+
+        if (
+            !NT_SUCCESS(PhDeviceIoControlFile(Battery->Handle, IOCTL_BATTERY_QUERY_TAG, &timeout, sizeof(timeout), &Battery->Tag, sizeof(Battery->Tag), NULL)) ||
+            !Battery->Tag ||
+            !NT_SUCCESS(BatteryQueryInformation(Battery, BatteryInformation, &information, sizeof(information))) ||
+            (information.Capabilities & BATTERY_CAPACITY_RELATIVE) ||
+            !information.FullChargedCapacity || information.FullChargedCapacity == BATTERY_UNKNOWN_CAPACITY
+            )
+        {
+            return;
+        }
+
+        Battery->DesignedCapacity = information.DesignedCapacity;
+        Battery->FullChargedCapacity = information.FullChargedCapacity;
+        wait.BatteryTag = Battery->Tag;
+        Battery->LastStatus = PhDeviceIoControlFile(Battery->Handle, IOCTL_BATTERY_QUERY_STATUS, &wait, sizeof(wait), &status, sizeof(status), NULL);
+
+        if (!NT_SUCCESS(Battery->LastStatus))
+            return;
+    }
 
     if (status.Capacity != BATTERY_UNKNOWN_CAPACITY)
     {
