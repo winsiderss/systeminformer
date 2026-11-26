@@ -143,7 +143,7 @@ BEGIN
     RTEXT           "Static",IDC_ZWRITEBYTESDELTA_V,227,22,56,8,SS_ENDELLIPSIS
 END
 
-IDD_OPTIONS DIALOGEX 0, 0, 225, 147
+IDD_OPTIONS DIALOGEX 0, 0, 225, 134
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CLIPCHILDREN | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -155,11 +155,9 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,130,10
     CONTROL         "Enable GPU monitoring",IDC_ENABLEGPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,88,10
     CONTROL         "Enable NPU monitoring",IDC_ENABLENPUMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,59,88,10
-    LTEXT           "GPU/NPU temperature unit:",IDC_STATIC,7,73,90,8
-    COMBOBOX        IDC_TEMPERATUREUNIT,100,71,80,40,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    CONTROL         "Enable FPS monitoring",IDC_ENABLEFPSMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,85,130,10
-    CONTROL         "Enable per-process GPU adapter statistics",IDC_ENABLEGPUADAPTERSTATS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,98,210,10
-    LTEXT           "Note: FPS monitoring requires either administrative privileges or the current user a member of the ""Performance Log Users"" group.",IDC_STATIC,7,117,211,23
+    CONTROL         "Enable FPS monitoring",IDC_ENABLEFPSMONITOR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,72,130,10
+    CONTROL         "Enable per-process GPU adapter statistics",IDC_ENABLEGPUADAPTERSTATS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,85,210,10
+    LTEXT           "Note: FPS monitoring requires either administrative privileges or the current user a member of the ""Performance Log Users"" group.",IDC_STATIC,7,104,211,23
 END
 
 IDD_WSWATCH DIALOGEX 0, 0, 325, 266
