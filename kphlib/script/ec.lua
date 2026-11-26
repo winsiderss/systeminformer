@@ -26,6 +26,7 @@ local WAIT_US = 50
 local WAIT_SPINS = 88
 local WAIT_MS = 100
 local PUT_BACK_ROUNDS = 2000
+local SETTLE_ROUNDS = 20
 local GLOBAL_LOCK_MS = 100
 local EVAL_MS = 100
 
@@ -1114,12 +1115,17 @@ local function ec_read(s, address)
   if st ~= nt.STATUS_SUCCESS then
     return st, 0
   end
+  s.reading = 1
   ksi.hw.port_write(s.data, 1, address)
+  s.reading = 2
   st = wait(s, OBF, OBF)
   if st ~= nt.STATUS_SUCCESS then
+    s.reading = nil
     return st, 0
   end
-  return nt.STATUS_SUCCESS, ksi.hw.port_read(s.data, 1)
+  local value = ksi.hw.port_read(s.data, 1)
+  s.reading = nil
+  return nt.STATUS_SUCCESS, value
 end
 
 local function ec_write(s, address, value)
@@ -1132,6 +1138,32 @@ local function ec_write(s, address, value)
   end
   return wait(s, IBF, 0)
 end
+
+-- Takes the byte of a read the call ended inside, so that it does not wait in
+-- the output buffer: counted waits, a few when the address may not have gone.
+local SETTLE = {
+  __close = function(g)
+    local s = g.s
+    local rounds = 0
+    if s.reading == 2 then
+      rounds = PUT_BACK_ROUNDS
+    elseif s.reading == 1 then
+      rounds = SETTLE_ROUNDS
+    end
+    s.reading = nil
+    for _ = 1, rounds do
+      local status = ksi.hw.port_read(s.command, 1)
+      if status == FLOATING then
+        return
+      end
+      if (status & OBF) ~= 0 then
+        ksi.hw.port_read(s.data, 1)
+        return
+      end
+      ksi.stall(WAIT_US)
+    end
+  end,
+}
 
 -- Puts the bank back from a close handler: counted waits, since a time limit
 -- may have ended the call.
@@ -1247,6 +1279,7 @@ local function with_locks(s, fn)
     ksi.trace('the EC holds a byte of another transaction')
     return nt.STATUS_DEVICE_BUSY
   end
+  local settled <close> = setmetatable({ s = s }, SETTLE)
   return fn()
 end
 
