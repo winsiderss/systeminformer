@@ -730,17 +730,17 @@ local function cycle(s, address)
     local written, failed = ksi.hw.pci_write(device, row.index, 4, address)
     if not written then
       ksi.trace('index write at 0x%x failed: 0x%x', row.index, failed)
-      return nt.STATUS_DEVICE_NOT_READY, 0
+      return failed, 0
     end
     value, failed = ksi.hw.pci_read(device, row.data, 4)
     if not value then
       ksi.trace('data read at 0x%x failed: 0x%x', row.data, failed)
-      return nt.STATUS_DEVICE_NOT_READY, 0
+      return failed, 0
     end
     check, failed = ksi.hw.pci_read(device, row.index, 4)
     if not check then
       ksi.trace('index read at 0x%x failed: 0x%x', row.index, failed)
-      return nt.STATUS_DEVICE_NOT_READY, 0
+      return failed, 0
     end
     if check == address then
       if value == ALL_ONES then
