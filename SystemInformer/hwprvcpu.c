@@ -1500,6 +1500,10 @@ static VOID PhpHwCpuPublishResidency(
     FLOAT ticks = Seconds * PhpHwCpuTscMhz * 1000000.0f;
     FLOAT percent;
 
+    // Silvermont and Airmont (the models with MSR_FSB_FREQ) count package C6 at 3FAh.
+    if (reg == PhpHwRegPackageC7Residency && PhpHwCpuRegisters[PhpHwRegFsbFreq].Register)
+        state = 6;
+
     if (ticks <= 0.0f || !(Sample->Valid & Sample->LastValid & (1ULL << reg)))
     {
         PhpHwSetNamedSensor(PhpHwCpuResidencyIndex[Slot], FALSE, 0.0f);
