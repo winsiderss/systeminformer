@@ -209,11 +209,15 @@ static BOOLEAN NTAPI CpuSensorGraphCallback(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)Parameter1;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            COLORREF color = PhCsColorPowerUsage;
+
+            if (capability == PH_HW_CAP_PACKAGE_TEMP)
+                color = PhCsColorTemperature;
 
             drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
             PhSiSetColorsGraphDrawInfo(
                 drawInfo,
-                capability == PH_HW_CAP_PACKAGE_TEMP ? PhCsColorTemperature : PhCsColorPowerUsage,
+                color,
                 0,
                 CpuSection->Parameters->WindowDpi
                 );
@@ -338,9 +342,21 @@ static HDWP CpuLayoutSensorGraphs(
     LONG y = ClientRect->bottom - CpuGraphMarginScaled.bottom - Height;
     LONG right = ClientRect->right - CpuGraphMarginScaled.right;
     LONG temperatureWidth = right - x;
+    UINT temperatureFlags = SWP_NOACTIVATE | SWP_NOZORDER;
+    UINT powerFlags = SWP_NOACTIVATE | SWP_NOZORDER;
 
     if (showTemperature && showPower)
         temperatureWidth = (right - x - CpuSection->Parameters->CpuPadding) / 2;
+
+    if (showTemperature)
+        temperatureFlags |= SWP_SHOWWINDOW;
+    else
+        temperatureFlags |= SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE;
+
+    if (showPower)
+        powerFlags |= SWP_SHOWWINDOW;
+    else
+        powerFlags |= SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE;
 
     DeferHandle = DeferWindowPos(
         DeferHandle,
@@ -350,7 +366,7 @@ static HDWP CpuLayoutSensorGraphs(
         y,
         temperatureWidth,
         Height,
-        SWP_NOACTIVATE | SWP_NOZORDER | (showTemperature ? SWP_SHOWWINDOW : (SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE))
+        temperatureFlags
         );
 
     if (showTemperature)
@@ -364,7 +380,7 @@ static HDWP CpuLayoutSensorGraphs(
         y,
         right - x,
         Height,
-        SWP_NOACTIVATE | SWP_NOZORDER | (showPower ? SWP_SHOWWINDOW : (SWP_HIDEWINDOW | SWP_NOMOVE | SWP_NOSIZE))
+        powerFlags
         );
 
     return DeferHandle;
@@ -1018,6 +1034,7 @@ VOID PhSipLayoutCpuGraphs(
     RECT rect;
     HDWP deferHandle;
     LONG sensorGraphHeight;
+    ULONG graphCount = 1;
 
     rect = CpuGraphMarginScaled;
 
@@ -1029,7 +1046,10 @@ VOID PhSipLayoutCpuGraphs(
     if (sensorGraphHeight)
         rect.bottom += sensorGraphHeight + CpuSection->Parameters->CpuPadding;
 
-    deferHandle = BeginDeferWindowPos((OneGraphPerCpu ? NumberOfProcessors : 1) + 2);
+    if (OneGraphPerCpu)
+        graphCount = NumberOfProcessors;
+
+    deferHandle = BeginDeferWindowPos(graphCount + 2);
 
     if (!OneGraphPerCpu)
     {
@@ -1592,8 +1612,13 @@ static VOID PhSipUpdateCpuLimits(
 
     if (show != CpuLimitsShown)
     {
-        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_L), show ? SW_SHOW : SW_HIDE);
-        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_V), show ? SW_SHOW : SW_HIDE);
+        INT showCommand = SW_HIDE;
+
+        if (show)
+            showCommand = SW_SHOW;
+
+        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_L), showCommand);
+        ShowWindow(GetDlgItem(CpuPanel, IDC_ZCPULIMITS_V), showCommand);
         CpuLimitsShown = show;
     }
 }

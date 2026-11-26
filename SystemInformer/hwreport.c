@@ -418,7 +418,11 @@ static VOID PhpHwReportPlatform(
         if (strcmp(vendor, "Microsoft Hv") == 0 && (ULONG)cpuInfo[0] >= 0x40000003)
         {
             __cpuid(cpuInfo, 0x40000003);
-            PhAppendFormatStringBuilder(Builder, L", root partition %s", (cpuInfo[1] & 1) ? L"yes" : L"no");
+
+            if (cpuInfo[1] & 1)
+                PhAppendStringBuilder2(Builder, L", root partition yes");
+            else
+                PhAppendStringBuilder2(Builder, L", root partition no");
         }
 
         PhAppendCharStringBuilder(Builder, L'\n');
@@ -435,18 +439,34 @@ static VOID PhpHwReportPlatform(
 
     if (NT_SUCCESS(NtQuerySystemInformation(SystemCodeIntegrityInformation, &codeIntegrity, sizeof(codeIntegrity), NULL)))
     {
+        PCWSTR testSigning = L"off";
+        PCWSTR debugMode = L"off";
+        PCWSTR hvci = L"off";
+
+        if (codeIntegrity.CodeIntegrityOptions & CODEINTEGRITY_OPTION_TESTSIGN)
+            testSigning = L"on";
+        if (codeIntegrity.CodeIntegrityOptions & CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED)
+            debugMode = L"on";
+        if (codeIntegrity.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED)
+            hvci = L"on";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"Code integrity: 0x%08lx (test signing %s, debug mode %s, HVCI %s)\n",
             codeIntegrity.CodeIntegrityOptions,
-            (codeIntegrity.CodeIntegrityOptions & CODEINTEGRITY_OPTION_TESTSIGN) ? L"on" : L"off",
-            (codeIntegrity.CodeIntegrityOptions & CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED) ? L"on" : L"off",
-            (codeIntegrity.CodeIntegrityOptions & CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED) ? L"on" : L"off"
+            testSigning,
+            debugMode,
+            hvci
             );
     }
 
     if (NT_SUCCESS(NtQuerySystemInformation(SystemSecureBootInformation, &secureBoot, sizeof(secureBoot), NULL)))
-        PhAppendFormatStringBuilder(Builder, L"Secure Boot: %s\n", secureBoot.SecureBootEnabled ? L"on" : L"off");
+    {
+        if (secureBoot.SecureBootEnabled)
+            PhAppendStringBuilder2(Builder, L"Secure Boot: on\n");
+        else
+            PhAppendStringBuilder2(Builder, L"Secure Boot: off\n");
+    }
 }
 
 static VOID PhpHwReportProcessor(
@@ -687,7 +707,11 @@ PPH_STRING NTAPI PhHwCreateReport(
 
     PhpHwReportSection(&builder, L"Status");
     reason = PhHwGetSensorsUnavailableReason();
-    PhAppendStringBuilder(&builder, reason ? reason : &available);
+
+    if (!reason)
+        reason = &available;
+
+    PhAppendStringBuilder(&builder, reason);
     PhAppendCharStringBuilder(&builder, L'\n');
 
     PhpHwReportSection(&builder, L"Software");

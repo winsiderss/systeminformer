@@ -143,10 +143,15 @@ VOID PhShowHardwareSensorsWindow(
 {
     if (!PhpHwSensorsWindowHandle)
     {
+        HWND parentWindowHandle = ParentWindowHandle;
+
+        if (PhCsForceNoParent)
+            parentWindowHandle = NULL;
+
         PhpHwSensorsWindowHandle = PhCreateDialog(
             NtCurrentImageBase(),
             MAKEINTRESOURCE(IDD_HWSENSORS),
-            PhCsForceNoParent ? NULL : ParentWindowHandle,
+            parentWindowHandle,
             PhpHwSensorsDlgProc,
             NULL
             );

@@ -744,23 +744,29 @@ static VOID PhSipLayoutMemoryHardwareRows(
     for (ULONG i = 0; i < RTL_NUMBER_OF(MemoryHardwareRows); i++)
     {
         BOOLEAN show = !!(Shown & (1UL << i));
+        INT showCommand = SW_HIDE;
 
         if (show)
         {
+            showCommand = SW_SHOW;
             top += pitch;
 
             for (ULONG j = 0; j < 2; j++)
             {
                 RECT rect = MemoryHardwareRowRects[i][j];
+                INT itemId = MemoryHardwareRows[i].LabelId;
+
+                if (j)
+                    itemId = MemoryHardwareRows[i].ValueId;
 
                 rect.bottom = top + (rect.bottom - rect.top);
                 rect.top = top;
-                PhSipSetMemoryPanelItemRect(j ? MemoryHardwareRows[i].ValueId : MemoryHardwareRows[i].LabelId, &rect);
+                PhSipSetMemoryPanelItemRect(itemId, &rect);
             }
         }
 
-        ShowWindow(GetDlgItem(MemoryPanel, MemoryHardwareRows[i].LabelId), show ? SW_SHOW : SW_HIDE);
-        ShowWindow(GetDlgItem(MemoryPanel, MemoryHardwareRows[i].ValueId), show ? SW_SHOW : SW_HIDE);
+        ShowWindow(GetDlgItem(MemoryPanel, MemoryHardwareRows[i].LabelId), showCommand);
+        ShowWindow(GetDlgItem(MemoryPanel, MemoryHardwareRows[i].ValueId), showCommand);
     }
 
     hardware.bottom = MemoryHardwareRect.bottom + (top - MemorySpeedValueRect.top);
@@ -861,7 +867,12 @@ static VOID PhSipUpdateMemoryHardwareRows(
                 values[6] = PhCreateString(L"N:1");
 
             if (timings->GearDownValid)
-                values[7] = PhCreateString(timings->GearDown ? L"Enabled" : L"Disabled");
+            {
+                if (timings->GearDown)
+                    values[7] = PhCreateString(L"Enabled");
+                else
+                    values[7] = PhCreateString(L"Disabled");
+            }
         }
 
         break;

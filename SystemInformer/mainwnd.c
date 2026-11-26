@@ -3777,6 +3777,7 @@ PPH_EMENU PhpCreateToolsMenu(
     )
 {
     PPH_EMENU_ITEM menuItem;
+    ULONG hardwareSensorsFlags = PH_EMENU_DISABLED;
 
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_CREATESERVICE, L"&Create service...", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_LIVEDUMP, L"&Create live dump...", NULL, NULL), ULONG_MAX);
@@ -3788,8 +3789,11 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
         (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
+    if (PhHwSensorsWindowAvailable())
+        hardwareSensorsFlags = 0;
+
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
-        PhHwSensorsWindowAvailable() ? 0 : PH_EMENU_DISABLED,
+        hardwareSensorsFlags,
         ID_TOOLS_HARDWARESENSORS, L"&Hardware sensors", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);

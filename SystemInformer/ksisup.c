@@ -1768,12 +1768,16 @@ PPH_STRING KsiCreateUpdateWindowsString(
             if (rootBlock = PhGetFileVersionFixedInfo(versionInfo))
             {
                 PH_FORMAT format[5];
+                PCWSTR suffix = L"_32";
+
+                if (PhIsExecutingInWow64())
+                    suffix = L"_64";
 
                 PhInitFormatS(&format[0], L"KsiOsBuild: ");
                 PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
                 PhInitFormatC(&format[2], '.');
                 PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
-                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64" : L"_32");
+                PhInitFormatS(&format[4], suffix);
 
                 buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
@@ -2182,13 +2186,18 @@ BOOLEAN KsiActivateDynData(
     }
     else if (!NT_SUCCESS(status))
     {
+        PCWSTR message = L"Failed to access the dynamic configuration.";
+
+        if (dynData)
+            message = L"Failed to activate the dynamic configuration.";
+
         PhShowKsiMessageEx(
             WindowHandle,
             TD_WARNING_ICON,
             status,
             FALSE,
             L"Reduced driver functionality",
-            dynData ? L"Failed to activate the dynamic configuration." : L"Failed to access the dynamic configuration."
+            message
             );
     }
 
