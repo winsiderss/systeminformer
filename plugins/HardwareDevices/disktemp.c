@@ -218,6 +218,7 @@ static VOID DiskTemperatureEnumerate(
         PH_FORMAT format[5];
         BOOLEAN ata;
         BOOLEAN rotational;
+        BOOLEAN known;
         DEVINST devInst;
 
         path = PhCreateString((PWSTR)deviceObjects[i].pszObjectId);
@@ -228,13 +229,18 @@ static VOID DiskTemperatureEnumerate(
 
         PhAddItemList(listed, path);
 
+        known = FALSE;
+
         for (ULONG d = 0; d < Context->Count; d++)
         {
             if (PhEqualString(Context->Disks[d].Path, path, TRUE))
+            {
                 Context->Disks[d].Present = TRUE;
+                known = TRUE;
+            }
         }
 
-        if (Context->Count == DT_MAX_DISKS || DiskTemperatureFindPath(Context->Probed, path) != ULONG_MAX)
+        if (known || Context->Count == DT_MAX_DISKS || DiskTemperatureFindPath(Context->Probed, path) != ULONG_MAX)
             continue;
 
         PhAddItemList(Context->Probed, PhReferenceObject(path));
