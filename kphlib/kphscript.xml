@@ -82,25 +82,25 @@ This file is part of System Informer.
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
-    <script name="prom21" file="script/prom21.lua" arch="amd64" desc="AMD Promontory 21 chipset die temperature through its USB controller">
+    <script name="prom21" file="script/prom21.lua" arch="amd64" desc="AMD Promontory 21 temperature">
         <routine name="read" level="maximum"/>
     </script>
-    <script name="hpwmi" file="script/hpwmi.lua" arch="amd64" desc="HP numeric sensors through the firmware data block">
+    <script name="hpwmi" file="script/hpwmi.lua" arch="amd64" desc="HP firmware sensors">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
-    <script name="alienware" file="script/alienware.lua" arch="amd64" desc="Alienware and Dell G temperatures and fans through the firmware method">
+    <script name="alienware" file="script/alienware.lua" arch="amd64" desc="Alienware and Dell G firmware sensors">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
-    <script name="gigabytewmi" file="script/gigabytewmi.lua" arch="amd64" desc="Gigabyte board temperatures through its firmware method">
+    <script name="gigabytewmi" file="script/gigabytewmi.lua" arch="amd64" desc="Gigabyte firmware temperatures">
         <routine name="read" level="maximum"/>
     </script>
-    <script name="asuswmi" file="script/asuswmi.lua" arch="amd64" desc="ASUS board hardware monitor through its firmware method">
+    <script name="asuswmi" file="script/asuswmi.lua" arch="amd64" desc="ASUS firmware hardware monitor">
         <routine name="identify" level="maximum"/>
         <routine name="read" level="maximum"/>
     </script>
-    <script name="ocmailbox" file="script/ocmailbox.lua" arch="amd64" desc="Intel overclocking mailbox voltage settings">
+    <script name="ocmailbox" file="script/ocmailbox.lua" arch="amd64" desc="Intel overclocking mailbox">
         <routine name="read" level="maximum"/>
     </script>
     <script name="tsens" file="script/tsens.lua" arch="arm64" desc="Qualcomm TSENS temperature sensors">
@@ -110,17 +110,17 @@ This file is part of System Informer.
     <script name="spbm" file="script/spbm.lua" arch="arm64" desc="NVIDIA N1X power budget page">
         <routine name="read" level="maximum"/>
     </script>
-    <script name="usbdisk" file="script/usbdisk.lua" arch="amd64,arm64" desc="SMART data of SATA drives behind USB bridges">
+    <script name="usbdisk" file="script/usbdisk.lua" arch="amd64,arm64" desc="USB bridge drive SMART data">
         <routine name="read" level="maximum"/>
     </script>
-    <script name="hid" file="script/hid.lua" arch="amd64,arm64" desc="Coolers and power supplies through their HID collections">
+    <script name="hid" file="script/hid.lua" arch="amd64,arm64" desc="HID coolers and power supplies">
         <routine name="read" level="maximum"/>
         <routine name="corsair" level="maximum"/>
     </script>
-    <script name="axi" file="script/axi.lua" arch="amd64,arm64" desc="Power supplies through their USB serial dongle">
+    <script name="axi" file="script/axi.lua" arch="amd64,arm64" desc="USB serial power supplies">
         <routine name="read" level="maximum"/>
     </script>
-    <script name="aqtion" file="script/aqtion.lua" arch="amd64" desc="AQtion network controller temperature through its firmware">
+    <script name="aqtion" file="script/aqtion.lua" arch="amd64" desc="AQtion network controller temperature">
         <routine name="read" level="maximum"/>
     </script>
 </scripts>
