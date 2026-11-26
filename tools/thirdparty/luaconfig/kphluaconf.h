@@ -110,17 +110,17 @@ int KphLuaFormat(
 
 __declspec(noreturn)
 void KphLuaThrow(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_ int Status
     );
 
 typedef void (*KPH_LUA_PROTECTED_ROUTINE)(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_opt_ void* Context
     );
 
 void KphLuaTry(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_ struct lua_longjmp* Jump,
     _In_ KPH_LUA_PROTECTED_ROUTINE Routine,
     _In_opt_ void* Context

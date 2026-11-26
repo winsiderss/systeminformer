@@ -327,14 +327,14 @@ static void* Allocate(
 /**
  * \brief Hands the source to the Lua loader, in one piece.
  *
- * \param[in] L Unused.
+ * \param[in] State Unused.
  * \param[in,out] Context The source text, emptied by the call.
  * \param[out] Size Receives the length of the piece.
  *
  * \return The piece, or NULL at the end.
  */
 static const char* ReadPiece(
-    _In_ lua_State* L,
+    _In_ lua_State* State,
     _Inout_ void* Context,
     _Out_ size_t* Size
     )
@@ -342,7 +342,7 @@ static const char* ReadPiece(
     PSOURCE_TEXT source;
     const char* text;
 
-    (void)L;
+    (void)State;
 
     source = Context;
 
@@ -363,7 +363,7 @@ static const char* ReadPiece(
 /**
  * \brief Writes a piece of the chunk to the output file.
  *
- * \param[in] L Unused.
+ * \param[in] State Unused.
  * \param[in] Piece The piece.
  * \param[in] Size The length of the piece.
  * \param[in] Context The output file.
@@ -371,13 +371,13 @@ static const char* ReadPiece(
  * \return Zero on success.
  */
 static int WritePiece(
-    _In_ lua_State* L,
+    _In_ lua_State* State,
     _In_reads_bytes_(Size) const void* Piece,
     _In_ size_t Size,
     _In_ void* Context
     )
 {
-    (void)L;
+    (void)State;
 
     if (Size == 0)
     {
@@ -396,11 +396,11 @@ static int WritePiece(
  * \brief Reports the error the Lua compiler left on the stack.
  *
  * \param[in,out] Context The build.
- * \param[in] L The Lua state, with the message on top of the stack.
+ * \param[in] State The Lua state, with the message on top of the stack.
  */
 static void ReportCompileError(
     _Inout_ PBUILD_CONTEXT Context,
-    _In_ lua_State* L
+    _In_ lua_State* State
     )
 {
     const char* message;
@@ -408,7 +408,7 @@ static void ReportCompileError(
     char* end;
     long line;
 
-    message = lua_tolstring(L, -1, NULL);
+    message = lua_tolstring(State, -1, NULL);
     if (!message)
     {
         Report(Context, 0, "the script does not compile");

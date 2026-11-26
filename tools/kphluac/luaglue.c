@@ -127,15 +127,15 @@ char* KphLuaStringBreak(
 /**
  * \brief Raises a Lua error to the nearest KphLuaTry. Does not return.
  *
- * \param[in] L Unused.
+ * \param[in] State Unused.
  * \param[in] Status Unused.
  */
 void KphLuaThrow(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_ int Status
     )
 {
-    (void)L;
+    (void)State;
     (void)Status;
 
     RaiseException(KPH_LUA_EXCEPTION_ERROR, 0, 0, NULL);
@@ -145,13 +145,13 @@ void KphLuaThrow(
  * \brief Calls a routine and returns when it returns or when it raises a Lua
  * error.
  *
- * \param[in] L The Lua state.
+ * \param[in] State The Lua state.
  * \param[in] Jump Unused.
  * \param[in] Routine The routine.
  * \param[in] Context The context for the routine.
  */
 void KphLuaTry(
-    _In_ struct lua_State* L,
+    _In_ struct lua_State* State,
     _In_ struct lua_longjmp* Jump,
     _In_ KPH_LUA_PROTECTED_ROUTINE Routine,
     _In_opt_ void* Context
@@ -161,7 +161,7 @@ void KphLuaTry(
 
     __try
     {
-        Routine(L, Context);
+        Routine(State, Context);
     }
     __except ((GetExceptionCode() == KPH_LUA_EXCEPTION_ERROR) ?
               EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH)
