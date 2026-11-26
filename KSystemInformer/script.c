@@ -958,7 +958,7 @@ VOID KphpScriptCount(
 
     call = KphpScriptGetCall(State);
 
-    now = KeQueryInterruptTime();
+    now = KeQueryUnbiasedInterruptTime();
 
     //
     // A memory error is already unwinding the body: what runs is cleanup.
@@ -1262,7 +1262,7 @@ NTSTATUS KphScriptWait(
         return STATUS_SI_SCRIPT_LIMIT;
     }
 
-    now = KeQueryInterruptTime();
+    now = KeQueryUnbiasedInterruptTime();
 
     end = ULONG64_MAX;
     if (Milliseconds != ULONG_MAX)
@@ -1307,7 +1307,7 @@ NTSTATUS KphScriptWait(
             }
         }
 
-        now = KeQueryInterruptTime();
+        now = KeQueryUnbiasedInterruptTime();
 
         if (KphpScriptTimeIsUp(call, now))
         {
@@ -1692,7 +1692,7 @@ VOID KSIAPI KphpScriptCallout(
     slot = lua_getextraspace(state);
     *slot = call;
 
-    now = KeQueryInterruptTime();
+    now = KeQueryUnbiasedInterruptTime();
 
     call->Deadline = KphpScriptDeadline(now, call->Limits->Milliseconds);
 
@@ -1748,7 +1748,7 @@ VOID KSIAPI KphpScriptLoadCallout(
     slot = lua_getextraspace(state);
     *slot = call;
 
-    now = KeQueryInterruptTime();
+    now = KeQueryUnbiasedInterruptTime();
 
     call->Deadline = KphpScriptDeadline(now, call->Limits->Milliseconds);
 
@@ -1800,7 +1800,7 @@ VOID KSIAPI KphpScriptRoutineCallout(
     slot = lua_getextraspace(state);
     *slot = call;
 
-    now = KeQueryInterruptTime();
+    now = KeQueryUnbiasedInterruptTime();
 
     call->Deadline = KphpScriptDeadline(now, call->Limits->Milliseconds);
 
