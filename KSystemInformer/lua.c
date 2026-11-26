@@ -151,46 +151,34 @@ VOID KphLuaReleaseReserve(
     _Inout_ PKPH_LUA_ALLOCATOR Allocator
     )
 {
-    NTSTATUS status;
-    SIZE_T limit;
-
     KPH_PAGED_CODE_PASSIVE();
 
-    status = RtlSIZETAdd(Allocator->Limit, Allocator->Reserve, &limit);
-    if (NT_SUCCESS(status))
+    if (Allocator->Cleanup)
     {
-        Allocator->Limit = limit;
-    }
-    else
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      SCRIPT,
-                      "RtlSIZETAdd failed: %!STATUS!",
-                      status);
+        return;
     }
 
-    Allocator->Reserve = 0;
+    Allocator->Limit += Allocator->CleanupBytes;
+    Allocator->Cleanup = TRUE;
 }
 
 /**
  * \brief Takes the reserve of an allocator back out of its limit.
  *
  * \param[in,out] Allocator The allocator.
- * \param[in] Reserve The bytes KphLuaReleaseReserve added to the limit.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaRestoreReserve(
-    _Inout_ PKPH_LUA_ALLOCATOR Allocator,
-    _In_ SIZE_T Reserve
+    _Inout_ PKPH_LUA_ALLOCATOR Allocator
     )
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    NT_ASSERT(Allocator->Reserve == 0);
-    NT_ASSERT(Allocator->Limit >= Reserve);
+    NT_ASSERT(Allocator->Cleanup);
+    NT_ASSERT(Allocator->Limit >= Allocator->CleanupBytes);
 
-    Allocator->Limit -= Reserve;
-    Allocator->Reserve = Reserve;
+    Allocator->Limit -= Allocator->CleanupBytes;
+    Allocator->Cleanup = FALSE;
 }
 
 // Declared by Lua and its configuration without SAL; these contracts are ours.
@@ -557,8 +545,8 @@ VOID KphLuaThrow(
                       allocator->Used,
                       allocator->Limit);
 
-        allocator->Failures++;
-        allocator->Errors++;
+        allocator->Refusals++;
+        allocator->Raised++;
 
         KphLuaReleaseReserve(allocator);
     }
@@ -705,27 +693,42 @@ int luaU_dump(
  *
  * \param[out] Allocator The allocator.
  * \param[in] Limit The most bytes the state may hold.
- * \param[in] Reserve The bytes a memory error adds to the limit.
+ * \param[in] CleanupBytes The bytes cleanup adds to the limit.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaInitializeAllocator(
     _Out_ PKPH_LUA_ALLOCATOR Allocator,
     _In_ SIZE_T Limit,
-    _In_ SIZE_T Reserve
+    _In_ SIZE_T CleanupBytes
     )
 {
+    NTSTATUS status;
+    SIZE_T limit;
+
     KPH_PAGED_CODE_PASSIVE();
 
     InitializeListHead(&Allocator->Blocks);
     Allocator->Limit = Limit;
-    Allocator->Reserve = Reserve;
+    Allocator->CleanupBytes = CleanupBytes;
+    Allocator->Cleanup = FALSE;
     Allocator->Used = 0;
     Allocator->CollectAt = Limit - (Limit / 4);
-    Allocator->Failures = 0;
-    Allocator->Errors = 0;
-    Allocator->Held = NULL;
-    Allocator->HeldSize = Reserve;
-    Allocator->HeldUsed = 0;
+    Allocator->Refusals = 0;
+    Allocator->Raised = 0;
+    Allocator->ReserveBlock = NULL;
+    Allocator->ReserveSize = CleanupBytes;
+    Allocator->ReserveUsed = 0;
+
+    status = RtlSIZETAdd(Limit, CleanupBytes, &limit);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "RtlSIZETAdd failed: %!STATUS!",
+                      status);
+
+        Allocator->CleanupBytes = 0;
+    }
 }
 
 /**
@@ -759,10 +762,10 @@ VOID KphLuaDeleteAllocator(
         KphFree(block, KPH_TAG_LUA_BLOCK);
     }
 
-    if (Allocator->Held)
+    if (Allocator->ReserveBlock)
     {
-        KphFree(Allocator->Held, KPH_TAG_LUA_RESERVE);
-        Allocator->Held = NULL;
+        KphFree(Allocator->ReserveBlock, KPH_TAG_LUA_RESERVE);
+        Allocator->ReserveBlock = NULL;
     }
 
     Allocator->Used = 0;
@@ -818,9 +821,9 @@ void* KphpLuaAllocate(
     NT_ASSERT(allocator->Used >= oldSize);
 
     if (block &&
-        allocator->Held &&
-        ((PVOID)block >= allocator->Held) &&
-        ((PVOID)block < Add2Ptr(allocator->Held, allocator->HeldSize)))
+        allocator->ReserveBlock &&
+        ((PVOID)block >= allocator->ReserveBlock) &&
+        ((PVOID)block < Add2Ptr(allocator->ReserveBlock, allocator->ReserveSize)))
     {
         held = TRUE;
     }
@@ -890,7 +893,7 @@ void* KphpLuaAllocate(
     //
     // A pool refusal is final until the reserve is released.
     //
-    if (allocator->Failures && allocator->Reserve)
+    if ((allocator->Refusals > 0) && !allocator->Cleanup)
     {
         return NULL;
     }
@@ -902,24 +905,24 @@ void* KphpLuaAllocate(
                       SCRIPT,
                       "Failed to allocate Lua block");
 
-        allocator->Failures++;
+        allocator->Refusals++;
 
-        if (allocator->Reserve)
+        if (!allocator->Cleanup)
         {
             return NULL;
         }
 
         size = ALIGN_UP_BY(size, MEMORY_ALLOCATION_ALIGNMENT);
 
-        if ((allocator->HeldSize - allocator->HeldUsed) < size)
+        if ((allocator->ReserveSize - allocator->ReserveUsed) < size)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE, SCRIPT, "Lua reserve exhausted");
 
             return NULL;
         }
 
-        newBlock = Add2Ptr(allocator->Held, allocator->HeldUsed);
-        allocator->HeldUsed += size;
+        newBlock = Add2Ptr(allocator->ReserveBlock, allocator->ReserveUsed);
+        allocator->ReserveUsed += size;
     }
     else
     {
@@ -1047,11 +1050,11 @@ NTSTATUS KphLuaCreateState(
 
     *State = NULL;
 
-    if (!Allocator->Held && Allocator->HeldSize)
+    if (!Allocator->ReserveBlock && Allocator->ReserveSize)
     {
-        Allocator->Held = KphAllocatePaged(Allocator->HeldSize,
-                                           KPH_TAG_LUA_RESERVE);
-        if (!Allocator->Held)
+        Allocator->ReserveBlock = KphAllocatePaged(Allocator->ReserveSize,
+                                                   KPH_TAG_LUA_RESERVE);
+        if (!Allocator->ReserveBlock)
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           SCRIPT,

@@ -66,14 +66,15 @@ typedef struct _KPH_LUA_ALLOCATOR
 {
     LIST_ENTRY Blocks;
     SIZE_T Limit;
-    SIZE_T Reserve;
+    SIZE_T CleanupBytes;
+    BOOLEAN Cleanup;
     SIZE_T Used;
     SIZE_T CollectAt;
-    ULONG Failures;
-    ULONG Errors;
-    PVOID Held;
-    SIZE_T HeldSize;
-    SIZE_T HeldUsed;
+    ULONG Refusals;
+    ULONG Raised;
+    PVOID ReserveBlock;
+    SIZE_T ReserveSize;
+    SIZE_T ReserveUsed;
 } KPH_LUA_ALLOCATOR, *PKPH_LUA_ALLOCATOR;
 
 typedef
@@ -101,7 +102,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaInitializeAllocator(
     _Out_ PKPH_LUA_ALLOCATOR Allocator,
     _In_ SIZE_T Limit,
-    _In_ SIZE_T Reserve
+    _In_ SIZE_T CleanupBytes
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -116,8 +117,7 @@ VOID KphLuaReleaseReserve(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaRestoreReserve(
-    _Inout_ PKPH_LUA_ALLOCATOR Allocator,
-    _In_ SIZE_T Reserve
+    _Inout_ PKPH_LUA_ALLOCATOR Allocator
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -62,7 +62,6 @@ typedef struct _KPH_SCRIPT_CALL
     BOOLEAN Aborted;
     NTSTATUS AbortStatus;
     ULONG Handlers;
-    SIZE_T HandlerReserve;
     BOOLEAN AbortDeferred;
     NTSTATUS Status;
 } KPH_SCRIPT_CALL, *PKPH_SCRIPT_CALL;
@@ -191,7 +190,7 @@ ULONG64 KphScriptGetAbortCount(
 
     call = KphpScriptGetCall(State);
 
-    return (call->Aborts + call->Allocator->Errors);
+    return (call->Aborts + call->Allocator->Raised);
 }
 
 /**
@@ -967,9 +966,12 @@ VOID KphpScriptCount(
     //
     refused = FALSE;
     if ((call->Phase == KphScriptPhaseBody) &&
-        (call->Allocator->Failures != 0))
+        (call->Allocator->Refusals > 0))
     {
-        refused = ((call->Aborts == 0) && (call->Allocator->Errors == 0));
+        if ((call->Aborts == 0) && (call->Allocator->Raised == 0))
+        {
+            refused = TRUE;
+        }
 
         KphpScriptBeginCleanup(call, STATUS_INSUFFICIENT_RESOURCES, now);
     }
@@ -1136,7 +1138,6 @@ VOID KphScriptEnterHandler(
     )
 {
     PKPH_SCRIPT_CALL call;
-    SIZE_T limit;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -1144,11 +1145,7 @@ VOID KphScriptEnterHandler(
 
     if ((call->Handlers == 0) && (call->Phase == KphScriptPhaseBody))
     {
-        limit = call->Allocator->Limit;
-
         KphLuaReleaseReserve(call->Allocator);
-
-        call->HandlerReserve = call->Allocator->Limit - limit;
     }
 
     call->Handlers++;
@@ -1184,11 +1181,11 @@ VOID KphScriptLeaveHandler(
 
     if (call->Phase == KphScriptPhaseBody)
     {
-        if (call->Allocator->Failures == 0)
+        if (call->Allocator->Refusals == 0)
         {
-            KphLuaRestoreReserve(call->Allocator, call->HandlerReserve);
+            KphLuaRestoreReserve(call->Allocator);
         }
-        else if ((call->Aborts == 0) && (call->Allocator->Errors == 0))
+        else if ((call->Aborts == 0) && (call->Allocator->Raised == 0))
         {
             KphpScriptBeginCleanup(call,
                                    STATUS_INSUFFICIENT_RESOURCES,
@@ -1197,8 +1194,6 @@ VOID KphScriptLeaveHandler(
             call->AbortDeferred = TRUE;
         }
     }
-
-    call->HandlerReserve = 0;
 
     if (call->AbortDeferred)
     {
@@ -1634,7 +1629,7 @@ KPH_SCRIPT_END KphpScriptEndCall(
     NT_ASSERT((Call->Handlers == 0) && !Call->AbortDeferred);
 
     if (Call->Aborted ||
-        (Call->Allocator->Failures != 0) ||
+        (Call->Allocator->Refusals > 0) ||
         (Call->Phase != KphScriptPhaseBody))
     {
         end = KphScriptEndFatal;
@@ -1658,7 +1653,7 @@ KPH_SCRIPT_END KphpScriptEndCall(
         Call->Status = Status;
     }
 
-    if (!Call->Aborted && (Call->Allocator->Failures != 0))
+    if (!Call->Aborted && (Call->Allocator->Refusals > 0))
     {
         Call->Aborted = TRUE;
         Call->AbortStatus = STATUS_INSUFFICIENT_RESOURCES;
@@ -1927,7 +1922,6 @@ VOID KphpScriptInitializeCall(
     Call->Aborted = FALSE;
     Call->AbortStatus = STATUS_SUCCESS;
     Call->Handlers = 0;
-    Call->HandlerReserve = 0;
     Call->AbortDeferred = FALSE;
     Call->Status = STATUS_UNSUCCESSFUL;
 }
