@@ -145,10 +145,17 @@ static NTSTATUS PhpHwCrosEcList(
         }
         else
         {
+            ULONG ordinal;
+
             if (bytes[offset] == PHP_HW_CROSEC_TEMP_ABSENT)
                 continue;
 
-            name = PhFormatString(L"EC temperature %lu", i < PHP_HW_CROSEC_TEMPS ? i + 1 : i - PHP_HW_CROSEC_FANS + 1);
+            if (i < PHP_HW_CROSEC_TEMPS)
+                ordinal = i + 1;
+            else
+                ordinal = i - PHP_HW_CROSEC_FANS + 1;
+
+            name = PhFormatString(L"EC temperature %lu", ordinal);
             PhpHwCrosEcNamedIndex[i] = PhpHwAddNamedSensor(PhHwNamedSensorAcpiTemperature, 0, PHP_HW_CROSEC_ID_BASE + i, name->Buffer);
             PhpHwCrosEcOffsets[PhpHwCrosEcOffsetCount++] = offset;
         }
@@ -298,11 +305,16 @@ VOID PhpHwCrosEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR ended = L"";
+
     if (PhpHwCrosEcIdentifyStatus == STATUS_NOT_SUPPORTED)
     {
         PhAppendStringBuilder2(Builder, L"  EC: not identified\n");
         return;
     }
+
+    if (PhpHwCrosEcEnded)
+        ended = L", ended";
 
     PhAppendFormatStringBuilder(
         Builder,
@@ -312,7 +324,7 @@ VOID PhpHwCrosEcDiagnostics(
         PhpHwCrosEcIdentity.ThermalVersion,
         PhpHwCrosEcStatus,
         PhpHwCrosEcOffsetCount,
-        PhpHwCrosEcEnded ? L", ended" : L""
+        ended
         );
 }
 

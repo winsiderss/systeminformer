@@ -875,9 +875,16 @@ VOID PhHwProviderUpdateHistory(
     for (ULONG i = 0; i < packageCount; i++)
     {
         PPH_HW_PACKAGE_SENSOR sensor = &PhpHwPackageSensors[i];
+        FLOAT temperature = 0.0f;
+        FLOAT power = 0.0f;
 
-        PhAddItemCircularBuffer_FLOAT(&sensor->TemperatureHistory, (sensor->Valid & PH_HW_CAP_PACKAGE_TEMP) ? sensor->Temperature : 0.0f);
-        PhAddItemCircularBuffer_FLOAT(&sensor->PackagePowerHistory, (sensor->Valid & PH_HW_CAP_RAPL_PACKAGE) ? sensor->PackagePower : 0.0f);
+        if (sensor->Valid & PH_HW_CAP_PACKAGE_TEMP)
+            temperature = sensor->Temperature;
+        if (sensor->Valid & PH_HW_CAP_RAPL_PACKAGE)
+            power = sensor->PackagePower;
+
+        PhAddItemCircularBuffer_FLOAT(&sensor->TemperatureHistory, temperature);
+        PhAddItemCircularBuffer_FLOAT(&sensor->PackagePowerHistory, power);
     }
 
     PhpHwHistoryAppend();
@@ -921,7 +928,10 @@ static VOID PhpHwAppendFlags(
         if (!(Flags & PtrToUlong(Names[i].Value)))
             continue;
 
-        PhAppendStringBuilder2(Builder, first ? L" (" : L", ");
+        if (first)
+            PhAppendStringBuilder2(Builder, L" (");
+        else
+            PhAppendStringBuilder2(Builder, L", ");
         PhAppendStringBuilder2(Builder, (PWSTR)Names[i].Key);
         first = FALSE;
     }
@@ -979,6 +989,11 @@ VOID PhHwWriteDiagnostics(
         { L"platform limits", (PVOID)(ULONG_PTR)PH_HW_CAP_PLATFORM_LIMITS },
     };
     PCWSTR reads;
+    PCWSTR setting = L"disabled";
+    PCWSTR driverReady = L"no";
+    PCWSTR gateOpen = L"no";
+    PCWSTR probed = L"no";
+    PCWSTR available = L"no";
 
     if (PhpHwGateOpen && !PhpHwRequestReportReads())
         reads = L"the provider did not update within the wait; the sections show what is held";
@@ -987,14 +1002,25 @@ VOID PhHwWriteDiagnostics(
     else
         reads = L"made by the update";
 
+    if (PhCsEnableHardwareSensors)
+        setting = L"enabled";
+    if (PhpHwDriverReady())
+        driverReady = L"yes";
+    if (PhpHwGateOpen)
+        gateOpen = L"yes";
+    if (PhpHwProbed)
+        probed = L"yes";
+    if (PhpHwAvailable)
+        available = L"yes";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"Setting: %s\nDriver ready: %s\nGate open: %s\nProbed: %s\nAvailable: %s\nCapabilities: ",
-        PhCsEnableHardwareSensors ? L"enabled" : L"disabled",
-        PhpHwDriverReady() ? L"yes" : L"no",
-        PhpHwGateOpen ? L"yes" : L"no",
-        PhpHwProbed ? L"yes" : L"no",
-        PhpHwAvailable ? L"yes" : L"no"
+        setting,
+        driverReady,
+        gateOpen,
+        probed,
+        available
         );
     PhpHwAppendFlags(Builder, PhpHwCapabilities, capabilityNames, RTL_NUMBER_OF(capabilityNames));
     PhAppendFormatStringBuilder(Builder, L"Report reads: %s\n", reads);

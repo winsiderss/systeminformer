@@ -358,10 +358,15 @@ static VOID PhpHwCpuInitializePlan(
         // A model without a state faults its counter, which leaves the plan at the probe.
         for (ULONG r = 0; r < RTL_NUMBER_OF(PhpHwCpuResidencyRegs); r++)
         {
+            PHP_HW_SCOPE scope = PhpHwScopePackage;
+
+            if (r < PHP_HW_CPU_CORE_STATES)
+                scope = PhpHwScopeCore;
+
             PhpHwCpuSetRegister(
                 PhpHwCpuResidencyRegs[r].Reg,
                 PhpHwCpuResidencyRegs[r].Msr,
-                r < PHP_HW_CPU_CORE_STATES ? PhpHwScopeCore : PhpHwScopePackage
+                scope
                 );
         }
 
@@ -1339,6 +1344,7 @@ static BOOLEAN PhpHwCpuComputeUnitPower(
         ULONG64 both = (1ULL << PhpHwRegCuPowerAccumulator) | (1ULL << PhpHwRegPtsc);
         ULONG64 current;
         ULONG64 last;
+        ULONG64 delta;
 
         if (!PhpHwCpuFirstOfUnit[i] || PhpHwCpuSensors[i].PackageIndex != Package)
             continue;
@@ -1348,8 +1354,14 @@ static BOOLEAN PhpHwCpuComputeUnitPower(
         // The accumulator wraps at CU_MAX_PWR_ACCUMULATOR.
         current = sample->Value[PhpHwRegCuPowerAccumulator];
         last = sample->LastValue[PhpHwRegCuPowerAccumulator];
+
+        if (current >= last)
+            delta = current - last;
+        else
+            delta = PhpHwCpuUnitMaxAccumulator + current - last;
+
         total += PhAmdComputeUnitPowerToWatts(
-            current >= last ? current - last : PhpHwCpuUnitMaxAccumulator + current - last,
+            delta,
             sample->Value[PhpHwRegPtsc] - sample->LastValue[PhpHwRegPtsc],
             PhpHwCpuUnitSampleRatio
             );
@@ -1541,6 +1553,7 @@ static VOID PhpHwCpuPublishResidency(
         PH_FORMAT format[4];
         WCHAR name[PH_HW_NAMED_SENSOR_NAME_LENGTH];
         ULONG count = 0;
+        ULONG id = state;
 
         if (Core == ULONG_MAX)
         {
@@ -1555,10 +1568,14 @@ static VOID PhpHwCpuPublishResidency(
 
         PhInitFormatU(&format[count++], state);
         PhFormatToBuffer(format, count, name, sizeof(name), NULL);
+
+        if (Core != ULONG_MAX)
+            id = 0x100 + 16 * Core + state;
+
         PhpHwCpuResidencyIndex[Slot] = PhpHwAddNamedSensor(
             PhHwNamedSensorCStateResidency,
             PackageIndex,
-            Core == ULONG_MAX ? state : 0x100 + 16 * Core + state,
+            id,
             name
             );
     }
@@ -1681,7 +1698,10 @@ static VOID PhpHwCpuPublish(
         if (graphicsValid && graphicsWatts > 0.0f && PhpHwCpuPp1Index[p] == ULONG_MAX)
             PhpHwCpuPp1Index[p] = PhpHwAddNamedSensor(PhHwNamedSensorRaplPower, p, 1, L"Graphics (PP1)");
 
-        PhpHwSetNamedSensor(PhpHwCpuPp1Index[p], graphicsValid, graphicsValid ? graphicsWatts : 0.0f);
+        if (!graphicsValid)
+            graphicsWatts = 0.0f;
+
+        PhpHwSetNamedSensor(PhpHwCpuPp1Index[p], graphicsValid, graphicsWatts);
     }
 
     for (ULONG i = 0; i < PhpHwProcessorCount; i++)
@@ -1850,8 +1870,12 @@ static VOID PhpHwCpuPublish(
         if ((index = PhpHwCpuLimitIndex[i * PHP_HW_CPU_LIMIT_SENSORS + PHP_HW_CPU_LIMIT_PL4]) != ULONG_MAX)
         {
             BOOLEAN limitValid = (sample->Valid & (1ULL << PhpHwRegVrCurrentConfig)) && (sample->Value[PhpHwRegVrCurrentConfig] & 0x1FFF);
+            FLOAT limit = 0.0f;
 
-            PhpHwSetNamedSensor(index, limitValid, limitValid ? (FLOAT)(sample->Value[PhpHwRegVrCurrentConfig] & 0x1FFF) * PhpHwCpuPowerUnit : 0.0f);
+            if (limitValid)
+                limit = (FLOAT)(sample->Value[PhpHwRegVrCurrentConfig] & 0x1FFF) * PhpHwCpuPowerUnit;
+
+            PhpHwSetNamedSensor(index, limitValid, limit);
             capabilities |= PhpHwCpuRegisterActive(PhpHwRegVrCurrentConfig) ? PH_HW_CAP_PLATFORM_LIMITS : 0;
         }
 
@@ -1883,8 +1907,12 @@ static VOID PhpHwCpuPublish(
         {
             BOOLEAN uncoreValid = (sample->Valid & (1ULL << PhpHwRegUncorePerfStatus)) && PhIntelUncoreRatio(sample->Value[PhpHwRegUncorePerfStatus]);
             FLOAT busMhz = sensor->BusMhz > 0.0f ? sensor->BusMhz : PHP_HW_CPU_BUS_MHZ;
+            FLOAT uncoreMhz = 0.0f;
 
-            PhpHwSetNamedSensor(PhpHwCpuUncoreIndex[i], uncoreValid, uncoreValid ? (FLOAT)PhIntelUncoreRatio(sample->Value[PhpHwRegUncorePerfStatus]) * busMhz : 0.0f);
+            if (uncoreValid)
+                uncoreMhz = (FLOAT)PhIntelUncoreRatio(sample->Value[PhpHwRegUncorePerfStatus]) * busMhz;
+
+            PhpHwSetNamedSensor(PhpHwCpuUncoreIndex[i], uncoreValid, uncoreMhz);
             capabilities |= PhpHwCpuRegisterActive(PhpHwRegUncorePerfStatus) ? PH_HW_CAP_UNCORE_CLOCK : 0;
         }
 
@@ -2371,7 +2399,14 @@ static VOID PhpHwCpuAppendCppc(
         PhAppendStringBuilder2(Builder, L"  Preferred cores (CPPC highest performance):");
 
         for (ULONG k = 0; k < count; k++)
-            PhAppendFormatStringBuilder(Builder, L"%s %lu (%lu)", k ? L"," : L"", cores[k], (ULONG)PhpHwCpuCppcHighest[cores[k]]);
+        {
+            PCWSTR separator = L"";
+
+            if (k)
+                separator = L",";
+
+            PhAppendFormatStringBuilder(Builder, L"%s %lu (%lu)", separator, cores[k], (ULONG)PhpHwCpuCppcHighest[cores[k]]);
+        }
 
         PhAppendStringBuilder2(Builder, L"\n");
     }
@@ -2419,6 +2454,8 @@ VOID PhpHwCpuDiagnostics(
     static CONST PCWSTR classNames[] = { L"none", L"Intel", L"AMD Zen", L"AMD 10h to 16h", L"Centaur", L"ARM64" };
     static CONST PCWSTR scopeNames[] = { L"thread", L"core", L"package", L"compute unit" };
     CHAR vendor[13];
+    PCWSTR hybrid = L"";
+    PCWSTR voltage = L"not decoded";
 
     if (PhpHwCpuClass == PhpHwCpuNone)
     {
@@ -2453,6 +2490,11 @@ VOID PhpHwCpuDiagnostics(
         memcpy(vendor, PhpHwCpuIdentity.Vendor, 12);
         vendor[12] = ANSI_NULL;
 
+        if (PhpHwCpuIdentity.Hybrid)
+            hybrid = L", hybrid";
+        if (PhpHwCpuVoltageSupported)
+            voltage = L"decoded";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"  Processor: %hs family 0x%x model 0x%x stepping 0x%x, signature 0x%08lx, class %s%s\n"
@@ -2464,12 +2506,12 @@ VOID PhpHwCpuDiagnostics(
             PhpHwCpuIdentity.Stepping,
             PhpHwCpuSignature,
             classNames[PhpHwCpuClass],
-            PhpHwCpuIdentity.Hybrid ? L", hybrid" : L"",
+            hybrid,
             PhpHwCpuItemCount,
             PhpHwCpuBatch,
             PhpHwCpuTscMhz,
             PhpHwCpuEnergyUnit,
-            PhpHwCpuVoltageSupported ? L"decoded" : L"not decoded"
+            voltage
             );
 
         for (ULONG i = 1; PhpHwCpuPackageIdentity && i < PhpHwPackageCount; i++)
@@ -2620,16 +2662,24 @@ VOID PhpHwCpuDiagnostics(
     for (ULONG reg = 0; reg < PhpHwRegMaximum; reg++)
     {
         PPHP_HW_REGISTER r = &PhpHwCpuRegisters[reg];
+        PCWSTR state;
 
         if (!r->Register)
             continue;
+
+        if (r->Disabled)
+            state = L"left out";
+        else if (PhpHwCpuProbeOnly(reg))
+            state = L"probe";
+        else
+            state = L"read";
 
         PhAppendFormatStringBuilder(
             Builder,
             L"  Register 0x%08lx (%s): %s\n",
             r->Register,
             scopeNames[r->Scope],
-            r->Disabled ? L"left out" : PhpHwCpuProbeOnly(reg) ? L"probe" : L"read"
+            state
             );
     }
 }

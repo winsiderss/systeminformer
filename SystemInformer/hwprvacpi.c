@@ -235,6 +235,7 @@ static VOID PhpHwAcpiAppendArgument(
 {
     PH_BYTESREF name;
     PH_BYTESREF arguments;
+    PCPH_BYTESREF evalArguments = NULL;
     UCHAR argument[PH_HW_ACPI_ARGUMENT_HEADER + sizeof(ULONG)];
     USHORT type = PH_HW_ACPI_ARGUMENT_INTEGER;
     USHORT length = sizeof(ULONG);
@@ -247,7 +248,11 @@ static VOID PhpHwAcpiAppendArgument(
     arguments.Length = sizeof(argument);
 
     PhInitializeBytesRef(&name, (PSTR)Name);
-    KphHwAcpiAppendEval(Evals, Device->Row, Device->Ordinal, &name, HasArgument ? &arguments : NULL);
+
+    if (HasArgument)
+        evalArguments = &arguments;
+
+    KphHwAcpiAppendEval(Evals, Device->Row, Device->Ordinal, &name, evalArguments);
 }
 
 static VOID PhpHwAcpiAppend(
@@ -728,7 +733,12 @@ BOOLEAN PhpHwAcpiLenovoFans(
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(rows); i++)
     {
-        if (wcsstr(rows[i].Product ? Product : Family, rows[i].Match))
+        PCWSTR text = Family;
+
+        if (rows[i].Product)
+            text = Product;
+
+        if (wcsstr(text, rows[i].Match))
         {
             Fields[0] = rows[i].Fields[0];
             Fields[1] = rows[i].Fields[1];
@@ -1070,7 +1080,14 @@ static VOID PhpHwAcpiReadStatic(
     PhInitializeBytesBuilder(&evals, 128);
 
     for (ULONG i = 0; i < count; i++)
-        PhpHwAcpiAppendArgument(&evals, Device, methods[i], Device->Kind == PhHwAcpiDytc, Device->Kind == PhHwAcpiDytc ? dytcCommands[i] : 0);
+    {
+        ULONG argument = 0;
+
+        if (Device->Kind == PhHwAcpiDytc)
+            argument = dytcCommands[i];
+
+        PhpHwAcpiAppendArgument(&evals, Device, methods[i], Device->Kind == PhHwAcpiDytc, argument);
+    }
 
     if (Device->Kind == PhHwAcpiHotkeyTemperature)
     {
@@ -1709,7 +1726,10 @@ VOID PhpHwAcpiDiagnostics(
             // _FPS states: control/trip point/RPM/noise in 0.1 dBA/power in mW; '-' is not supported.
             for (ULONG j = 0; j < report->StateCount; j++)
             {
-                PhAppendStringBuilder2(Builder, j ? L" " : L", _FPS ");
+                if (j)
+                    PhAppendStringBuilder2(Builder, L" ");
+                else
+                    PhAppendStringBuilder2(Builder, L", _FPS ");
 
                 for (ULONG k = 0; k < RTL_NUMBER_OF(report->States[j].Values); k++)
                 {
@@ -1749,8 +1769,13 @@ VOID PhpHwAcpiDiagnostics(
         {
             for (ULONG j = 0; j < PHP_HW_ACPI_THINKPAD_SENSORS; j++)
             {
-                if (device->EcSlots & (1 << j))
-                    PhAppendFormatStringBuilder(Builder, j && (device->EcSlots & ((1 << j) - 1)) ? L" TMP%lu" : L", TMP%lu", j);
+                if (!(device->EcSlots & (1 << j)))
+                    continue;
+
+                if (j && (device->EcSlots & ((1 << j) - 1)))
+                    PhAppendFormatStringBuilder(Builder, L" TMP%lu", j);
+                else
+                    PhAppendFormatStringBuilder(Builder, L", TMP%lu", j);
             }
         }
 

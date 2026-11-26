@@ -519,6 +519,8 @@ VOID PhpHwHsmpDiagnostics(
     {
         PPHP_HW_HSMP_PACKAGE package = &PhpHwHsmpPackages[i];
         ULONG accepted = 0;
+        PCWSTR state;
+        PCWSTR power = L"";
 
         for (ULONG j = 0; j < PhHwSmuHsmpCommandCount; j++)
         {
@@ -526,13 +528,23 @@ VOID PhpHwHsmpDiagnostics(
                 accepted++;
         }
 
+        if (package->Ended)
+            state = L"ended";
+        else if (package->Identified)
+            state = L"identified";
+        else
+            state = L"not identified";
+
+        if (package->DimmPowerDropped)
+            power = L" (no power)";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"  Package %lu: socket %lu, root 0x%05lx, %s, firmware 0x%08lx, interface %lu, commands %lu of %lu, last 0x%08lx, %lu sensors",
             i,
             i,
             package->Locator,
-            package->Ended ? L"ended" : (package->Identified ? L"identified" : L"not identified"),
+            state,
             package->Version,
             package->InterfaceVersion,
             accepted,
@@ -545,7 +557,7 @@ VOID PhpHwHsmpDiagnostics(
             PhAppendFormatStringBuilder(Builder, L", limit sources 0x%04lx", package->LimitSources);
 
         if (package->DimmProbed)
-            PhAppendFormatStringBuilder(Builder, L", DIMM sensors %lu%s", package->DimmCount, package->DimmPowerDropped ? L" (no power)" : L"");
+            PhAppendFormatStringBuilder(Builder, L", DIMM sensors %lu%s", package->DimmCount, power);
 
         PhAppendStringBuilder2(Builder, L"\n");
     }
