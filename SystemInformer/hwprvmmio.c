@@ -48,7 +48,6 @@ typedef enum _PHP_HW_MMIO_REG
     PhpHwMmioPowerLimit1,
     PhpHwMmioPowerLimit2,
     PhpHwMmioRaplPerfStatus,
-    PhpHwMmioMcBiosReq,
     PhpHwMmioMcBiosData,
     PhpHwMmioSaPerfStatus,
     PhpHwMmioBclkFreq,
@@ -91,7 +90,6 @@ static CONST PHP_HW_MMIO_REG_INFO PhpHwMmioRegInfo[PhpHwMmioMaximum] =
     { PH_INTEL_MCHBAR_PKG_POWER_LIMIT, 4, 0 },
     { PH_INTEL_MCHBAR_PKG_POWER_LIMIT + 4, 4, 0 },
     { PH_INTEL_MCHBAR_RAPL_PERF_STATUS, 4, 0 },
-    { PH_INTEL_MCHBAR_MC_BIOS_REQ, 4, 0 },
     { PH_INTEL_MCHBAR_MC_BIOS_DATA, 4, 0 },
     { PH_INTEL_MCHBAR_SA_PERF_STATUS, 4, 0 },
     { PH_INTEL_MCHBAR_BCLK_FREQ, 4, 0 },
@@ -431,17 +429,14 @@ static BOOLEAN PhpHwMmioDecodeMemoryClock(
     _Out_ PULONG Gear
     )
 {
-    ULONG req;
     ULONG data;
     ULONG saPerfStatus;
     ULONG bclk;
     ULONG memss;
-    BOOLEAN reqValid = PhpHwMmioValue(PhpHwMmioMcBiosReq, &req);
     BOOLEAN dataValid = PhpHwMmioValue(PhpHwMmioMcBiosData, &data);
     BOOLEAN saPerfStatusValid = PhpHwMmioValue(PhpHwMmioSaPerfStatus, &saPerfStatus);
     BOOLEAN bclkValid = PhpHwMmioValue(PhpHwMmioBclkFreq, &bclk);
     BOOLEAN memssValid = PhpHwMmioValue(PhpHwMmioMemssBiosData, &memss);
-    PULONG reqValue = NULL;
     PULONG dataValue = NULL;
     PULONG saPerfStatusValue = NULL;
     PULONG bclkValue = NULL;
@@ -450,8 +445,6 @@ static BOOLEAN PhpHwMmioDecodeMemoryClock(
     FLOAT dataRate;
     ULONG gear;
 
-    if (reqValid)
-        reqValue = &req;
     if (dataValid)
         dataValue = &data;
     if (saPerfStatusValid)
@@ -463,7 +456,7 @@ static BOOLEAN PhpHwMmioDecodeMemoryClock(
 
     if (!PhIntelMchbarToMemoryClock(
         &PhpHwMmioIdentity,
-        reqValue,
+        NULL,
         dataValue,
         saPerfStatusValue,
         bclkValue,
@@ -1305,7 +1298,6 @@ NTSTATUS NTAPI PhpHwMmioProbe(
 
         if (!PhpHwMmioDecodeMemoryClock(&mhz, &dataRate, &gear))
         {
-            PhpHwMmioDisable(PhpHwMmioMcBiosReq);
             PhpHwMmioDisable(PhpHwMmioMcBiosData);
             PhpHwMmioDisable(PhpHwMmioSaPerfStatus);
             PhpHwMmioDisable(PhpHwMmioBclkFreq);
@@ -1405,8 +1397,7 @@ NTSTATUS NTAPI PhpHwMmioPass(
             PhpHwMmioOwned |= PH_HW_CAP_CORES_TEMP;
         if (PhpHwMmioActive(PhpHwMmioPp1Temperature))
             PhpHwMmioOwned |= PH_HW_CAP_GRAPHICS_TEMP;
-        if (PhpHwMmioActive(PhpHwMmioMcBiosData) || PhpHwMmioActive(PhpHwMmioSaPerfStatus) || PhpHwMmioActive(PhpHwMmioMcBiosReq) ||
-            PhpHwMmioActive(PhpHwMmioMemssBiosData))
+        if (PhpHwMmioActive(PhpHwMmioMcBiosData) || PhpHwMmioActive(PhpHwMmioSaPerfStatus) || PhpHwMmioActive(PhpHwMmioMemssBiosData))
             PhpHwMmioOwned |= PH_HW_CAP_MEMORY_CLOCK;
 
         for (PHP_HW_MMIO_REG reg = 0; reg < PhpHwMmioMaximum; reg++)
