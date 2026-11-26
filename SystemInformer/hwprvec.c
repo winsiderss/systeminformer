@@ -439,6 +439,8 @@ NTSTATUS PhpHwBoardEcPass(
 
         if (status == STATUS_NOT_SUPPORTED)
             return STATUS_NOT_SUPPORTED;
+        if (status == STATUS_RETRY || status == STATUS_DEVICE_BUSY)
+            return STATUS_RETRY;
         if (!PhpHwBoardEcListed)
             return ++PhpHwBoardEcStrikes >= PHP_HW_BOARDEC_STRIKE_LIMIT ? STATUS_NOT_SUPPORTED : STATUS_RETRY;
     }

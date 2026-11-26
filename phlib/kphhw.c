@@ -1878,7 +1878,7 @@ NTSTATUS KphHwEcIdentify(
  * \param Count Receives the number of sensors.
  * \return Successful or errant status; STATUS_NOT_FOUND on a board the script
  * has no row for; STATUS_BUFFER_TOO_SMALL when the board has more sensors than
- * Capacity.
+ * Capacity; STATUS_RETRY when another tool holds the bus.
  */
 NTSTATUS KphHwEcSensors(
     _Out_writes_to_(Capacity, *Count) PKPH_HW_EC_SENSOR Sensors,
@@ -1892,6 +1892,9 @@ NTSTATUS KphHwEcSensors(
     ULONG returnLength;
     ULONG count = 0;
 
+    if (!NT_SUCCESS(status = KphpHwAcquireEc()))
+        return status;
+
     status = KphpHwScriptCall(
         &KphpHwEcScript,
         &routine,
@@ -1901,6 +1904,8 @@ NTSTATUS KphHwEcSensors(
         sizeof(output),
         &returnLength
         );
+
+    KphpHwReleaseEc();
 
     if (!NT_SUCCESS(status))
         return status;
