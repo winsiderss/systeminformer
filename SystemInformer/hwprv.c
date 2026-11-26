@@ -120,6 +120,7 @@ static HANDLE PhpHwSourceUpdateThread = NULL; // the thread in the source loop, 
 static PH_QUEUED_LOCK PhpHwReportLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpHwReportRequests = { &PhpHwReportRequests, &PhpHwReportRequests };
 static LONG PhpHwRefreshRequested = FALSE; // the next update runs every family regardless of its interval
+static BOOLEAN PhpHwOffUpdated = FALSE; // an update ran with the setting off since it was last on
 
 /**
  * Determines whether a status says the family's script is not shipped with this build.
@@ -778,6 +779,12 @@ VOID PhHwProviderUpdate(
     BOOLEAN refresh;
 
     UNREFERENCED_PARAMETER(Object);
+
+    // With the setting off, the first update ends the session and drops the sources; the rest have nothing to do.
+    if (!PhCsEnableHardwareSensors && PhpHwOffUpdated)
+        return;
+
+    PhpHwOffUpdated = !PhCsEnableHardwareSensors;
 
     now = PhpHwQueryTime();
     open = PhCsEnableHardwareSensors && PhpHwDriverReady();
