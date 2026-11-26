@@ -319,7 +319,6 @@ static BOOLEAN PhpHwCounterQueryRegistration(
     ULONG status;
     ULONG length = 0;
 
-    *Length = 0;
     status = PerfQueryCounterSetRegistrationInfo(NULL, Set, Request, 0, *Buffer, *BufferLength, &length);
 
     if (status == ERROR_NOT_ENOUGH_MEMORY && length > *BufferLength)
