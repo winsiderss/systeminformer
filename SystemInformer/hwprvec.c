@@ -428,6 +428,7 @@ NTSTATUS PhpHwBoardEcPass(
     ULONG capabilities = 0;
     ULONG at = 0;
     BOOLEAN read;
+    NTSTATUS itemStatus = STATUS_SUCCESS;
 
     if (PhpHwBoardEcEnded)
         return STATUS_NOT_SUPPORTED;
@@ -445,15 +446,26 @@ NTSTATUS PhpHwBoardEcPass(
     PhpHwBoardEcStatus = KphHwEcRead(0, PhpHwBoardEcRegisters, PhpHwBoardEcRegisterCount, values);
     read = NT_SUCCESS(PhpHwBoardEcStatus);
 
-    if (read)
+    // a read that ran fails with its first failed byte
+    for (ULONG i = 0; read && NT_SUCCESS(itemStatus) && i < PhpHwBoardEcRegisterCount; i++)
+        itemStatus = values[i].Status;
+
+    if (read && NT_SUCCESS(itemStatus))
     {
         PhpHwBoardEcStrikes = 0;
     }
-    else if (PhpHwBoardEcStatus != STATUS_RETRY && PhpHwBoardEcStatus != STATUS_DEVICE_BUSY &&
-        ++PhpHwBoardEcStrikes >= PHP_HW_BOARDEC_STRIKE_LIMIT)
+    else
     {
-        PhTraceInfo("Hardware sensors: board EC unavailable: 0x%lx", PhpHwBoardEcStatus);
-        PhpHwBoardEcEnded = TRUE;
+        NTSTATUS failure = PhpHwBoardEcStatus;
+
+        if (read)
+            failure = itemStatus;
+
+        if (failure != STATUS_RETRY && failure != STATUS_DEVICE_BUSY && ++PhpHwBoardEcStrikes >= PHP_HW_BOARDEC_STRIKE_LIMIT)
+        {
+            PhTraceInfo("Hardware sensors: board EC unavailable: 0x%lx", failure);
+            PhpHwBoardEcEnded = TRUE;
+        }
     }
 
     for (ULONG i = 0; i < PhpHwBoardEcCount; i++)
