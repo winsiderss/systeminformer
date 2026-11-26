@@ -610,7 +610,7 @@ KPH_PAGED_FILE();
  *
  * \param[in] Error The SymCrypt error to convert.
  *
- * \return Status corresponding to the error.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS KphpSymCryptErrorToStatus(

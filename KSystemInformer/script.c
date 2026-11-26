@@ -1920,8 +1920,7 @@ VOID KphpScriptInitializeCall(
  * \param[in] Limits The limits of the call.
  * \param[in] AccessMode The mode in which to write the output.
  *
- * \return The status the routine returned, or an errant status when the
- * routine could not be called, failed or reached a limit.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -2097,9 +2096,8 @@ Exit:
  * \param[out] ReturnLength Receives the length of the output of the routine.
  * \param[in] AccessMode The mode in which to write the output.
  *
- * \return The status the routine returned, or an errant status when the
- * routine could not be called, failed or reached a limit, and
- * STATUS_SI_SCRIPT_FAULTED once a call did not end cleanly.
+ * \return Successful or errant status, STATUS_SI_SCRIPT_FAULTED once a call
+ * did not end cleanly.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -3062,8 +3060,7 @@ Exit:
  * \param[out] ReturnLength Receives the length of the output of the routine.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
- * \return The status the routine returned, or an errant status when the
- * routine could not be called, failed or reached a limit.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
@@ -3218,8 +3215,7 @@ Exit:
  * the length required when the output buffer is too small.
  * \param[in] AccessMode The mode in which to perform access checks.
  *
- * \return The status the routine returned, or an errant status when the
- * routine could not be called, failed or reached a limit.
+ * \return Successful or errant status.
  */
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
