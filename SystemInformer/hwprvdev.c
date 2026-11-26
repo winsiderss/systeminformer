@@ -348,11 +348,17 @@ ULONG64 PhpHwQueryTime(
     VOID
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static LARGE_INTEGER frequency;
     LARGE_INTEGER counter;
-    LARGE_INTEGER frequency;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhQueryPerformanceFrequency(&frequency);
+        PhEndInitOnce(&initOnce);
+    }
 
     PhQueryPerformanceCounter(&counter);
-    PhQueryPerformanceFrequency(&frequency);
 
     return ((ULONG64)counter.QuadPart / (ULONG64)frequency.QuadPart) * 10000000 +
         ((ULONG64)counter.QuadPart % (ULONG64)frequency.QuadPart) * 10000000 / (ULONG64)frequency.QuadPart;
