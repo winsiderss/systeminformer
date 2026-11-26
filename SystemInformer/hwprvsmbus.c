@@ -805,11 +805,15 @@ static VOID PhpHwSetPmicSensors(
     for (ULONG i = 0; Dimm->Pmic && i < PH_HW_PMIC_SENSORS; i++)
     {
         BOOLEAN valid = Valid && Values && Valid[i];
+        FLOAT value = 0.0f;
 
         if (valid && Dimm->PmicIndex[i] == ULONG_MAX)
             PhpHwListPmicSensor(Dimm, i);
 
-        PhpHwSetNamedSensor(Dimm->PmicIndex[i], valid, Values ? Values[i] : 0.0f);
+        if (Values)
+            value = Values[i];
+
+        PhpHwSetNamedSensor(Dimm->PmicIndex[i], valid, value);
     }
 }
 
@@ -1280,18 +1284,32 @@ static VOID PhpHwAppendSpd5118Nvm(
     USHORT timings[5];
     USHORT cycle = Nvm[2] | (Nvm[3] << 8);
     PCWSTR moduleType = moduleTypes[Nvm[1] & 0x0F];
+    PCWSTR key = L"";
+    PCWSTR separator = L"";
+    PCWSTR typeName = L"";
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(timings); i++)
         timings[i] = Nvm[4 + i * 2] | (Nvm[5 + i * 2] << 8);
+
+    if (Nvm[0] == 0x12)
+        key = L" (DDR5)";
+    else if (Nvm[0] == 0x13)
+        key = L" (LPDDR5)";
+
+    if (moduleType)
+    {
+        separator = L" ";
+        typeName = moduleType;
+    }
 
     PhAppendFormatStringBuilder(
         Builder,
         L"\n    SPD NVM: key 0x%02x%s, module type 0x%02x%s%s, tCKAVGmin %u ps",
         Nvm[0],
-        Nvm[0] == 0x12 ? L" (DDR5)" : Nvm[0] == 0x13 ? L" (LPDDR5)" : L"",
+        key,
         Nvm[1],
-        moduleType ? L" " : L"",
-        moduleType ? moduleType : L"",
+        separator,
+        typeName,
         cycle
         );
 
@@ -1348,6 +1366,10 @@ static VOID PhpHwAppendPmic(
     UCHAR id = PhpHwPmicRegister(Registers, 0x3D);
     UCHAR revision = PhpHwPmicRegister(Registers, 0x3B);
     PCWSTR vendor = NULL;
+    PCWSTR mode = L"secure";
+    PCWSTR bus = L"I2C";
+    PCWSTR meter = L"current meter";
+    PCWSTR highVoltage = L"no";
 
     PhAppendStringBuilder2(Builder, L"\n    PMIC");
 
@@ -1379,6 +1401,17 @@ static VOID PhpHwAppendPmic(
         vendor = L"invalid";
     }
 
+    if (PhpHwPmicRegister(Registers, 0x2F) & 0x04)
+        mode = L"programmable";
+    if (PhpHwPmicRegister(Registers, 0x32) & 0x40)
+        bus = L"I3C";
+    if ((PhpHwPmicRegister(Registers, 0x1B) & 0x40) && (PhpHwPmicRegister(Registers, 0x1A) & 0x02))
+        meter = L"total power meter";
+    else if (PhpHwPmicRegister(Registers, 0x1B) & 0x40)
+        meter = L"power meter";
+    if (PhHwPmicHighVoltage(Registers))
+        highVoltage = L"yes";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"\n    PMIC vendor %s (0x%02x 0x%02x), revision %u.%u, %s mode, %s, %s, high voltage %s",
@@ -1387,10 +1420,10 @@ static VOID PhpHwAppendPmic(
         id,
         ((revision >> 4) & 0x3) + 1,
         (revision >> 1) & 0x7,
-        (PhpHwPmicRegister(Registers, 0x2F) & 0x04) ? L"programmable" : L"secure",
-        (PhpHwPmicRegister(Registers, 0x32) & 0x40) ? L"I3C" : L"I2C",
-        (PhpHwPmicRegister(Registers, 0x1B) & 0x40) ? ((PhpHwPmicRegister(Registers, 0x1A) & 0x02) ? L"total power meter" : L"power meter") : L"current meter",
-        PhHwPmicHighVoltage(Registers) ? L"yes" : L"no"
+        mode,
+        bus,
+        meter,
+        highVoltage
         );
 }
 
@@ -1410,6 +1443,11 @@ VOID PhpHwSmbusDiagnostics(
 
     if (PhpHwSmbusHost != ULONG_MAX)
     {
+        PCWSTR ended = L"";
+
+        if (PhpHwSmbusEnded)
+            ended = L", ended";
+
         PhAppendFormatStringBuilder(
             Builder,
             L"host %lu (0x%05lx, %04x:%04x revision 0x%02lx, kind %lu, base 0x%04lx)%s\n",
@@ -1420,7 +1458,7 @@ VOID PhpHwSmbusDiagnostics(
             PhpHwSmbusIdentity.Revision,
             PhpHwSmbusIdentity.Kind,
             PhpHwSmbusIdentity.Base,
-            PhpHwSmbusEnded ? L", ended" : L""
+            ended
             );
     }
     else
@@ -1435,11 +1473,15 @@ VOID PhpHwSmbusDiagnostics(
     {
         PPHP_HW_SPD_REPORT report = &PhpHwSpdReports[i];
         PHP_HW_DIMM_TYPE type = PhpHwDimms[i].Type;
+        PCWSTR typeName = dimmTypes[0];
 
         if (type == PhpHwDimmNone && !(PhpHwPmicReportMask & (1 << i)) && !report->Ddr4Read && !report->HubRead)
             continue;
 
-        PhAppendFormatStringBuilder(Builder, L"  Slot %lu: %s", i, dimmTypes[type < RTL_NUMBER_OF(dimmTypes) ? type : 0]);
+        if (type < RTL_NUMBER_OF(dimmTypes))
+            typeName = dimmTypes[type];
+
+        PhAppendFormatStringBuilder(Builder, L"  Slot %lu: %s", i, typeName);
 
         if (report->Ddr4Read)
             PhAppendFormatStringBuilder(Builder, L", SPD byte 2 0x%02x, byte 14 0x%02x", report->DramType, report->Ddr4Thermal);
@@ -1473,6 +1515,10 @@ VOID PhpHwSmbusDiagnostics(
         if (PhpHwDimms[i].PmicTelemetryRead)
         {
             PUCHAR telemetry = PhpHwDimms[i].PmicTelemetry;
+            PCWSTR meterOff = L"";
+
+            if (NT_SUCCESS(PhpHwDimms[i].PmicTelemetryStatus) && !telemetry[0])
+                meterOff = L", meter off";
 
             // A zero SWA (0Ch) is the meter off: no current or power has a value.
             PhAppendFormatStringBuilder(
@@ -1485,7 +1531,7 @@ VOID PhpHwSmbusDiagnostics(
                 telemetry[3],
                 telemetry[4],
                 telemetry[5],
-                NT_SUCCESS(PhpHwDimms[i].PmicTelemetryStatus) && !telemetry[0] ? L", meter off" : L""
+                meterOff
                 );
         }
 

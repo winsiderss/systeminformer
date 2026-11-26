@@ -303,13 +303,21 @@ VOID PhpHwPlatformDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR lpit = L"not read";
+    PCWSTR pwrm = L"not read";
+
+    if (PhpHwPlatformLpit.Planned)
+        lpit = L"read";
+    if (PhpHwPlatformPwrm.Planned)
+        pwrm = L"read";
+
     PhAppendFormatStringBuilder(
         Builder,
         L"  LPIT: %s, %.0f Hz, last 0x%08lx\n  PWRM: %s, last 0x%08lx, MINTEMP 0x%08lx, MAXTEMP 0x%08lx\n",
-        PhpHwPlatformLpit.Planned ? L"read" : L"not read",
+        lpit,
         PhpHwPlatformLpitFrequency,
         PhpHwPlatformLpit.Status,
-        PhpHwPlatformPwrm.Planned ? L"read" : L"not read",
+        pwrm,
         PhpHwPlatformPwrm.Status,
         PhpHwPlatformPwrmMinMax[0],
         PhpHwPlatformPwrmMinMax[1]

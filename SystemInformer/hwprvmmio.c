@@ -434,17 +434,33 @@ static BOOLEAN PhpHwMmioDecodeMemoryClock(
     BOOLEAN saPerfStatusValid = PhpHwMmioValue(PhpHwMmioSaPerfStatus, &saPerfStatus);
     BOOLEAN bclkValid = PhpHwMmioValue(PhpHwMmioBclkFreq, &bclk);
     BOOLEAN memssValid = PhpHwMmioValue(PhpHwMmioMemssBiosData, &memss);
+    PULONG reqValue = NULL;
+    PULONG dataValue = NULL;
+    PULONG saPerfStatusValue = NULL;
+    PULONG bclkValue = NULL;
+    PULONG memssValue = NULL;
     FLOAT mhz;
     FLOAT dataRate;
     ULONG gear;
 
+    if (reqValid)
+        reqValue = &req;
+    if (dataValid)
+        dataValue = &data;
+    if (saPerfStatusValid)
+        saPerfStatusValue = &saPerfStatus;
+    if (bclkValid)
+        bclkValue = &bclk;
+    if (memssValid)
+        memssValue = &memss;
+
     if (!PhIntelMchbarToMemoryClock(
         &PhpHwMmioIdentity,
-        reqValid ? &req : NULL,
-        dataValid ? &data : NULL,
-        saPerfStatusValid ? &saPerfStatus : NULL,
-        bclkValid ? &bclk : NULL,
-        memssValid ? &memss : NULL,
+        reqValue,
+        dataValue,
+        saPerfStatusValue,
+        bclkValue,
+        memssValue,
         &mhz,
         &dataRate,
         &gear
@@ -1358,8 +1374,12 @@ NTSTATUS PhpHwMmioPass(
 
     if (PhpHwMmioMcCount)
     {
-        PhpHwMmioPublishMcs(PhpHwMmioLastSampleTime && PhpHwMmioSampleTime > PhpHwMmioLastSampleTime ?
-            (FLOAT)(PhpHwMmioSampleTime - PhpHwMmioLastSampleTime) / (FLOAT)PHP_HW_SECOND : 0.0f);
+        FLOAT seconds = 0.0f;
+
+        if (PhpHwMmioLastSampleTime && PhpHwMmioSampleTime > PhpHwMmioLastSampleTime)
+            seconds = (FLOAT)(PhpHwMmioSampleTime - PhpHwMmioLastSampleTime) / (FLOAT)PHP_HW_SECOND;
+
+        PhpHwMmioPublishMcs(seconds);
     }
 
     if (PhpHwMmioActive(PhpHwMmioPackageTemperature))
@@ -1566,6 +1586,14 @@ VOID PhpHwMmioDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
+    PCWSTR timings = L"none";
+    PCWSTR rejected = L"";
+
+    if (PhpHwMmioTimingsValid)
+        timings = L"read";
+    if (PhpHwMmioDataRateRejected)
+        rejected = L", the decoded data rate disagreed";
+
     PhAppendFormatStringBuilder(Builder, L"  Candidates: %lu; windows: %lu; power unit %g W\n", PhpHwMmioCandidateCount, PhpHwMmioWindowCount, PhpHwMmioUnitWatts);
 
     for (ULONG i = 0; i < PhpHwMmioMcCount; i++)
@@ -1599,14 +1627,14 @@ VOID PhpHwMmioDiagnostics(
             Builder,
             L"timings format %s, %s\n",
             formatNames[PhpHwMmioTimingsFormat],
-            PhpHwMmioTimingsValid ? L"read" : L"none"
+            timings
             );
 
         PhAppendFormatStringBuilder(
             Builder,
             L"  Memory: SMBIOS %lu MT/s%s; GT: RP_STATE_CAP 0x%08lx, FREQ_INFO_REC 0x%08lx, GT_PERF_STATUS 0x%08lx, peak 0x%08lx\n",
             PhpHwMmioSmbiosDataRate,
-            PhpHwMmioDataRateRejected ? L", the decoded data rate disagreed" : L"",
+            rejected,
             PhpHwMmioGtCaps,
             PhpHwMmioGtRpe,
             PhpHwMmioGtPerfStatusLast,
@@ -1617,23 +1645,39 @@ VOID PhpHwMmioDiagnostics(
     for (ULONG i = 0; i < PhpHwMmioWindowCount; i++)
     {
         PPHP_HW_MMIO_WINDOW window = &PhpHwMmioWindows[i];
+        PCWSTR name = L"BAR0";
+        PCWSTR state = L"read";
+
+        if (window->Window == KPH_HW_WINDOW_MCHBAR)
+            name = L"MCHBAR";
+        if (window->Disabled)
+            state = L"left out";
 
         PhAppendFormatStringBuilder(
             Builder,
             L"  Window %s of 0x%06lx (%04x): %s\n",
-            window->Window == KPH_HW_WINDOW_MCHBAR ? L"MCHBAR" : L"BAR0",
+            name,
             window->Locator,
             window->Device,
-            window->Disabled ? L"left out" : L"read"
+            state
             );
 
         for (PHP_HW_MMIO_REG reg = 0; reg < PhpHwMmioMaximum; reg++)
         {
+            PCWSTR registerState;
+
+            if (window->Registers[reg].Disabled)
+                registerState = L"left out";
+            else if (PhpHwMmioProbeOnly(reg))
+                registerState = L"probe";
+            else
+                registerState = L"read";
+
             PhAppendFormatStringBuilder(
                 Builder,
                 L"    Offset 0x%05lx: %s\n",
                 PhpHwMmioRegInfo[reg].Offset,
-                window->Registers[reg].Disabled ? L"left out" : PhpHwMmioProbeOnly(reg) ? L"probe" : L"read"
+                registerState
                 );
         }
     }

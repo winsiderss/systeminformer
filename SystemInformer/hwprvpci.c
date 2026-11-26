@@ -604,17 +604,27 @@ VOID PhpHwPciDiagnostics(
 
         for (ULONG j = 0; j < package->NodeCount; j++)
         {
+            PCWSTR state = L"not read";
+
+            if (package->Temperature[j].Enabled)
+                state = L"read";
+
             PhAppendFormatStringBuilder(
                 Builder,
                 L"  Package %lu node 0x%lx: ReportedTempCtrl %s\n",
                 i,
                 package->Nodes[j],
-                package->Temperature[j].Enabled ? L"read" : L"not read"
+                state
                 );
         }
 
         if (package->HasPowerNode)
         {
+            PCWSTR average = L"not read";
+
+            if (package->RunningAverage.Enabled)
+                average = L"read";
+
             PhAppendFormatStringBuilder(
                 Builder,
                 L"  Package %lu power node 0x%lx: TDP 0x%08lx, TDP limit 3 0x%08lx, running average %s\n",
@@ -622,7 +632,7 @@ VOID PhpHwPciDiagnostics(
                 package->PowerNode,
                 package->ProcessorTdp,
                 package->TdpLimit3,
-                package->RunningAverage.Enabled ? L"read" : L"not read"
+                average
                 );
         }
     }
@@ -778,10 +788,12 @@ static VOID PhpHwPciAppendRegister(
     _Out_ PULONG Value
     )
 {
-    if (PhpHwPciConfigValue(Config, Offset, Size, Value))
-        PhAppendFormatStringBuilder(Builder, Size == 4 ? L"\n    %s 0x%08lx" : L"\n    %s 0x%04lx", Name, *Value);
-    else
+    if (!PhpHwPciConfigValue(Config, Offset, Size, Value))
         PhAppendFormatStringBuilder(Builder, L"\n    %s not read", Name);
+    else if (Size == 4)
+        PhAppendFormatStringBuilder(Builder, L"\n    %s 0x%08lx", Name, *Value);
+    else
+        PhAppendFormatStringBuilder(Builder, L"\n    %s 0x%04lx", Name, *Value);
 }
 
 /**
@@ -859,8 +871,14 @@ VOID PhHwWriteBridgeDiagnostics(
 
         if (PhpHwPciConfigValue(config, express + 0x02, 2, &value))
         {
+            PCWSTR typeName = L"reserved type";
+
             portType = (value >> 4) & 0xF;
-            PhAppendFormatStringBuilder(Builder, L", %s", portType < RTL_NUMBER_OF(portTypes) ? portTypes[portType] : L"reserved type");
+
+            if (portType < RTL_NUMBER_OF(portTypes))
+                typeName = portTypes[portType];
+
+            PhAppendFormatStringBuilder(Builder, L", %s", typeName);
         }
 
         PhpHwPciAppendRegister(Builder, config, L"Device Control", express + 0x08, 2, &value);
@@ -902,6 +920,9 @@ VOID PhHwWriteBridgeDiagnostics(
             ULONG mask;
             ULONG severity;
             ULONG correctable;
+            PCWSTR request = L"unmasked";
+            PCWSTR fatal = L"non-fatal";
+            PCWSTR advisory = L"unmasked";
 
             if (
                 PhpHwPciConfigValue(config, aer + 0x08, 4, &mask) &&
@@ -909,6 +930,13 @@ VOID PhHwWriteBridgeDiagnostics(
                 PhpHwPciConfigValue(config, aer + 0x14, 4, &correctable)
                 )
             {
+                if (mask & (1UL << 20))
+                    request = L"masked";
+                if (severity & (1UL << 20))
+                    fatal = L"fatal";
+                if (correctable & (1UL << 13))
+                    advisory = L"masked";
+
                 PhAppendFormatStringBuilder(
                     Builder,
                     L"\n    AER uncorrectable mask 0x%08lx, severity 0x%08lx, correctable mask 0x%08lx: "
@@ -916,9 +944,9 @@ VOID PhHwWriteBridgeDiagnostics(
                     mask,
                     severity,
                     correctable,
-                    (mask & (1UL << 20)) ? L"masked" : L"unmasked",
-                    (severity & (1UL << 20)) ? L"fatal" : L"non-fatal",
-                    (correctable & (1UL << 13)) ? L"masked" : L"unmasked"
+                    request,
+                    fatal,
+                    advisory
                     );
             }
             else
@@ -931,7 +959,10 @@ VOID PhHwWriteBridgeDiagnostics(
         }
         else
         {
-            PhAppendStringBuilder2(Builder, chainRead ? L"\n    AER absent" : L"\n    AER not read");
+            if (chainRead)
+                PhAppendStringBuilder2(Builder, L"\n    AER absent");
+            else
+                PhAppendStringBuilder2(Builder, L"\n    AER not read");
         }
 
         dpc = PhpHwPciFindExtendedCapability(config, PHP_HW_PCI_EXT_CAP_DPC, &chainRead);
@@ -947,7 +978,10 @@ VOID PhHwWriteBridgeDiagnostics(
         }
         else
         {
-            PhAppendStringBuilder2(Builder, chainRead ? L"\n    DPC absent" : L"\n    DPC not read");
+            if (chainRead)
+                PhAppendStringBuilder2(Builder, L"\n    DPC absent");
+            else
+                PhAppendStringBuilder2(Builder, L"\n    DPC not read");
         }
 
         PhAppendCharStringBuilder(Builder, L'\n');
