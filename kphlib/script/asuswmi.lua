@@ -329,6 +329,9 @@ function identify(input)
     finish(device)
     return count and nt.STATUS_NOT_SUPPORTED or failed
   end
+  if not ksi.volatile then
+    kept.count = count
+  end
   local output = { string.pack('<I4I4', version, count) }
   for index = 0, count - 1 do
     local fields = sensor_info(device, method, index)
@@ -364,14 +367,42 @@ function read(input)
   if not device then
     return status
   end
+  local count = kept.count
+  if not count then
+    local failed
+    count, failed = call_integer(device, method, GET_NUMBER, 0)
+    if not count then
+      ksi.trace('no count: 0x%x', failed)
+      finish(device)
+      return failed
+    end
+    if not ksi.volatile then
+      kept.count = count
+    end
+  end
+  if #input > count then
+    ksi.trace('input of %d sensors, the firmware has %d', #input, count)
+    finish(device)
+    return nt.STATUS_INVALID_PARAMETER
+  end
+  local refreshes = {}
   for _, source in ipairs({ SOURCE_SIO, SOURCE_EC }) do
     if string.find(input, string.char(source), 1, true) then
-      call(device, method, UPDATE_BUFFER, source)
+      local kind, failed = call(device, method, UPDATE_BUFFER, source)
+      if not kind then
+        refreshes[source] = failed
+      end
     end
   end
   local output = {}
   for index = 0, #input - 1 do
-    local value, failed = call_integer(device, method, GET_VALUE, index)
+    local refresh = refreshes[string.byte(input, index + 1)]
+    local value, failed
+    if refresh then
+      failed = refresh
+    else
+      value, failed = call_integer(device, method, GET_VALUE, index)
+    end
     if value then
       output[#output + 1] = string.pack('<i4I4', nt.STATUS_SUCCESS, value)
     else
