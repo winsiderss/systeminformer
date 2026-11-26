@@ -967,6 +967,35 @@ static int IsDriverGlobal(
 }
 
 /**
+ * \brief Checks a global read by name: a script reads only its routines and
+ * the driver's globals.
+ *
+ * \param[in,out] Context The build.
+ * \param[in] Function The function.
+ * \param[in] Pc The instruction that reads.
+ * \param[in] Name The name, NULL when it is not a string constant.
+ */
+static void CheckGlobalRead(
+    _Inout_ PBUILD_CONTEXT Context,
+    _In_ const Proto* Function,
+    _In_ int Pc,
+    _In_opt_z_ const char* Name
+    )
+{
+    if (Name &&
+        ((strcmp(Name, "nt") == 0) ||
+         (!IsDriverGlobal(Name) && (FindRoutine(Context, Name) < 0))))
+    {
+        Report(Context,
+               luaG_getfuncline(Function, Pc),
+               "global '%s' is read; a script reads only its "
+               "routines and the driver's globals (a missing "
+               "'local'?)",
+               Name);
+    }
+}
+
+/**
  * \brief Checks the code of a function: the globals it assigns and the
  * formats it passes.
  *
@@ -1019,19 +1048,43 @@ static void CheckCode(
                 {
                     name = GetStringConstant(Function, GETARG_C(instruction));
 
-                    if (name &&
-                        ((strcmp(name, "nt") == 0) ||
-                         (!IsDriverGlobal(name) && (FindRoutine(Context, name) < 0))))
-                    {
-                        Report(Context,
-                               luaG_getfuncline(Function, pc),
-                               "global '%s' is read; a script reads only its "
-                               "routines and the driver's globals (a missing "
-                               "'local'?)",
-                               name);
-                    }
+                    CheckGlobalRead(Context, Function, pc, name);
 
                     name = NULL;
+                }
+
+                break;
+            }
+            //
+            // The other two ways a read of a global is compiled, as the
+            // assignments below.
+            //
+            case OP_GETFIELD:
+            {
+                table = GETARG_B(instruction);
+
+                if (registers[table].Environment)
+                {
+                    name = GetStringConstant(Function, GETARG_C(instruction));
+
+                    CheckGlobalRead(Context, Function, pc, name);
+
+                    name = NULL;
+                }
+
+                break;
+            }
+            case OP_GETTABLE:
+            {
+                table = GETARG_B(instruction);
+                key = GETARG_C(instruction);
+
+                if (registers[table].Environment)
+                {
+                    CheckGlobalRead(Context,
+                                    Function,
+                                    pc,
+                                    registers[key].Constant);
                 }
 
                 break;
