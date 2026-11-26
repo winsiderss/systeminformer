@@ -776,8 +776,10 @@ local function regions_of(s, index, op, position)
   local k = s.kept
   local list = k and k.walks[index]
   if list then
+    local found = false
     for _, r in ipairs(list) do
       if r.position == position then
+        found = true
         if
           ksi.hw.pci_read(s.device, 0x10 + r.bar * 4, 4) ~= r.barRegister
           or ksi.hw.pci_read(s.device, r.capability + 0xc, 4) ~= r.tableRegister
@@ -787,6 +789,10 @@ local function regions_of(s, index, op, position)
         end
         break
       end
+    end
+    if not found then
+      ksi.trace('region 0x%x not in the kept walk', position)
+      return nil
     end
     return list
   end
