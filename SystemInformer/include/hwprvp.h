@@ -106,6 +106,7 @@ typedef struct _PHP_HW_FAMILY
     // the core's, for the session
     BOOLEAN Absent;
     BOOLEAN NotShipped; // absent because the script is not shipped with this build
+    BOOLEAN ProbePending; // the probe failed before the script answered; probed again
     BOOLEAN Ran;
     ULONG64 LastRun;
     ULONG RetryStreak;

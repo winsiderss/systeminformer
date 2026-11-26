@@ -211,6 +211,7 @@ static VOID PhpHwBeginSession(
 
         family->Absent = FALSE;
         family->NotShipped = FALSE;
+        family->ProbePending = FALSE;
         family->Ran = FALSE;
         family->RetryStreak = 0;
         family->BackoffUpdates = 0;
@@ -227,6 +228,10 @@ static VOID PhpHwBeginSession(
             {
                 family->Absent = TRUE;
                 family->NotShipped = TRUE;
+            }
+            else if (!NT_SUCCESS(status))
+            {
+                family->ProbePending = TRUE;
             }
         }
     }
@@ -274,7 +279,8 @@ static VOID PhpHwEndSession(
 }
 
 /**
- * Runs a family's pass when its interval has passed and it is not backing off after STATUS_RETRY.
+ * Runs a family's pass when its interval has passed and it is not backing off after STATUS_RETRY; while its
+ * probe failed before the script answered, probes it again every PHP_HW_RETRY_BACKOFF-th update instead.
  *
  * \param Family The family.
  * \param Now The provider's time of this update.
@@ -290,6 +296,35 @@ static VOID PhpHwRunFamily(
 
     if (Family->Absent || !Family->Pass)
         return;
+
+    if (Family->ProbePending)
+    {
+        if (!Force && ++Family->BackoffUpdates < PHP_HW_RETRY_BACKOFF)
+            return;
+
+        Family->BackoffUpdates = 0;
+
+        if (Family->End)
+            Family->End();
+
+        status = Family->Probe();
+
+        if (NT_SUCCESS(status))
+        {
+            Family->ProbePending = FALSE;
+        }
+        else if (status == STATUS_NOT_SUPPORTED)
+        {
+            Family->Absent = TRUE;
+        }
+        else if (PhpHwStatusNotShipped(status))
+        {
+            Family->Absent = TRUE;
+            Family->NotShipped = TRUE;
+        }
+
+        return;
+    }
 
     if (!Force)
     {
@@ -1059,6 +1094,8 @@ VOID PhHwWriteDiagnostics(
             state = L"not shipped with this build";
         else if (family->Absent)
             state = L"absent";
+        else if (family->ProbePending)
+            state = L"not probed";
         else if (family->RetryStreak >= 2)
             state = L"backing off after retries";
         else
