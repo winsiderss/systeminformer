@@ -1303,6 +1303,7 @@ local FAMILIES = {
     key = smsc_key,
     byte_id = true,
     base_register = 0x66,
+    base_low_first = true,
     block = 2,
     extent = 10,
     mailbox = true,
@@ -1380,6 +1381,16 @@ local function rcw(s, reg)
   local hi = rc(s, reg)
   local lo = rc(s, reg + 1)
   return (hi << 8) | lo
+end
+
+-- The monitor base, low byte first for a family that keeps it so.
+local function base_of(s, family, reg)
+  if family.base_low_first then
+    local lo = rc(s, reg)
+    local hi = rc(s, reg + 1)
+    return (hi << 8) | lo
+  end
+  return rcw(s, reg)
 end
 
 -- The chip ID at CR20h, one byte for a family that has one, and whether a
@@ -1579,9 +1590,9 @@ local function configure(s, family)
     return nt.STATUS_DEVICE_NOT_READY
   end
   local base_register = family.base_register or 0x60
-  local base = rcw(s, base_register)
+  local base = base_of(s, family, base_register)
   ksi.sleep(1)
-  if rc(s, 0x07) ~= s.row.ldn or rcw(s, base_register) ~= base then
+  if rc(s, 0x07) ~= s.row.ldn or base_of(s, family, base_register) ~= base then
     ksi.trace('LDN 0x%02x base 0x%04x changed while read', s.row.ldn, base)
     s.contended = true
     return nt.STATUS_RETRY
