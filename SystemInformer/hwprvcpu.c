@@ -25,7 +25,7 @@
 #define PHP_HW_CPU_MAX_INTERVAL 10.0f // seconds; a longer interval is a gap
 #define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE | PH_HW_CAP_RAPL_DRAM | PH_HW_CAP_RAPL_PSYS | \
     PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_POWER_LIMIT2) // package bits this collector always owns
-#define PHP_HW_CPU_ENERGY_IDLE_TICKS 5 // samples a DRAM or platform counter may stay still before it leaves the plan
+#define PHP_HW_CPU_ENERGY_IDLE_TICKS 5 // samples a RAPL energy counter may stay still before it leaves the plan
 #define PHP_HW_CPU_UNCORE_ID 0x40000000 // named sensor id of the MSR uncore clock, apart from the TPMI domains
 #define PHP_HW_CPU_LIMIT_PL4 0 // named limit sensors of a package; the index is the sensor's id
 #define PHP_HW_CPU_LIMIT_PLATFORM_PL1 1
@@ -186,9 +186,13 @@ static FLOAT PhpHwCpuPlatformEnergyUnit = 0.0f;
 static FLOAT PhpHwCpuPowerUnit = 0.0f; // watts
 static PFLOAT PhpHwCpuMsrPowerLimit1 = NULL; // per package, watts; 0 when unavailable
 static PFLOAT PhpHwCpuMsrPowerLimit2 = NULL;
-static PUCHAR PhpHwCpuDramIdleTicks = NULL; // per package: samples whose DRAM energy did not move, until it does
+static PUCHAR PhpHwCpuPackageIdleTicks = NULL; // per package: samples whose energy did not move, until it does
+static PUCHAR PhpHwCpuPp0IdleTicks = NULL;
+static PUCHAR PhpHwCpuDramIdleTicks = NULL;
 static PUCHAR PhpHwCpuPlatformIdleTicks = NULL;
-static PBOOLEAN PhpHwCpuDramEnergySeen = NULL; // per package: the counter moved
+static PBOOLEAN PhpHwCpuPackageEnergySeen = NULL; // per package: the counter moved
+static PBOOLEAN PhpHwCpuPp0EnergySeen = NULL;
+static PBOOLEAN PhpHwCpuDramEnergySeen = NULL;
 static PBOOLEAN PhpHwCpuPlatformEnergySeen = NULL;
 static PULONG PhpHwCpuUncoreIndex = NULL; // per package, the uncore clock's named sensor; ULONG_MAX when not listed
 static PULONG PhpHwCpuLimitIndex = NULL; // per package, PHP_HW_CPU_LIMIT_SENSORS named sensors; ULONG_MAX when not listed
@@ -1076,8 +1080,12 @@ NTSTATUS PhpHwCpuProbe(
     PhpHwCpuTickMaxCore = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
     PhpHwCpuMsrPowerLimit1 = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
     PhpHwCpuMsrPowerLimit2 = PhAllocateZero(sizeof(FLOAT) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPackageIdleTicks = PhAllocateZero(sizeof(UCHAR) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPp0IdleTicks = PhAllocateZero(sizeof(UCHAR) * max(PhpHwPackageCount, 1));
     PhpHwCpuDramIdleTicks = PhAllocateZero(sizeof(UCHAR) * max(PhpHwPackageCount, 1));
     PhpHwCpuPlatformIdleTicks = PhAllocateZero(sizeof(UCHAR) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPackageEnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
+    PhpHwCpuPp0EnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
     PhpHwCpuDramEnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
     PhpHwCpuPlatformEnergySeen = PhAllocateZero(sizeof(BOOLEAN) * max(PhpHwPackageCount, 1));
     PhpHwCpuUncoreIndex = PhAllocate(sizeof(ULONG) * max(PhpHwPackageCount, 1));
@@ -1261,19 +1269,35 @@ static ULONG PhpHwCpuDecodeLimitReasons(
 }
 
 /**
- * Drops the RAPL DRAM and platform registers when no package's counter moved in PHP_HW_CPU_ENERGY_IDLE_TICKS samples.
+ * Drops the RAPL energy registers when no package's counter moved in PHP_HW_CPU_ENERGY_IDLE_TICKS samples.
  */
 static VOID PhpHwCpuDropIdleEnergy(
     VOID
     )
 {
+    BOOLEAN packageIdle = PhpHwCpuRegisterActive(PhpHwRegPackageEnergy) && PhpHwPackageCount;
+    BOOLEAN pp0Idle = PhpHwCpuRegisterActive(PhpHwRegPp0Energy) && PhpHwPackageCount;
     BOOLEAN dramIdle = PhpHwCpuRegisterActive(PhpHwRegDramEnergy) && PhpHwPackageCount;
     BOOLEAN platformIdle = PhpHwCpuRegisterActive(PhpHwRegPlatformEnergy) && PhpHwPackageCount;
 
     for (ULONG i = 0; i < PhpHwPackageCount; i++)
     {
+        packageIdle &= !PhpHwCpuPackageEnergySeen[i] && PhpHwCpuPackageIdleTicks[i] >= PHP_HW_CPU_ENERGY_IDLE_TICKS;
+        pp0Idle &= !PhpHwCpuPp0EnergySeen[i] && PhpHwCpuPp0IdleTicks[i] >= PHP_HW_CPU_ENERGY_IDLE_TICKS;
         dramIdle &= !PhpHwCpuDramEnergySeen[i] && PhpHwCpuDramIdleTicks[i] >= PHP_HW_CPU_ENERGY_IDLE_TICKS;
         platformIdle &= !PhpHwCpuPlatformEnergySeen[i] && PhpHwCpuPlatformIdleTicks[i] >= PHP_HW_CPU_ENERGY_IDLE_TICKS;
+    }
+
+    if (packageIdle)
+    {
+        PhTraceInfo("Hardware sensors: RAPL package energy does not count; dropped");
+        PhpHwCpuRegisters[PhpHwRegPackageEnergy].Disabled = TRUE;
+    }
+
+    if (pp0Idle)
+    {
+        PhTraceInfo("Hardware sensors: RAPL PP0 energy does not count; dropped");
+        PhpHwCpuRegisters[PhpHwRegPp0Energy].Disabled = TRUE;
     }
 
     if (dramIdle)
@@ -1882,10 +1906,21 @@ static VOID PhpHwCpuPublish(
             valid |= PH_HW_CAP_POWER_LIMIT2;
         }
 
-        if (
-            PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, PhpHwCpuEnergyUnit, seconds, &watts) ||
-            PhpHwCpuComputeUnitPower(i, &watts)
-            )
+        if (PhpHwCpuSampleWatts(sample, PhpHwRegPackageEnergy, PhpHwCpuEnergyUnit, seconds, &watts))
+        {
+            PhpHwCpuPackageEnergySeen[i] |= watts > 0.0f;
+
+            if (PhpHwCpuPackageEnergySeen[i])
+            {
+                sensor->PackagePower = watts;
+                valid |= PH_HW_CAP_RAPL_PACKAGE;
+            }
+            else if (PhpHwCpuPackageIdleTicks[i] < PHP_HW_CPU_ENERGY_IDLE_TICKS)
+            {
+                PhpHwCpuPackageIdleTicks[i]++;
+            }
+        }
+        else if (PhpHwCpuComputeUnitPower(i, &watts))
         {
             sensor->PackagePower = watts;
             valid |= PH_HW_CAP_RAPL_PACKAGE;
@@ -1893,8 +1928,17 @@ static VOID PhpHwCpuPublish(
 
         if (PhpHwCpuSampleWatts(sample, PhpHwRegPp0Energy, PhpHwCpuEnergyUnit, seconds, &watts))
         {
-            sensor->CorePower = watts;
-            valid |= PH_HW_CAP_RAPL_CORE;
+            PhpHwCpuPp0EnergySeen[i] |= watts > 0.0f;
+
+            if (PhpHwCpuPp0EnergySeen[i])
+            {
+                sensor->CorePower = watts;
+                valid |= PH_HW_CAP_RAPL_CORE;
+            }
+            else if (PhpHwCpuPp0IdleTicks[i] < PHP_HW_CPU_ENERGY_IDLE_TICKS)
+            {
+                PhpHwCpuPp0IdleTicks[i]++;
+            }
         }
         else if (PhpHwCpuRegisterActive(PhpHwRegCoreEnergy) && PhpHwCpuPackageCores[i] && PhpHwCpuTickCoreCount[i] == PhpHwCpuPackageCores[i])
         {
@@ -2044,8 +2088,12 @@ VOID PhpHwCpuEnd(
     PhpHwCpuFree(&PhpHwCpuTickMaxCore);
     PhpHwCpuFree(&PhpHwCpuMsrPowerLimit1);
     PhpHwCpuFree(&PhpHwCpuMsrPowerLimit2);
+    PhpHwCpuFree(&PhpHwCpuPackageIdleTicks);
+    PhpHwCpuFree(&PhpHwCpuPp0IdleTicks);
     PhpHwCpuFree(&PhpHwCpuDramIdleTicks);
     PhpHwCpuFree(&PhpHwCpuPlatformIdleTicks);
+    PhpHwCpuFree(&PhpHwCpuPackageEnergySeen);
+    PhpHwCpuFree(&PhpHwCpuPp0EnergySeen);
     PhpHwCpuFree(&PhpHwCpuDramEnergySeen);
     PhpHwCpuFree(&PhpHwCpuPlatformEnergySeen);
     PhpHwCpuFree(&PhpHwCpuUncoreIndex);
