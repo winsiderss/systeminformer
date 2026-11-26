@@ -454,6 +454,15 @@ local PMBUS_READS = {
   { 0x60, 0x67, 0x96, 0x97, false, false, false, true, false },
 }
 local PAGE_MAX = 3
+-- The PMBus controllers PAGE is written to, by IC_DEVICE_ID (ADh) and the
+-- PMBUS_REVISION (98h) it comes with (false: any); MFR_ID and MFR_MODEL "RI",
+-- 6Ch 00h are the IR35221.
+local PMBUS_DEVICES = {
+  { 0x33, '\x81' },
+  { 0x33, 'TIShP' },
+  { false, 'TI\x53\x67\x60' },
+  { false, 'TI\x53\x6c\x70' },
+}
 local PUT_BACK_TRIES = 10
 local PMBUS_PAGE = 0x00
 
@@ -1419,6 +1428,40 @@ local function i801_xfer(s, address, command, protocol, data)
   return es, v, false, block
 end
 
+-- Whether the device at an address answers as a listed PMBus controller; nil
+-- and a status when it does not answer. A state keeps the answer.
+local function pmbus_identified(s, a, xfer)
+  local key = s.pmbus_port * 0x100 + a
+  if s.pmbus[key] ~= nil then
+    return s.pmbus[key]
+  end
+  local rs, revision, abort = xfer(s, a, 0x98, 0)
+  if not nt.NT_SUCCESS(rs) then
+    return nil, rs, abort
+  end
+  -- A block not read is empty; contention leaves the device unknown.
+  local blocks = {}
+  for i, command in ipairs({ 0x99, 0x9a, 0xad }) do
+    local bs, _, babort, block = xfer(s, a, command, 2)
+    if bs == nt.STATUS_RETRY or babort then
+      return nil, bs, babort
+    end
+    blocks[i] = nt.NT_SUCCESS(bs) and block or ''
+  end
+  local device = blocks[3]
+  if string.byte(device, #device) == 0 then
+    device = string.sub(device, 1, #device - 1)
+  end
+  local known = blocks[1] == 'RI' and blocks[2] == '\x6c\x00'
+  for _, d in ipairs(PMBUS_DEVICES) do
+    if (not d[1] or d[1] == revision) and device == d[2] then
+      known = true
+    end
+  end
+  s.pmbus[key] = known
+  return known
+end
+
 -- A read on the entry's page; the old page is put back, also on unwind, unless
 -- another agent moved it (a retry).
 local function paged(s, entries, first, last, xfer, output)
@@ -1428,6 +1471,16 @@ local function paged(s, entries, first, last, xfer, output)
     for i = first, last do
       output[i] = { status, 0 }
     end
+  end
+  local known, refused, stops = pmbus_identified(s, a, xfer)
+  if known == nil then
+    all(refused)
+    return stops
+  end
+  if not known then
+    ksi.trace('0x%x is not a listed PMBus controller', a)
+    all(nt.STATUS_ACCESS_DENIED)
+    return false
   end
   local es, original, abort = xfer(s, a, PMBUS_PAGE, 0)
   if not nt.NT_SUCCESS(es) then
@@ -1663,6 +1716,12 @@ function read(input)
     return refused
   end
   local closer <close> = (not s.kept) and s.device or nil
+  s.pmbus_port = port
+  s.pmbus = {}
+  if s.kept then
+    s.kept.pmbus = s.kept.pmbus or {}
+    s.pmbus = s.kept.pmbus
+  end
   if s.kind == KIND_INTEL then
     return i801_read(s, entries, port)
   end
