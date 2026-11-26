@@ -233,6 +233,7 @@ PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
 #define PHP_HW_VRM_MAX_HOSTS 4
 #define PHP_HW_VRM_MAX 8 // controllers
 #define PHP_HW_VRM_PAGES 2
+#define PHP_HW_VRM_MODE_INTERVAL 30 // passes between reads of a page's VOUT_MODE once it is known
 #define PHP_HW_VRM_ID_BASE 0x56520000 // named sensor ids: + controller << 8 + page << 4 + quantity
 
 typedef struct _PHP_HW_VRM
@@ -240,6 +241,8 @@ typedef struct _PHP_HW_VRM
     UCHAR Address;
     PHP_HW_PMBUS_FAMILY Family;
     ULONG Named[PHP_HW_VRM_PAGES][3]; // voltage, temperature, power
+    BOOLEAN ModeKnown[PHP_HW_VRM_PAGES];
+    UCHAR Mode[PHP_HW_VRM_PAGES]; // VOUT_MODE
 } PHP_HW_VRM, *PPHP_HW_VRM;
 
 static CONST UCHAR PhpHwVrmAddresses[] =
@@ -263,6 +266,7 @@ static ULONG PhpHwVrmHost = 0;
 static ULONG PhpHwVrmUnidentified = 0; // devices that answered and were not identified
 static NTSTATUS PhpHwVrmStatus = STATUS_NOT_SUPPORTED; // the last read, for the report
 static UCHAR PhpHwVrmStrikes = 0;
+static ULONG PhpHwVrmPasses = 0;
 static BOOLEAN PhpHwVrmEnded = FALSE;
 static ULONG PhpHwVrmHosts[PHP_HW_VRM_MAX_HOSTS];
 static ULONG PhpHwVrmHostCount = 0;
@@ -370,6 +374,7 @@ static VOID PhpHwVrmProbeAddresses(
 
             PhpHwVrms[PhpHwVrmCount].Address = PhpHwVrmAddresses[i];
             PhpHwVrms[PhpHwVrmCount].Family = family;
+            memset(PhpHwVrms[PhpHwVrmCount].ModeKnown, 0, sizeof(PhpHwVrms[PhpHwVrmCount].ModeKnown));
             PhpHwVrmHost = host;
             PhpHwVrmList(PhpHwVrmCount);
             PhpHwVrmCount++;
@@ -439,6 +444,7 @@ NTSTATUS NTAPI PhpHwVrmPass(
     ULONG capabilities = 0;
     BOOLEAN read;
     BOOLEAN answered = FALSE;
+    BOOLEAN modePass;
 
     if (PhpHwVrmProbing)
     {
@@ -451,11 +457,18 @@ NTSTATUS NTAPI PhpHwVrmPass(
     if (PhpHwVrmEnded || !PhpHwVrmCount)
         return STATUS_NOT_SUPPORTED;
 
+    modePass = PhpHwVrmPasses++ % PHP_HW_VRM_MODE_INTERVAL == 0;
+
     for (ULONG i = 0; i < PhpHwVrmCount; i++)
     {
         for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++)
         {
-            for (ULONG c = 0; c < 4; c++)
+            ULONG first = 1;
+
+            if (modePass || !PhpHwVrms[i].ModeKnown[page])
+                first = 0;
+
+            for (ULONG c = first; c < 4; c++)
             {
                 items[count].Address = PhpHwVrms[i].Address;
                 items[count].Command = commands[c];
@@ -489,16 +502,22 @@ NTSTATUS NTAPI PhpHwVrmPass(
     {
         PPHP_HW_VRM vrm = &PhpHwVrms[i];
 
-        for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++, at += 4)
+        for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++, at += 3)
         {
             static CONST PHP_HW_PMBUS_QUANTITY quantities[3] = { PhpHwPmbusVout, PhpHwPmbusTemperature, PhpHwPmbusPout };
-            BOOLEAN modeRead = read && NT_SUCCESS(values[at].Status);
+
+            if (modePass || !vrm->ModeKnown[page])
+            {
+                vrm->ModeKnown[page] = read && NT_SUCCESS(values[at].Status);
+                vrm->Mode[page] = (UCHAR)values[at].Value;
+                at++;
+            }
 
             for (ULONG q = 0; q < 3; q++)
             {
                 DOUBLE value = 0;
-                BOOLEAN valid = read && NT_SUCCESS(values[at + 1 + q].Status) && (q != 0 || modeRead) &&
-                    PhpHwPmbusDecode(vrm->Family, quantities[q], (UCHAR)values[at].Value, (USHORT)values[at + 1 + q].Value, &value);
+                BOOLEAN valid = read && NT_SUCCESS(values[at + q].Status) && (q != 0 || vrm->ModeKnown[page]) &&
+                    PhpHwPmbusDecode(vrm->Family, quantities[q], vrm->Mode[page], (USHORT)values[at + q].Value, &value);
 
                 FLOAT published = 0.0f;
 
@@ -529,6 +548,7 @@ VOID NTAPI PhpHwVrmEnd(
     PhpHwVrmStatus = STATUS_NOT_SUPPORTED;
     PhpHwVrmCount = 0;
     PhpHwVrmStrikes = 0;
+    PhpHwVrmPasses = 0;
     PhpHwVrmEnded = FALSE;
     PhpHwVrmProbing = FALSE;
 }
