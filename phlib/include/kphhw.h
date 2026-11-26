@@ -49,6 +49,8 @@ typedef struct _KPH_HW_SUPERIO_CHIP
     ULONG Customer;
 } KPH_HW_SUPERIO_CHIP, *PKPH_HW_SUPERIO_CHIP;
 
+typedef const KPH_HW_SUPERIO_CHIP* PCKPH_HW_SUPERIO_CHIP;
+
 typedef struct _KPH_HW_VALUE32
 {
     NTSTATUS Status;

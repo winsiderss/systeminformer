@@ -189,11 +189,15 @@ typedef struct _MB_BOARD_VOLTAGE
     FLOAT Vf;
 } MB_BOARD_VOLTAGE, *PMB_BOARD_VOLTAGE;
 
+typedef const MB_BOARD_VOLTAGE* PCMB_BOARD_VOLTAGE;
+
 typedef struct _MB_BOARD_LABEL
 {
     UCHAR Index;
     PCWSTR Name;
 } MB_BOARD_LABEL, *PMB_BOARD_LABEL;
+
+typedef const MB_BOARD_LABEL* PCMB_BOARD_LABEL;
 
 struct _MB_BOARD
 {
@@ -4867,7 +4871,7 @@ static PCMB_BOARD SuperIoFindBoard(
  */
 _Success_(return)
 BOOLEAN SuperIoIdentifyChip(
-    _In_ const KPH_HW_SUPERIO_CHIP* Identity,
+    _In_ PCKPH_HW_SUPERIO_CHIP Identity,
     _In_opt_ PCPH_STRINGREF Manufacturer,
     _In_opt_ PCPH_STRINGREF Product,
     _Out_ PMB_CHIP_STATE State
@@ -5430,7 +5434,7 @@ static VOID SuperIoSetNumberedName(
 }
 
 static PCWSTR SuperIoFindLabel(
-    _In_reads_opt_(Count) const MB_BOARD_LABEL* Labels,
+    _In_reads_opt_(Count) PCMB_BOARD_LABEL Labels,
     _In_ ULONG Count,
     _In_ ULONG Index
     )
@@ -5444,7 +5448,7 @@ static PCWSTR SuperIoFindLabel(
     return NULL;
 }
 
-static const MB_BOARD_VOLTAGE* SuperIoFindVoltage(
+static PCMB_BOARD_VOLTAGE SuperIoFindVoltage(
     _In_ PCMB_BOARD Board,
     _In_ ULONG Index
     )

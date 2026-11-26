@@ -66,8 +66,8 @@ static CONST struct
  * The average of an accumulator between two tables in Q10 units, or 0 when the counter or the value went backwards.
  */
 static DOUBLE AmdNpuAverage(
-    _In_reads_bytes_(KPH_HW_HSMP_METRICS_SIZE) const UCHAR* Previous,
-    _In_reads_bytes_(KPH_HW_HSMP_METRICS_SIZE) const UCHAR* Current,
+    _In_reads_bytes_(KPH_HW_HSMP_METRICS_SIZE) PCUCHAR Previous,
+    _In_reads_bytes_(KPH_HW_HSMP_METRICS_SIZE) PCUCHAR Current,
     _In_ ULONG Offset
     )
 {

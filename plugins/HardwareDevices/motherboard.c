@@ -192,7 +192,7 @@ static VOID MotherboardResetSlot(
 static VOID MotherboardIdentify(
     _In_ PMB_CONTEXT Context,
     _Inout_ PMB_SLOT Slot,
-    _In_ const KPH_HW_SUPERIO_CHIP* Identity
+    _In_ PCKPH_HW_SUPERIO_CHIP Identity
     )
 {
     PH_FORMAT format[6];

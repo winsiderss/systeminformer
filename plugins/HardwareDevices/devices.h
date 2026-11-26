@@ -1581,7 +1581,7 @@ typedef const MB_CHIP_STATE* PCMB_CHIP_STATE;
 
 _Success_(return)
 BOOLEAN SuperIoIdentifyChip(
-    _In_ const KPH_HW_SUPERIO_CHIP* Identity,
+    _In_ PCKPH_HW_SUPERIO_CHIP Identity,
     _In_opt_ PCPH_STRINGREF Manufacturer,
     _In_opt_ PCPH_STRINGREF Product,
     _Out_ PMB_CHIP_STATE State
