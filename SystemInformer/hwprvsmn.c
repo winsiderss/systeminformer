@@ -168,7 +168,7 @@ static ULONG PhpHwSmnReadPackage(
     status = KphHwSmnRead(Package->Locator, addresses, itemCount + ExtraCount, values);
     *Status = status;
 
-    // Contention backs the whole family off (D9); any other failed call is each item's status.
+    // Contention backs the whole family off; any other failed call is each item's status.
     if (status == STATUS_RETRY)
         return 0;
 

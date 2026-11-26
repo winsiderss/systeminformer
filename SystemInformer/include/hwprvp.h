@@ -41,9 +41,9 @@ extern ULONG PhCsEnableHardwareSensors;
 extern ULONG PhCsTemperatureUnitFahrenheit;
 
 #define PHP_HW_SECOND 10000000ULL // in PhpHwQueryTime units
-#define PHP_HW_RETRY_BACKOFF 10 // updates between tries after two STATUS_RETRY in a row (D9)
+#define PHP_HW_RETRY_BACKOFF 10 // updates between tries after two STATUS_RETRY in a row
 
-// The driver families in update order (spec 3.2).
+// The driver families in update order.
 typedef enum _PHP_HW_FAMILY_ID
 {
     PhpHwFamilyCpu,
@@ -640,7 +640,7 @@ ULONG PhpHwCpuPackageValid(
     _In_ ULONG PackageIndex
     );
 
-// TRUE during an update that serves a report request (D11): each pass ends with its report-only reads.
+// TRUE during an update that serves a report request: each pass ends with its report-only reads.
 extern BOOLEAN PhpHwReportReads;
 extern ULONG PhpHwReportWaitMilliseconds; // how long a report waits for the update that serves it
 

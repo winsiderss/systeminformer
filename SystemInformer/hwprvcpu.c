@@ -18,7 +18,7 @@
 // Collector cpu: the processors' model-specific registers through KphHwCpuRead, one plan of registers per processor
 // class, read once per update in calls of at most PHP_HW_CPU_BATCH items.
 
-#define PHP_HW_CPU_BATCH 512 // items a call; halved for the session at the script's limits (D8)
+#define PHP_HW_CPU_BATCH 512 // items a call; halved for the session at the script's limits
 #define PHP_HW_CPU_STRIKE_LIMIT 3 // failures of a register before it leaves the plan for the session
 #define PHP_HW_CPU_BUS_MHZ 100.0f
 #define PHP_HW_CPU_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
@@ -1841,8 +1841,7 @@ static VOID PhpHwCpuPublish(
         FLOAT watts;
         FLOAT limit;
 
-        // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family comes after
-        // (spec 5.1).
+        // The package's own temperature, else on Intel and Centaur the hottest core; the mmio family comes after.
         if ((sample->Valid & (1ULL << PhpHwRegPackageThermStatus)) && PhpHwCpuTjMax[i])
         {
             ULONG64 value = sample->Value[PhpHwRegPackageThermStatus];

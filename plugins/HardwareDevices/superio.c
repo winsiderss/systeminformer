@@ -794,7 +794,7 @@ static CONST MB_CHIP SuperIoChips[] =
 static CONST MB_CHIP Nct6796sChip = { MB_FAMILY_NUVOTON, 0xd802, 0xffff, L"NCT6796D-S", &Nct6796s };
 static CONST MB_CHIP Nct5585dChip = { MB_FAMILY_NUVOTON, 0xd42a, 0xffff, L"NCT5585D", &Nct5585d };
 
-// ASRock boards whose D802h chip is an NCT6796D-S; labels stay generic until confirmed.
+// ASRock boards whose D802h chip is an NCT6796D-S.
 static CONST PH_STRINGREF AsrockNct6796sProducts[] =
 {
     PH_STRINGREF_INIT(L"X870E Nova WiFi"),
@@ -868,7 +868,7 @@ static CONST MB_BOARD_LABEL GigabyteB650AorusEliteFans[] =
 };
 
 // Gigabyte X870E boards on an IT8696E and an IT87952E (one map for the X870E AORUS PRO, PRO ICE and XTREME AI
-// TOP; the X870E AORUS MASTER is the same design, confirmed by its owner's readings).
+// TOP; the X870E AORUS MASTER is the same design).
 static CONST PH_STRINGREF GigabyteX870eAorusProducts[] =
 {
     PH_STRINGREF_INIT(L"X870E AORUS MASTER"),
@@ -6373,7 +6373,7 @@ static FLOAT SuperIoFintekRpm(
     _In_ USHORT Count
     )
 {
-    // 366 RPM is the lowest detectable speed (FAN_MIN_DETECT); a stopped fan reads FFFh.
+    // 366 RPM is the lowest detectable speed; a stopped fan reads FFFh.
     return Count && 1500000 / Count > 366 ? 1500000.0f / Count : 0;
 }
 

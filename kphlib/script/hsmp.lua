@@ -13,8 +13,8 @@
 -- socket's AMDI0097 device when the firmware describes one, otherwise behind
 -- the root complex's system management network pair. The root complexes,
 -- their mailbox registers and the commands each processor family may be sent
--- are listed below. A client row (family 1Ah models 80h to 8Fh, the Ryzen
--- Master message set) is reached only through its AMDI0097 device and is sent
+-- are listed below. A client row (family 1Ah models 80h to 8Fh, the client
+-- message set) is reached only through its AMDI0097 device and is sent
 -- no command: metrics fills its metrics table (05h), asks its address (06h)
 -- and returns it.
 --

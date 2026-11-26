@@ -1199,7 +1199,7 @@ static BOOLEAN PhpHwAcpiSensorIdUsed(
 }
 
 /**
- * Names the values of the devices whose static methods were read (decision D7): the firmware's name (_STR, a meter's
+ * Names the values of the devices whose static methods were read: the firmware's name (_STR, a meter's
  * model), else the device tree's name of the device at the namespace path, else the ID and the ordinal; a getter by
  * its label. Values that share a name are told apart by their device's last path segment, or the whole path when
  * that is shared too. A value's id follows its path and method across sessions; a colliding hash takes the next free

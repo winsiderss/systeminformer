@@ -292,7 +292,7 @@ static NTSTATUS PhpHwMmioReadWindow(
 
     status = KphHwPciMmioRead(Window->Locator, Window->Window, items, count, values);
 
-    // Contention backs the whole family off (D9); a window that is gone, removable or misconfigured leaves the plan.
+    // Contention backs the whole family off; a window that is gone, removable or misconfigured leaves the plan.
     if (status == STATUS_RETRY || status == STATUS_DEVICE_NOT_READY || status == STATUS_DEVICE_POWERED_OFF)
         return status;
 

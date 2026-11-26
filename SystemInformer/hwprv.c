@@ -116,7 +116,7 @@ static ULONG PhpHwSourceUpdateId = 0;
 static ULONG PhpHwSourceCompletedUpdateId = 0; // the last update whose source loop finished
 static HANDLE PhpHwSourceUpdateThread = NULL; // the thread in the source loop, for assertions
 
-// Report requests waiting for an update to make the report-only reads (D11).
+// Report requests waiting for an update to make the report-only reads.
 static PH_QUEUED_LOCK PhpHwReportLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpHwReportRequests = { &PhpHwReportRequests, &PhpHwReportRequests };
 static LONG PhpHwRefreshRequested = FALSE; // the next update runs every family regardless of its interval
@@ -945,7 +945,7 @@ static VOID PhpHwAppendFlags(
 /**
  * Writes the state of the hardware sensors provider and each family's section for the hardware report.
  *
- * \details With the gate open, the next update first makes the report-only reads (D11).
+ * \details With the gate open, the next update first makes the report-only reads.
  *
  * \param Builder The report.
  */

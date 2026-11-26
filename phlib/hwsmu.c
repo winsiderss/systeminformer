@@ -132,7 +132,7 @@ static CONST PHP_HW_SMU_FIELD PhpHwSmuFields240803[] =
     PHP_SMU_FIELD(135, SmuResidency, Percent, PackageC6, L"Package C6"),
 };
 
-// Vermeer 0x380804 (16 cores): core arrays, package C6 and L3 not decoded (sources disagree)
+// Vermeer 0x380804 (16 cores): core arrays, package C6 and L3 not decoded
 static CONST PHP_HW_SMU_FIELD PhpHwSmuFields380804[] =
 {
     PHP_SMU_FIELD(0, SmuPowerLimit, PowerLimit, Ppt, L"PPT limit"),
@@ -290,7 +290,7 @@ static CONST PHP_HW_SMU_FIELD PhpHwSmuFields380005[] =
     PHP_SMU_FIELD(36, SmuPower, Power, MemRail, L"Memory rail"), \
     PHP_SMU_FIELD(38, SmuPower, Power, Socket, L"Socket")
 
-// Raven Ridge 0x1E0004: currents, SoC rail, iGPU and fabric; the header past TDC/EDC is unsourced
+// Raven Ridge 0x1E0004: currents, SoC rail, iGPU and fabric; the header past TDC/EDC is not decoded
 static CONST PHP_HW_SMU_FIELD PhpHwSmuFields1e0004[] =
 {
     PHP_SMU_FIELD(7, SmuCurrent, Current, Tdc, L"TDC"),
@@ -480,19 +480,19 @@ static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540104[] =
     PHP_SMU_FIELD((FclkIndex), SmuClock, FabricClock, Fclk, L"Fabric (FCLK)"), \
     PHP_SMU_FIELD((FclkIndex) + 5, SmuMemoryClock, FabricClock, Uclk, L"Controller (UCLK)")
 
-// Storm Peak 0x5C0002/03, 0x5C0102/03, 0x5C0202 and 0x5C0302 (one corrected report)
+// Storm Peak 0x5C0002/03, 0x5C0102/03, 0x5C0202 and 0x5C0302
 static CONST PHP_HW_SMU_FIELD PhpHwSmuFields5c0002[] =
 {
     PHP_SMU_STORM_PEAK_FIELDS(61, 101),
 };
 
-// Storm Peak 0x5C0203, 0x5C0303 and 0x5C0402/03 (0x5C0203 verified on a 7985WX)
+// Storm Peak 0x5C0203, 0x5C0303 and 0x5C0402/03
 static CONST PHP_HW_SMU_FIELD PhpHwSmuFields5c0203[] =
 {
     PHP_SMU_STORM_PEAK_FIELDS(63, 103),
 };
 
-// Shimada Peak 0x730204-0x731004 (one dump family): SVI3 VDD and SoC/MISC rails, clocks and CLDO
+// Shimada Peak 0x730204-0x731004: SVI3 VDD and SoC/MISC rails, clocks and CLDO
 static CONST PHP_HW_SMU_FIELD PhpHwSmuFields730204[] =
 {
     PHP_SMU_FIELD(95, SmuVoltage, RailVoltage, CoreRail, L"Core rail"),
