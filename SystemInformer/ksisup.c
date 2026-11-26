@@ -2390,6 +2390,8 @@ NTSTATUS KsiConnect(
         // existing temporary driver file, if one exists.
         //
 
+        ksiFileName = PhReferenceObject(KsiFileName);
+
         tempFileName = PhGetStringSetting(SETTING_KSI_PREVIOUS_TEMPORARY_DRIVER_FILE);
         if (tempFileName)
         {
@@ -2398,9 +2400,13 @@ NTSTATUS KsiConnect(
                 config.FileName = &tempFileName->sr;
 
                 status = KphConnect(&config);
-            }
 
-            PhMoveReference(&KsiFileName, tempFileName);
+                PhMoveReference(&KsiFileName, tempFileName);
+            }
+            else
+            {
+                PhDereferenceObject(tempFileName);
+            }
         }
 
         if (!NT_SUCCESS(status) && tempDriverDir)
