@@ -41,6 +41,14 @@ PhHwSpd5118ToCelsius(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhHwPmicDefaultRange(
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers,
+    _In_ UCHAR SetPoint
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhHwPmicHighVoltage(
     _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers
     );

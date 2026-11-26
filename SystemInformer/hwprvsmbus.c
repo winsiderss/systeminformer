@@ -70,7 +70,7 @@ typedef struct _PHP_HW_DIMM
     ULONG Index; // in the named-sensor store
     ULONG VoltageIndex[PH_HW_PMIC_RAILS];
     ULONG PmicIndex[PH_HW_PMIC_SENSORS]; // ULONG_MAX until the sensor's first reading
-    FLOAT Voltages[PH_HW_PMIC_RAILS]; // the set points
+    FLOAT Voltages[PH_HW_PMIC_RAILS]; // the set points; 0 for none
     WCHAR Slot[PH_HW_NAMED_SENSOR_NAME_LENGTH]; // the slot's name, for the PMIC sensors
     BOOLEAN PmicTelemetryRead; // PmicTelemetry and PmicTelemetryStatus hold the last read, for the report
     UCHAR PmicTelemetry[PHP_HW_PMIC_TELEMETRY];
@@ -360,6 +360,12 @@ static BOOLEAN PhpHwProbePmics(
         for (ULONG rail = 0; rail < PH_HW_PMIC_RAILS; rail++)
         {
             UCHAR vid = PhpHwPmicRegister(registers, setPoints[rail]);
+
+            if (!PhHwPmicDefaultRange(registers, setPoints[rail]))
+            {
+                dimm->Voltages[rail] = 0.0f;
+                continue;
+            }
 
             // JEDEC set point: [7:1] in 5 mV steps above the rail base; VPP has no high-voltage mode.
             if (highVoltage && rail != PHP_HW_PMIC_RAIL_VPP)
@@ -725,6 +731,9 @@ static VOID PhpHwSmbusNameDimms(
 
         for (ULONG rail = 0; dimm->Pmic && rail < PH_HW_PMIC_RAILS; rail++)
         {
+            if (dimm->Voltages[rail] == 0.0f)
+                continue;
+
             name = PhFormatString(L"%s %s", slot->Buffer, rails[rail]);
             dimm->VoltageIndex[rail] = PhpHwAddNamedSensor(PhHwNamedSensorDimmVoltage, 0, i * PH_HW_PMIC_RAILS + rail, name->Buffer);
             PhpHwSetNamedSensor(dimm->VoltageIndex[rail], TRUE, dimm->Voltages[rail]);

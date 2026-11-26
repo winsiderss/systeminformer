@@ -68,6 +68,40 @@ static UCHAR PhpHwPmicRegister(
 }
 
 /**
+ * Decides whether a PMIC set point is on the default range: 2Bh's range bit for it (bit 5 for 21h, 3 for 25h, 0 for
+ * 27h) clear, or claimed by a vendor rule.
+ */
+BOOLEAN NTAPI PhHwPmicDefaultRange(
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers,
+    _In_ UCHAR SetPoint
+    )
+{
+    UCHAR claimed = 0;
+    UCHAR bit;
+
+    // Vendor 8A8Ch: 2Bh[5:4] is its high-voltage mode.
+    if (PhpHwPmicRegister(Registers, 0x3C) == 0x8A && PhpHwPmicRegister(Registers, 0x3D) == 0x8C)
+        claimed = 0x30;
+
+    switch (SetPoint)
+    {
+    case 0x21:
+        bit = 0x20;
+        break;
+    case 0x25:
+        bit = 0x08;
+        break;
+    case 0x27:
+        bit = 0x01;
+        break;
+    default:
+        return TRUE;
+    }
+
+    return (bit & claimed) || !(PhpHwPmicRegister(Registers, 0x2B) & bit);
+}
+
+/**
  * Decides whether a PMIC encodes the VDD and VDDQ set points in the whole byte (800 + 5n mV, a vendor high-voltage
  * mode) instead of the JEDEC [7:1].
  */
