@@ -65,6 +65,7 @@ typedef struct _MB_CONTEXT
     MB_SLOT Slots[MB_SLOTS];
 } MB_CONTEXT, *PMB_CONTEXT;
 
+static CONST PCWSTR MotherboardSlotNames[MB_SLOTS] = { L"2Eh", L"4Eh", L"162Eh", L"164Eh" };
 static BOOLEAN MotherboardSupported = FALSE;
 static LONG MotherboardSessionEnded = FALSE;
 static PMB_CONTEXT MotherboardContext = NULL;
@@ -517,7 +518,7 @@ static VOID NTAPI MotherboardSensorSourceDiagnostics(
         PhAppendFormatStringBuilder(
             Builder,
             L"  SuperIO %s: status 0x%08lx, family %lu, chip 0x%04lx, customer 0x%04lx, %s, board map %s, %lu sensors\n",
-            i ? L"4Eh" : L"2Eh",
+            MotherboardSlotNames[i],
             slot->LastStatus,
             slot->ReportIdentity.Family,
             slot->ReportIdentity.Chip,
@@ -656,7 +657,7 @@ static PPH_STRING MotherboardGetStatusText(
     for (ULONG i = 0; i < MB_SLOTS; i++)
     {
         PMB_SLOT slot = &context->Slots[i];
-        PCWSTR port = i ? L"4Eh" : L"2Eh";
+        PCWSTR port = MotherboardSlotNames[i];
 
         if (slot->ChipName)
             PhAppendFormatStringBuilder(&sb, L"%s: %s, %lu sensors\r\n", port, slot->ChipName, slot->SensorCount);
