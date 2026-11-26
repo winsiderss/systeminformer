@@ -1163,6 +1163,9 @@ local function global_lock_wanted(device)
       return false
     end
     ksi.trace('_GLK failed: 0x%08x', failed)
+    if failed == nt.STATUS_TIMEOUT then
+      return nil, nt.STATUS_IO_TIMEOUT
+    end
     return nil, failed
   end
   if string.unpack('<I4', output, 9) < 1 then
