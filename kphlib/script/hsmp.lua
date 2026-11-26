@@ -508,7 +508,7 @@ local ROWS = {
   },
 }
 
-local WAIT_MS = 1000
+local WAIT_MS = 100
 local STALE_MS = 100
 local RESTORE_TRIES = 1000
 local ALL_ONES = 0xffffffff
