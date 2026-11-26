@@ -460,10 +460,10 @@ function M.check_range(first, last, bits)
     ksi.trace('range end 0x%x beyond %d address bits', last, bits)
     return M.STATUS_CONFLICTING_ADDRESSES
   end
-  local nvdimm = M.is_nvdimm(first, last - first)
+  local nvdimm, nvdimmFailed = M.is_nvdimm(first, last - first)
   if nvdimm == nil then
-    ksi.trace('NVDIMM ranges unknown')
-    return M.STATUS_DEVICE_CONFIGURATION_ERROR
+    ksi.trace('NVDIMM ranges unknown: 0x%x', nvdimmFailed)
+    return nvdimmFailed
   end
   if nvdimm then
     ksi.trace('range 0x%x-0x%x overlaps NVDIMM', first, last)
