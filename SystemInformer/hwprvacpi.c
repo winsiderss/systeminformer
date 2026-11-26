@@ -724,10 +724,6 @@ BOOLEAN PhpHwAcpiLenovoFans(
         { FALSE, L"IdeaPad", { "FAN0", NULL }, 100 },
     };
 
-    Fields[0] = NULL;
-    Fields[1] = NULL;
-    *Multiplier = 0;
-
     if (!wcsstr(Manufacturer, L"LENOVO"))
         return FALSE;
 
