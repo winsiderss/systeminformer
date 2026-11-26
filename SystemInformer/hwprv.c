@@ -594,7 +594,7 @@ static VOID NTAPI PhpHwSourceReport(
 }
 
 /**
- * Invokes the callback of each registered source; while hardware sensors are off every source sensor is stale.
+ * Invokes the callback of each registered source; while hardware sensors are off the sources' sensors are dropped.
  *
  * \param Enabled Whether hardware sensors are on. Sources run in user mode: the driver is not needed.
  */
@@ -623,6 +623,28 @@ static VOID PhpHwUpdateSources(
             }
 
             WritePointerRelease(&PhpHwSourceUpdateThread, NULL);
+        }
+        else
+        {
+            PhAcquireQueuedLockExclusive(&PhpHwSourceDataLock);
+
+            for (PLIST_ENTRY entry = PhpHwSourceListHead.Flink; entry != &PhpHwSourceListHead; entry = entry->Flink)
+            {
+                PPH_HW_SENSOR_SOURCE_REGISTRATION source = CONTAINING_RECORD(entry, PH_HW_SENSOR_SOURCE_REGISTRATION, ListEntry);
+
+                for (ULONG i = 0; i < source->Sensors->Count; i++)
+                {
+                    PPHP_HW_SOURCE_SENSOR sensor = source->Sensors->Items[i];
+
+                    PhDereferenceObject(sensor->ComponentName);
+                    PhDereferenceObject(sensor->SensorName);
+                    PhFree(sensor);
+                }
+
+                PhClearList(source->Sensors);
+            }
+
+            PhReleaseQueuedLockExclusive(&PhpHwSourceDataLock);
         }
 
         // A sensor not reported by this update goes stale once it finishes.
