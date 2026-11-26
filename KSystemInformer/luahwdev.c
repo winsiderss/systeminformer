@@ -2091,7 +2091,6 @@ int KphpLuaHwDeviceGuard(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    target = KphpLuaHwCheckTarget(State, 1, &fileObject);
     milliseconds = KphpLuaHwCheckMilliseconds(State, 4);
 
     KphpLuaHwCheckGuardRequest(State,
@@ -2158,6 +2157,8 @@ int KphpLuaHwDeviceGuard(
     spec.IoControlCode = giveCode;
     spec.Input = giveInput;
     spec.InputLength = giveInputLength;
+
+    target = KphpLuaHwCheckTarget(State, 1, &fileObject);
 
     status = KphpLuaHwBuildRequest(State, target, fileObject, &spec, &give);
     if (!NT_SUCCESS(status))
@@ -2317,7 +2318,6 @@ int KphpLuaHwDeviceControl(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    target = KphpLuaHwCheckTarget(State, 1, &fileObject);
     code = luaL_checkinteger(State, 2);
     input = luaL_checklstring(State, 3, &inputLength);
     milliseconds = KphpLuaHwCheckMilliseconds(State, 5);
@@ -2393,6 +2393,8 @@ int KphpLuaHwDeviceControl(
     spec.Data = data;
     spec.DataLength = (ULONG)dataLength;
     spec.Buffers = buffers;
+
+    target = KphpLuaHwCheckTarget(State, 1, &fileObject);
 
     ObReferenceObject(target);
 
@@ -2678,8 +2680,6 @@ int KphpLuaHwDevicePropertyData(
 
     KPH_PAGED_CODE_PASSIVE();
 
-    pdo = KphpLuaHwCheckPdo(State, 1);
-
     luaL_checktype(State, 2, LUA_TTABLE);
 
     fieldType = lua_getfield(State, 2, "guid");
@@ -2703,6 +2703,8 @@ int KphpLuaHwDevicePropertyData(
     key.pid = (DEVPROPID)pid;
 
     lua_pop(State, 2);
+
+    pdo = KphpLuaHwCheckPdo(State, 1);
 
     required = 0;
     type = DEVPROP_TYPE_EMPTY;
