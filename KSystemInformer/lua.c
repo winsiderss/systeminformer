@@ -558,6 +558,7 @@ VOID KphLuaThrow(
                       allocator->Limit);
 
         allocator->Failures++;
+        allocator->Errors++;
 
         KphLuaReleaseReserve(allocator);
     }
@@ -721,6 +722,7 @@ VOID KphLuaInitializeAllocator(
     Allocator->Used = 0;
     Allocator->CollectAt = Limit - (Limit / 4);
     Allocator->Failures = 0;
+    Allocator->Errors = 0;
     Allocator->Held = NULL;
     Allocator->HeldSize = Reserve;
     Allocator->HeldUsed = 0;

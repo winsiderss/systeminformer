@@ -191,7 +191,7 @@ ULONG64 KphScriptGetAbortCount(
 
     call = KphpScriptGetCall(State);
 
-    return (call->Aborts + call->Allocator->Failures);
+    return (call->Aborts + call->Allocator->Errors);
 }
 
 /**
@@ -951,6 +951,7 @@ VOID KphpScriptCount(
 {
     PKPH_SCRIPT_CALL call;
     ULONG64 now;
+    BOOLEAN refused;
     BOOLEAN abort;
     lua_Hook hook;
 
@@ -961,11 +962,15 @@ VOID KphpScriptCount(
     now = KeQueryUnbiasedInterruptTime();
 
     //
-    // A memory error is already unwinding the body: what runs is cleanup.
+    // A refused allocation ends the body, unless an error is already
+    // unwinding it: what runs from here on is cleanup.
     //
+    refused = FALSE;
     if ((call->Phase == KphScriptPhaseBody) &&
         (call->Allocator->Failures != 0))
     {
+        refused = ((call->Aborts == 0) && (call->Allocator->Errors == 0));
+
         KphpScriptBeginCleanup(call, STATUS_INSUFFICIENT_RESOURCES, now);
     }
 
@@ -994,6 +999,18 @@ VOID KphpScriptCount(
             break;
         }
         DEFAULT_UNREACHABLE;
+    }
+
+    if (refused && !abort)
+    {
+        if (call->Handlers != 0)
+        {
+            call->AbortDeferred = TRUE;
+        }
+        else
+        {
+            abort = TRUE;
+        }
     }
 
     if (abort)
@@ -1141,7 +1158,7 @@ VOID KphScriptEnterHandler(
  * \brief Notes that a close handler of the script ended.
  *
  * \details May raise a Lua error: the abort of the call, when the body reached
- * a limit while its handlers ran.
+ * a limit or was refused memory while its handlers ran.
  *
  * \param[in] State The Lua state.
  */
@@ -1165,10 +1182,20 @@ VOID KphScriptLeaveHandler(
         return;
     }
 
-    if ((call->Phase == KphScriptPhaseBody) &&
-        (call->Allocator->Failures == 0))
+    if (call->Phase == KphScriptPhaseBody)
     {
-        KphLuaRestoreReserve(call->Allocator, call->HandlerReserve);
+        if (call->Allocator->Failures == 0)
+        {
+            KphLuaRestoreReserve(call->Allocator, call->HandlerReserve);
+        }
+        else if ((call->Aborts == 0) && (call->Allocator->Errors == 0))
+        {
+            KphpScriptBeginCleanup(call,
+                                   STATUS_INSUFFICIENT_RESOURCES,
+                                   KeQueryUnbiasedInterruptTime());
+
+            call->AbortDeferred = TRUE;
+        }
     }
 
     call->HandlerReserve = 0;
