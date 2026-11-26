@@ -93,16 +93,15 @@ static BOOLEAN PhpIsAmdPreZenPStateLayout(
 /**
  * Reads the CPU identity of the current processor.
  *
- * \param Identity Receives the identity. Zeroed when the function fails.
+ * \param Identity Receives the identity.
  * \return TRUE on x86/x64, FALSE on other architectures.
  */
 BOOLEAN NTAPI PhGetCpuIdentity(
     _Out_ PPH_CPU_IDENTITY Identity
     )
 {
-    RtlZeroMemory(Identity, sizeof(PH_CPU_IDENTITY));
-
 #if defined(_M_IX86) || defined(_M_X64)
+    PH_CPU_IDENTITY identity;
     INT cpuInfo[4];
     ULONG maximumLeaf;
     ULONG signature;
@@ -115,33 +114,38 @@ BOOLEAN NTAPI PhGetCpuIdentity(
     if (maximumLeaf < 1)
         return FALSE;
 
-    Identity->Vendor[0] = (ULONG)cpuInfo[1];
-    Identity->Vendor[1] = (ULONG)cpuInfo[3];
-    Identity->Vendor[2] = (ULONG)cpuInfo[2];
+    RtlZeroMemory(&identity, sizeof(PH_CPU_IDENTITY));
+    identity.Vendor[0] = (ULONG)cpuInfo[1];
+    identity.Vendor[1] = (ULONG)cpuInfo[3];
+    identity.Vendor[2] = (ULONG)cpuInfo[2];
 
     __cpuid(cpuInfo, 1);
     signature = (ULONG)cpuInfo[0];
     family = (signature >> 8) & 0xF;
     model = (signature >> 4) & 0xF;
 
-    Identity->DisplayFamily = (USHORT)family;
+    identity.DisplayFamily = (USHORT)family;
     if (family == 0xF)
-        Identity->DisplayFamily += (USHORT)((signature >> 20) & 0xFF);
+        identity.DisplayFamily += (USHORT)((signature >> 20) & 0xFF);
 
-    Identity->DisplayModel = (UCHAR)model;
+    identity.DisplayModel = (UCHAR)model;
     if (family >= 0x6)
-        Identity->DisplayModel |= (UCHAR)(((signature >> 16) & 0xF) << 4);
+        identity.DisplayModel |= (UCHAR)(((signature >> 16) & 0xF) << 4);
 
-    Identity->Stepping = (UCHAR)(signature & 0xF);
+    identity.Stepping = (UCHAR)(signature & 0xF);
 
     if (maximumLeaf >= 7)
     {
         __cpuidex(cpuInfo, 7, 0);
-        Identity->Hybrid = !!(cpuInfo[3] & (1 << 15));
+        identity.Hybrid = !!(cpuInfo[3] & (1 << 15));
     }
+
+    *Identity = identity;
 
     return TRUE;
 #else
+    UNREFERENCED_PARAMETER(Identity);
+
     return FALSE;
 #endif
 }
