@@ -22,7 +22,7 @@
 #define PHP_HW_CPU_STRIKE_LIMIT 3 // failures of a register before it leaves the plan for the session
 #define PHP_HW_CPU_BUS_MHZ 100.0f
 #define PHP_HW_CPU_ENERGY_MAX_WATTS 10000.0f // above this an energy counter restarted
-#define PHP_HW_CPU_MAX_INTERVAL 10.0f // seconds; a longer interval is a gap
+#define PHP_HW_CPU_MAX_INTERVAL 15.0f // seconds, over the slowest update interval; a longer interval is a gap
 #define PHP_HW_CPU_PACKAGE_CAPS (PH_HW_CAP_RAPL_PACKAGE | PH_HW_CAP_RAPL_CORE | PH_HW_CAP_RAPL_DRAM | PH_HW_CAP_RAPL_PSYS | \
     PH_HW_CAP_POWER_LIMIT1 | PH_HW_CAP_POWER_LIMIT2) // package bits this collector always owns
 #define PHP_HW_CPU_ENERGY_IDLE_TICKS 5 // samples a RAPL energy counter may stay still before it leaves the plan
