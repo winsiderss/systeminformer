@@ -643,6 +643,7 @@ PPH_STRING NTAPI PhHwCreateReport(
     static CONST PH_STRINGREF revisionValueName = PH_STRINGREF_INIT(L"UBR");
     PH_STRING_BUILDER builder;
     PPH_STRING version;
+    PPH_STRING time;
     PPH_STRING sensorsText = NULL;
     static CONST PH_STRINGREF available = PH_STRINGREF_INIT(L"Hardware sensors are available.");
     PCPH_STRINGREF reason;
@@ -671,7 +672,9 @@ PPH_STRING NTAPI PhHwCreateReport(
     if (revision != ULONG_MAX)
         PhAppendFormatStringBuilder(&builder, L".%lu", revision);
 
-    PhAppendFormatStringBuilder(&builder, L"\nCreated %s\n", PhaFormatDateTime(NULL)->Buffer);
+    time = PhFormatDateTime(NULL);
+    PhAppendFormatStringBuilder(&builder, L"\nCreated %s\n", time->Buffer);
+    PhDereferenceObject(time);
 
     PhpHwReportSection(&builder, L"Status");
     reason = PhHwGetSensorsUnavailableReason();
