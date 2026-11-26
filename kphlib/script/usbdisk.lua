@@ -403,8 +403,9 @@ end
 -- Reads every disk of the USB storage drivers; no input. Returns a status and
 -- per disk: status, bridge vendor and product (2 bytes each), power mode count
 -- (1), kind (1, KIND_* or 0; 2 reserved), the unit's instance ID (UTF-16, 400
--- bytes) and data (512 bytes, zero unless STATUS_SUCCESS); STATUS_NOT_SUPPORTED
--- is a bridge not listed, STATUS_DEVICE_POWERED_OFF a drive in standby.
+-- bytes) and data (512 bytes, zero unless STATUS_SUCCESS);
+-- STATUS_DEVICE_POWERED_OFF is a drive in standby. A disk without a unit ID or
+-- behind a bridge not listed is left out.
 function read(input)
   if not ksi.hw.devices or not ksi.hw.device_control or not ksi.hw.device_property_data then
     ksi.trace('no device functions')
@@ -439,11 +440,13 @@ function read(input)
         else
           head, id, data = record(failed, 0, 0, 0, 0), '', ''
         end
-        output[#output + 1] = head
-          .. id
-          .. string.rep('\0', ID_MAX - #id)
-          .. data
-          .. string.rep('\0', SECTOR - #data)
+        if id ~= '' and string.unpack('<i4', head) ~= nt.STATUS_NOT_SUPPORTED then
+          output[#output + 1] = head
+            .. id
+            .. string.rep('\0', ID_MAX - #id)
+            .. data
+            .. string.rep('\0', SECTOR - #data)
+        end
       end
       device:release()
     end
