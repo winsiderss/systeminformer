@@ -1296,7 +1296,9 @@ NTSTATUS PhpHwMmioProbe(
     else
     {
         PhpHwMmioDisable(PhpHwMmioGtPerfStatus);
-        PhpHwMmioDisable(PhpHwMmioGtPerfStatusLp);
+
+        if (!PhpHwMmioValue(PhpHwMmioGtPerfStatusLp, &value))
+            PhpHwMmioDisable(PhpHwMmioGtPerfStatusLp);
     }
 
     if (PhpHwMmioActive(PhpHwMmioGtPerfStatusRegister()))
