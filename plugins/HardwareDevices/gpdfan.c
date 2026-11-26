@@ -13,17 +13,19 @@
 
 //
 // The fan of a GPD handheld as a hardware sensor source, read from its embedded controller through the gpd script
-// every GF_INTERVAL_MS while the driver is connected. A machine the script does not list ends the source for the
-// session.
+// every GF_INTERVAL_MS while the driver is connected. A machine the script does not list, or GF_STRIKE_LIMIT failures
+// in a row other than contention, end the source for the session.
 //
 
 #define GF_INTERVAL_MS 2000
+#define GF_STRIKE_LIMIT 3
 
 typedef struct _GF_CONTEXT
 {
     PH_QUEUED_LOCK Lock;
     BOOLEAN Unsupported;
     BOOLEAN Valid;
+    UCHAR Strikes;
     ULONG64 LastPollTime;
     ULONG Rpm;
     NTSTATUS LastStatus;
@@ -63,7 +65,9 @@ static VOID NTAPI GpdFanSourceCallback(
         context->Valid = NT_SUCCESS(status);
         context->Rpm = rpm;
 
-        if (status == STATUS_NOT_SUPPORTED)
+        if (NT_SUCCESS(status))
+            context->Strikes = 0;
+        else if (status == STATUS_NOT_SUPPORTED || (status != STATUS_RETRY && ++context->Strikes >= GF_STRIKE_LIMIT))
             context->Unsupported = TRUE;
 
         PhReleaseQueuedLockExclusive(&context->Lock);
