@@ -15,10 +15,12 @@
 // A Dell machine's fans and temperatures through its firmware's SMM interface as a hardware sensor source, identified
 // once and read every DS_INTERVAL_MS while the driver is connected, labeled by
 // type. Each command stalls every processor while the firmware runs, so the interval is long, and a machine the script
-// does not list or whose firmware was slow ends the source for the session.
+// does not list or whose firmware was slow, or DS_STRIKE_LIMIT failures in a row other than contention, end the source
+// for the session.
 //
 
 #define DS_INTERVAL_MS 3000
+#define DS_STRIKE_LIMIT 3
 
 typedef struct _DS_CONTEXT
 {
@@ -26,6 +28,7 @@ typedef struct _DS_CONTEXT
     BOOLEAN Identified;
     BOOLEAN Stopped;
     BOOLEAN Valid;
+    UCHAR Strikes;
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
     KPH_HW_DELL_IDENTITY Identity;
@@ -167,6 +170,8 @@ static VOID DellSmmPoll(
 
         if (status == STATUS_NOT_SUPPORTED || status == STATUS_IO_TIMEOUT || status == STATUS_NOT_FOUND)
             Context->Stopped = TRUE;
+        else if (!NT_SUCCESS(status) && status != STATUS_RETRY && ++Context->Strikes >= DS_STRIKE_LIMIT)
+            Context->Stopped = TRUE;
 
         PhReleaseQueuedLockExclusive(&Context->Lock);
 
@@ -182,9 +187,14 @@ static VOID DellSmmPoll(
     Context->Valid = NT_SUCCESS(status);
 
     if (NT_SUCCESS(status))
+    {
         memcpy(Context->Values, values, sizeof(values));
-    if (status == STATUS_IO_TIMEOUT)
+        Context->Strikes = 0;
+    }
+    else if (status == STATUS_IO_TIMEOUT || (status != STATUS_RETRY && ++Context->Strikes >= DS_STRIKE_LIMIT))
+    {
         Context->Stopped = TRUE;
+    }
 
     PhReleaseQueuedLockExclusive(&Context->Lock);
 }
