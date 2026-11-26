@@ -166,6 +166,22 @@ static VOID KphpHwCloseScript(
     PhReleaseQueuedLockExclusive(&Script->Lock);
 }
 
+/**
+ * Allocates a buffer of at least one byte.
+ *
+ * \param Length The length of the buffer.
+ * \return The buffer.
+ */
+static PVOID KphpHwAllocate(
+    _In_ ULONG Length
+    )
+{
+    if (Length == 0)
+        Length = 1;
+
+    return PhAllocate(Length);
+}
+
 static NTSTATUS KphpHwScriptCall(
     _Inout_ PKPH_HW_SCRIPT Script,
     _In_ PCANSI_STRING Routine,
@@ -337,7 +353,7 @@ NTSTATUS KphHwCpuRead(
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE64), &outputLength)))
         return status;
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     status = KphpHwScriptCall(
         &KphpHwCpuScript,
@@ -623,7 +639,7 @@ NTSTATUS KphHwSuperIoRead(
     input[0] = Slot;
     RtlCopyMemory(&input[1], Registers, registersLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusIsa, KPH_HW_BUS_TIMEOUT)))
     {
@@ -738,7 +754,7 @@ NTSTATUS KphHwSmnRead(
     input[0] = Locator;
     RtlCopyMemory(&input[1], Addresses, addressesLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
     {
@@ -927,7 +943,7 @@ NTSTATUS KphHwSmuCommand(
     input[0] = Locator;
     RtlCopyMemory(&input[1], Commands, commandsLength);
 
-    results = PhAllocate(outputLength ? outputLength : 1);
+    results = KphpHwAllocate(outputLength);
 
     if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
     {
@@ -1053,7 +1069,7 @@ NTSTATUS KphHwHsmpCommand(
     input[1] = Socket;
     RtlCopyMemory(&input[2], Commands, commandsLength);
 
-    results = PhAllocate(outputLength ? outputLength : 1);
+    results = KphpHwAllocate(outputLength);
 
     if (NT_SUCCESS(status = KphpHwAcquireBus(KphHwBusPci, KPH_HW_BUS_TIMEOUT)))
     {
@@ -1316,7 +1332,7 @@ NTSTATUS KphHwSmbusRead(
     input[1] = Port;
     RtlCopyMemory(&input[2], Items, itemsLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     // A memory module's thermal sensor (18h-1Fh), PMIC (48h-4Fh) or SPD hub (50h-57h).
     for (ULONG i = 0; i < Count; i++)
@@ -1543,7 +1559,7 @@ NTSTATUS KphHwPciMmioRead(
     input[1] = Window;
     RtlCopyMemory(&input[2], Items, itemsLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     status = KphpHwScriptCall(
         &KphpHwPciMmioScript,
@@ -1647,7 +1663,7 @@ NTSTATUS KphHwPciConfigRead(
     input[0] = Locator;
     RtlCopyMemory(&input[1], Items, itemsLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     status = KphpHwScriptCall(
         &KphpHwPciConfigScript,
@@ -1698,7 +1714,7 @@ NTSTATUS KphHwPciConfigReadBlock(
     input[1] = Offset;
     input[2] = Length;
 
-    output = PhAllocate(Length ? Length : 1);
+    output = KphpHwAllocate(Length);
 
     status = KphpHwScriptCall(
         &KphpHwPciConfigScript,
@@ -1794,10 +1810,10 @@ NTSTATUS KphHwCrosEcRead(
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VALUE32), &outputLength)))
         return status;
 
-    input = PhAllocate(inputLength ? inputLength : 1);
+    input = KphpHwAllocate(inputLength);
     RtlCopyMemory(input, Offsets, inputLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     if (NT_SUCCESS(status = KphpHwAcquireEc()))
     {
@@ -2467,7 +2483,7 @@ NTSTATUS KphHwEcRead(
     RtlCopyMemory(input, &Ordinal, sizeof(ULONG));
     RtlCopyMemory(input + sizeof(ULONG), Registers, inputLength - sizeof(ULONG));
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     if (NT_SUCCESS(status = KphpHwAcquireEc()))
     {
@@ -2871,6 +2887,7 @@ NTSTATUS KphHwVsecRegions(
     ULONG outputLength;
     ULONG returnLength;
     PKPH_HW_VSEC_REGION regions;
+    PVOID outputBuffer;
 
     if (!Regions)
         Count = 0;
@@ -2878,14 +2895,18 @@ NTSTATUS KphHwVsecRegions(
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_VSEC_REGION), &outputLength)))
         return status;
 
-    regions = PhAllocate(outputLength ? outputLength : 1);
+    regions = KphpHwAllocate(outputLength);
+    outputBuffer = NULL;
+
+    if (outputLength)
+        outputBuffer = regions;
 
     status = KphpHwScriptCall(
         &KphpHwVsecScript,
         &routine,
         &Locator,
         sizeof(Locator),
-        outputLength ? regions : NULL,
+        outputBuffer,
         outputLength,
         &returnLength
         );
@@ -2955,7 +2976,7 @@ NTSTATUS KphHwVsecRead(
     input[3] = Id;
     RtlCopyMemory(&input[4], Items, itemsLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     status = KphpHwScriptCall(
         &KphpHwVsecScript,
@@ -3017,7 +3038,7 @@ NTSTATUS KphHwPlatformRead(
     input[0] = Window;
     RtlCopyMemory(&input[1], Items, itemsLength);
 
-    values = PhAllocate(outputLength ? outputLength : 1);
+    values = KphpHwAllocate(outputLength);
 
     status = KphpHwScriptCall(
         &KphpHwPlatformScript,
@@ -3063,6 +3084,7 @@ NTSTATUS KphHwAcpiIdentify(
     ULONG outputLength;
     ULONG returnLength;
     PKPH_HW_ACPI_DEVICE devices;
+    PVOID outputBuffer;
 
     if (!Devices)
         Count = 0;
@@ -3070,14 +3092,18 @@ NTSTATUS KphHwAcpiIdentify(
     if (!NT_SUCCESS(status = RtlULongMult(Count, sizeof(KPH_HW_ACPI_DEVICE), &outputLength)))
         return status;
 
-    devices = PhAllocate(outputLength ? outputLength : 1);
+    devices = KphpHwAllocate(outputLength);
+    outputBuffer = NULL;
+
+    if (outputLength)
+        outputBuffer = devices;
 
     status = KphpHwScriptCall(
         &KphpHwAcpiScript,
         &routine,
         NULL,
         0,
-        outputLength ? devices : NULL,
+        outputBuffer,
         outputLength,
         &returnLength
         );
@@ -3128,6 +3154,7 @@ NTSTATUS KphHwAcpiEval(
     ULONG returnLength;
     PUCHAR input;
     PVOID output;
+    PVOID outputBuffer;
 
     if (!NT_SUCCESS(status = RtlULongAdd(EvalsLength, sizeof(ULONG), &inputLength)))
         return status;
@@ -3136,14 +3163,18 @@ NTSTATUS KphHwAcpiEval(
     RtlCopyMemory(input, &Milliseconds, sizeof(ULONG));
     RtlCopyMemory(input + sizeof(ULONG), Evals, EvalsLength);
 
-    output = PhAllocate(Length ? Length : 1);
+    output = KphpHwAllocate(Length);
+    outputBuffer = NULL;
+
+    if (Length)
+        outputBuffer = output;
 
     status = KphpHwScriptCall(
         &KphpHwAcpiScript,
         &routine,
         input,
         inputLength,
-        Length ? output : NULL,
+        outputBuffer,
         Length,
         &returnLength
         );

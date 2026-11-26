@@ -111,6 +111,7 @@ BOOLEAN NTAPI PhHwPmicHighVoltage(
 {
     UCHAR select = PhpHwPmicRegister(Registers, 0x30);
     UCHAR input = (select >> 3) & 0xF;
+    UCHAR command;
     UCHAR vid;
     FLOAT measured;
     FLOAT jedec;
@@ -124,7 +125,12 @@ BOOLEAN NTAPI PhHwPmicHighVoltage(
     if (!(select & 0x80) || (input != 0 && input != 2))
         return FALSE;
 
-    vid = PhpHwPmicRegister(Registers, input == 0 ? 0x21 : 0x25);
+    if (input == 0)
+        command = 0x21;
+    else
+        command = 0x25;
+
+    vid = PhpHwPmicRegister(Registers, command);
     measured = (FLOAT)PhpHwPmicRegister(Registers, 0x31) * 0.015f;
     jedec = 0.8f + (FLOAT)((vid >> 1) & 0x7F) * 0.005f - measured;
     wide = 0.8f + (FLOAT)vid * 0.005f - measured;

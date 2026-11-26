@@ -979,6 +979,7 @@ VOID NTAPI PhHwSmuDecodeHsmpDimm(
     ULONG address = Response & 0xFF;
     ULONG umc = address & 0xF;
     ULONG raw;
+    LONG temperature;
 
     if (!(address & 0x80) || umc >= PH_HW_HSMP_DIMM_CHANNELS)
         return;
@@ -987,7 +988,10 @@ VOID NTAPI PhHwSmuDecodeHsmpDimm(
     {
     case PH_HW_HSMP_GET_DIMM_THERMAL: // 11-bit two's complement [31:21], quarter degrees
         raw = (Response >> 21) & 0x7FF;
-        PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuTemperature, PhpHwSmuRangeTemperature, PhHwSmuIdDimm + address, channels[umc], (address >> 4) & 1, sensors[(address >> 6) & 1], (FLOAT)((LONG)raw - (raw > 0x3FF ? 0x800 : 0)) * 0.25f);
+        temperature = (LONG)raw;
+        if (raw > 0x3FF)
+            temperature -= 0x800;
+        PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuTemperature, PhpHwSmuRangeTemperature, PhHwSmuIdDimm + address, channels[umc], (address >> 4) & 1, sensors[(address >> 6) & 1], (FLOAT)temperature * 0.25f);
         break;
     case PH_HW_HSMP_GET_DIMM_POWER: // mW [31:17]
         PhpHwSmuAddReading(Decode, PhHwNamedSensorSmuPower, PhpHwSmuRangePower, PhHwSmuIdDimm + address, channels[umc], (address >> 4) & 1, NULL, (FLOAT)(Response >> 17) / 1000.0f);
