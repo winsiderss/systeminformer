@@ -1538,12 +1538,17 @@ INT_PTR CALLBACK PhpHwSensorsDlgProc(
             ULONG interval;
 
             PhpHwSensorsInvalidateGraphs(context);
-            PhInvalidateTreeNewColumn(context->TreeNewHandle, PhpHwSensorsColumnHistory);
 
-            if (!IsIconic(hwndDlg) && (interval = PhStartGraphScroll(&context->GraphScroll)))
+            if (PhInvalidateTreeNewColumn(context->TreeNewHandle, PhpHwSensorsColumnHistory) && !IsIconic(hwndDlg) &&
+                (interval = PhStartGraphScroll(&context->GraphScroll)))
+            {
                 SetTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID, interval, NULL);
+            }
             else
+            {
+                context->GraphScroll.StartTime = 0;
                 KillTimer(hwndDlg, PHP_HW_SENSORS_SCROLL_TIMER_ID);
+            }
         }
         break;
     case WM_TIMER:
