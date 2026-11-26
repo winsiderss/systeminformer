@@ -357,31 +357,46 @@ for _, product in ipairs({
 end
 
 -- Each listed collection opened with Access and sampled; the records.
-local function collect(rows, access, sample)
+-- Together opens every listed collection before the first sample, so their
+-- pushed reports are waited for at once.
+local function collect(rows, access, sample, together)
   local output = {}
+  local found = {}
   local devices = ksi.hw.devices(DRIVER)
   for _, device in ipairs(devices or {}) do
     local vendor, product = identify(device)
     local row = vendor and rows[(vendor << 16) | product]
-    if row and #output < DEVICES_MAX then
-      local values = {}
-      local opened, status = open_collection(device, access)
-      if opened then
-        status = sample(opened, row, values)
-        opened:release()
+    if row and #found < DEVICES_MAX then
+      local unit = { device = device, vendor = vendor, product = product, row = row }
+      if together then
+        unit.opened, unit.status = open_collection(device, access)
       end
-      if not nt.NT_SUCCESS(status) then
-        values = {}
-      end
-      local entries = {}
-      for i = 1, math.min(#values, VALUES_MAX) do
-        entries[i] = string.pack('<BBxxi4', values[i][1], values[i][2], values[i][3])
-      end
-      output[#output + 1] = string.pack('<i4I2I2Bxxx', status, vendor, product, #entries)
-        .. table.concat(entries)
-        .. string.rep('\0', (VALUES_MAX - #entries) * 8)
+      found[#found + 1] = unit
+    else
+      device:release()
     end
-    device:release()
+  end
+  for _, unit in ipairs(found) do
+    local values = {}
+    local opened, status = unit.opened, unit.status
+    if not together then
+      opened, status = open_collection(unit.device, access)
+    end
+    if opened then
+      status = sample(opened, unit.row, values)
+      opened:release()
+    end
+    if not nt.NT_SUCCESS(status) then
+      values = {}
+    end
+    local entries = {}
+    for i = 1, math.min(#values, VALUES_MAX) do
+      entries[i] = string.pack('<BBxxi4', values[i][1], values[i][2], values[i][3])
+    end
+    output[#output + 1] = string.pack('<i4I2I2Bxxx', status, unit.vendor, unit.product, #entries)
+      .. table.concat(entries)
+      .. string.rep('\0', (VALUES_MAX - #entries) * 8)
+    unit.device:release()
   end
   return table.concat(output)
 end
@@ -406,7 +421,7 @@ function read(input)
   if not nt.NT_SUCCESS(status) then
     return status
   end
-  return nt.STATUS_SUCCESS, collect(ROWS, nt.FILE_READ_DATA, passive)
+  return nt.STATUS_SUCCESS, collect(ROWS, nt.FILE_READ_DATA, passive, true)
 end
 
 -- Reads the listed request/response collections, as read; the caller holds the
