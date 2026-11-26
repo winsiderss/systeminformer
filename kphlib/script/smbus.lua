@@ -476,6 +476,7 @@ local FLAG_KEEP_PORT = 0x01
 local FLAG_NO_SEMAPHORE = 0x02
 local LEGACY_IO_END = 0x100
 local WAIT_MS = 35
+local PMBUS_MISSES_MAX = 3
 local PAGE = 0x1000
 
 local HST_STS = 0x00
@@ -1474,11 +1475,14 @@ local function i801_xfer(s, address, command, protocol, data)
 end
 
 -- Whether the device at an address answers as a listed PMBus controller; nil
--- and a status when it does not answer. A state keeps the answer.
+-- and a status when it does not answer. A state keeps the answer: listed at
+-- once, not listed after PMBUS_MISSES_MAX identifications in a row, since one
+-- block not read looks the same.
 local function pmbus_identified(s, a, xfer)
   local key = s.pmbus_port * 0x100 + a
-  if s.pmbus[key] ~= nil then
-    return s.pmbus[key]
+  local held = s.pmbus[key]
+  if held == true or held == false then
+    return held
   end
   local rs, revision, abort = xfer(s, a, 0x98, 0)
   if not nt.NT_SUCCESS(rs) then
@@ -1503,7 +1507,16 @@ local function pmbus_identified(s, a, xfer)
       known = true
     end
   end
-  s.pmbus[key] = known
+  if known then
+    s.pmbus[key] = true
+  else
+    local misses = (held or 0) + 1
+    if misses >= PMBUS_MISSES_MAX then
+      s.pmbus[key] = false
+    else
+      s.pmbus[key] = misses
+    end
+  end
   return known
 end
 
