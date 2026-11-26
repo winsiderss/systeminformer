@@ -324,16 +324,20 @@ end
 -- Runs queries with an expensive block collected around them; nil and a status
 -- when collecting fails.
 local function collected(device, id, flags, queries)
-  if flags & WDG_EXPENSIVE ~= 0 then
-    local output, failed = nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(1))
-    if not output then
-      return nil, failed
-    end
+  if flags & WDG_EXPENSIVE == 0 then
+    local result = queries()
+    return result
   end
+  local output, failed = nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(1))
+  if not output then
+    return nil, failed
+  end
+  local release <close> = setmetatable({}, {
+    __close = function()
+      nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(0))
+    end,
+  })
   local result = queries()
-  if flags & WDG_EXPENSIVE ~= 0 then
-    nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(0))
-  end
   return result
 end
 
