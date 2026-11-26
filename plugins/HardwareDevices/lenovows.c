@@ -220,20 +220,27 @@ static VOID NTAPI LenovoWsSourceDiagnostics(
     )
 {
     PLW_CONTEXT context = Context;
+    PCWSTR ended = L"";
 
     if (!context)
         return;
 
     PhAcquireQueuedLockShared(&context->Lock);
 
+    if (context->Unsupported)
+    {
+        ended = L" (stopped)";
+
+        if (context->LastStatus == STATUS_NOT_SUPPORTED)
+            ended = L" (not a listed workstation)";
+    }
+
     if (!context->LastPollTime)
         PhAppendStringBuilder2(Builder, L"ThinkStation controller: not read (no driver)\n");
     else if (context->Valid)
         PhAppendFormatStringBuilder(Builder, L"ThinkStation controller: %s, status 0x%08lx\n", LenovoWsModels[context->Model].Name, context->LastStatus);
-    else if (context->Unsupported)
-        PhAppendFormatStringBuilder(Builder, L"ThinkStation controller: status 0x%08lx (not a listed workstation)\n", context->LastStatus);
     else
-        PhAppendFormatStringBuilder(Builder, L"ThinkStation controller: status 0x%08lx\n", context->LastStatus);
+        PhAppendFormatStringBuilder(Builder, L"ThinkStation controller: status 0x%08lx%s\n", context->LastStatus, ended);
 
     PhReleaseQueuedLockShared(&context->Lock);
 }

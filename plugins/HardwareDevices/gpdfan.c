@@ -106,16 +106,23 @@ static VOID NTAPI GpdFanSourceDiagnostics(
     )
 {
     PGF_CONTEXT context = Context;
+    PCWSTR ended = L"";
 
     if (!context)
         return;
 
     PhAcquireQueuedLockShared(&context->Lock);
 
-    if (context->LastPollTime && context->Unsupported)
-        PhAppendFormatStringBuilder(Builder, L"GPD fan: status 0x%08lx (not a listed handheld)\n", context->LastStatus);
-    else if (context->LastPollTime)
-        PhAppendFormatStringBuilder(Builder, L"GPD fan: status 0x%08lx\n", context->LastStatus);
+    if (context->Unsupported)
+    {
+        ended = L" (stopped)";
+
+        if (context->LastStatus == STATUS_NOT_SUPPORTED)
+            ended = L" (not a listed handheld)";
+    }
+
+    if (context->LastPollTime)
+        PhAppendFormatStringBuilder(Builder, L"GPD fan: status 0x%08lx%s\n", context->LastStatus, ended);
     else
         PhAppendStringBuilder2(Builder, L"GPD fan: not read (no driver)\n");
 
