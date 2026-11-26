@@ -15,12 +15,13 @@
 // A Dell machine's fans and temperatures through its firmware's SMM interface as a hardware sensor source, identified
 // once and read every DS_INTERVAL_MS while the driver is connected, labeled by
 // type. Each command stalls every processor while the firmware runs, so the interval is long, and a machine the script
-// does not list or whose firmware was slow, or DS_STRIKE_LIMIT failures in a row other than contention, end the source
-// for the session.
+// does not list or whose firmware was slow, or DS_STRIKE_LIMIT failures in a row other than contention or missing
+// hardware data, end the source for the session.
 //
 
 #define DS_INTERVAL_MS 3000
 #define DS_STRIKE_LIMIT 3
+#define DS_NOINTERFACE_POLLS 10 // polls between tries while there is no hardware data yet
 
 typedef struct _DS_CONTEXT
 {
@@ -29,6 +30,7 @@ typedef struct _DS_CONTEXT
     BOOLEAN Stopped;
     BOOLEAN Valid;
     UCHAR Strikes;
+    UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
     KPH_HW_DELL_IDENTITY Identity;
@@ -170,6 +172,8 @@ static VOID DellSmmPoll(
 
         if (status == STATUS_NOT_SUPPORTED || status == STATUS_IO_TIMEOUT || status == STATUS_NOT_FOUND)
             Context->Stopped = TRUE;
+        else if (status == STATUS_NOINTERFACE) // a later activation can supply the data
+            Context->Backoff = DS_NOINTERFACE_POLLS - 1;
         else if (!NT_SUCCESS(status) && status != STATUS_RETRY && ++Context->Strikes >= DS_STRIKE_LIMIT)
             Context->Stopped = TRUE;
 
@@ -190,6 +194,10 @@ static VOID DellSmmPoll(
     {
         memcpy(Context->Values, values, sizeof(values));
         Context->Strikes = 0;
+    }
+    else if (status == STATUS_NOINTERFACE)
+    {
+        Context->Backoff = DS_NOINTERFACE_POLLS - 1;
     }
     else if (status == STATUS_IO_TIMEOUT || (status != STATUS_RETRY && ++Context->Strikes >= DS_STRIKE_LIMIT))
     {
@@ -218,7 +226,11 @@ static VOID NTAPI DellSmmSourceCallback(
     if (!context->LastPollTime || now - context->LastPollTime >= DS_INTERVAL_MS)
     {
         context->LastPollTime = now;
-        DellSmmPoll(context);
+
+        if (context->Backoff)
+            context->Backoff--;
+        else
+            DellSmmPoll(context);
     }
 
     PhAcquireQueuedLockShared(&context->Lock);

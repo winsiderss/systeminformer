@@ -15,11 +15,13 @@
 // An ASUS board's hardware monitor through its firmware's WMI method (the asuswmi script) as a hardware sensor source:
 // the sensors the firmware lists, identified once and read every AW_INTERVAL_MS while the driver is connected, each
 // read running the board's AML. Water flow sensors are left out (no sensor type for their unit). A board the script
-// does not list, or AW_STRIKE_LIMIT failures in a row other than contention, end the source for the session.
+// does not list, or AW_STRIKE_LIMIT failures in a row other than contention or missing hardware data, end the source
+// for the session.
 //
 
 #define AW_INTERVAL_MS 3000
 #define AW_STRIKE_LIMIT 3
+#define AW_NOINTERFACE_POLLS 10 // polls between tries while there is no hardware data yet
 
 typedef struct _AW_CONTEXT
 {
@@ -28,6 +30,7 @@ typedef struct _AW_CONTEXT
     BOOLEAN Stopped;
     BOOLEAN Valid;
     UCHAR Strikes;
+    UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
     KPH_HW_ASUSWMI_IDENTITY Identity;
@@ -79,6 +82,8 @@ static VOID AsusWmiPoll(
 
         if (status == STATUS_NOT_SUPPORTED || status == STATUS_NOT_FOUND)
             Context->Stopped = TRUE;
+        else if (status == STATUS_NOINTERFACE) // a later activation can supply the data
+            Context->Backoff = AW_NOINTERFACE_POLLS - 1;
         else if (!NT_SUCCESS(status) && status != STATUS_RETRY && ++Context->Strikes >= AW_STRIKE_LIMIT)
             Context->Stopped = TRUE;
 
@@ -99,6 +104,10 @@ static VOID AsusWmiPoll(
     {
         memcpy(Context->Values, values, sizeof(KPH_HW_VALUE32) * Context->Identity.Count);
         Context->Strikes = 0;
+    }
+    else if (status == STATUS_NOINTERFACE)
+    {
+        Context->Backoff = AW_NOINTERFACE_POLLS - 1;
     }
     else if (status != STATUS_RETRY && ++Context->Strikes >= AW_STRIKE_LIMIT)
     {
@@ -127,7 +136,11 @@ static VOID NTAPI AsusWmiSourceCallback(
     if (!context->LastPollTime || now - context->LastPollTime >= AW_INTERVAL_MS)
     {
         context->LastPollTime = now;
-        AsusWmiPoll(context);
+
+        if (context->Backoff)
+            context->Backoff--;
+        else
+            AsusWmiPoll(context);
     }
 
     PhAcquireQueuedLockShared(&context->Lock);

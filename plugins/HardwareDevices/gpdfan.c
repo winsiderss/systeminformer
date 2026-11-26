@@ -14,11 +14,12 @@
 //
 // The fan of a GPD handheld as a hardware sensor source, read from its embedded controller through the gpd script
 // every GF_INTERVAL_MS while the driver is connected. A machine the script does not list, or GF_STRIKE_LIMIT failures
-// in a row other than contention, end the source for the session.
+// in a row other than contention or missing hardware data, end the source for the session.
 //
 
 #define GF_INTERVAL_MS 2000
 #define GF_STRIKE_LIMIT 3
+#define GF_NOINTERFACE_POLLS 10 // polls between tries while there is no hardware data yet
 
 typedef struct _GF_CONTEXT
 {
@@ -26,6 +27,7 @@ typedef struct _GF_CONTEXT
     BOOLEAN Unsupported;
     BOOLEAN Valid;
     UCHAR Strikes;
+    UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     ULONG64 LastPollTime;
     ULONG Rpm;
     NTSTATUS LastStatus;
@@ -52,7 +54,12 @@ static VOID NTAPI GpdFanSourceCallback(
 
     now = NtGetTickCount64();
 
-    if (!context->LastPollTime || now - context->LastPollTime >= GF_INTERVAL_MS)
+    if (context->Backoff && now - context->LastPollTime >= GF_INTERVAL_MS)
+    {
+        context->LastPollTime = now;
+        context->Backoff--;
+    }
+    else if (!context->LastPollTime || now - context->LastPollTime >= GF_INTERVAL_MS)
     {
         ULONG rpm = 0;
         NTSTATUS status;
@@ -67,6 +74,8 @@ static VOID NTAPI GpdFanSourceCallback(
 
         if (NT_SUCCESS(status))
             context->Strikes = 0;
+        else if (status == STATUS_NOINTERFACE) // a later activation can supply the data
+            context->Backoff = GF_NOINTERFACE_POLLS - 1;
         else if (status == STATUS_NOT_SUPPORTED || (status != STATUS_RETRY && ++context->Strikes >= GF_STRIKE_LIMIT))
             context->Unsupported = TRUE;
 

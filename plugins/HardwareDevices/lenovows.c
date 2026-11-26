@@ -14,12 +14,13 @@
 //
 // A Lenovo ThinkStation's embedded controller (P620, P7, P5, P8) as a hardware sensor source: its temperatures and fan
 // speeds through the lenovows script every LW_INTERVAL_MS while the driver is connected.
-// A machine the script does not list, or LW_STRIKE_LIMIT failures in a row other than contention, end the source for
-// the session.
+// A machine the script does not list, or LW_STRIKE_LIMIT failures in a row other than contention or missing hardware
+// data, end the source for the session.
 //
 
 #define LW_INTERVAL_MS 2000
 #define LW_STRIKE_LIMIT 3
+#define LW_NOINTERFACE_POLLS 10 // polls between tries while there is no hardware data yet
 #define LW_MAX_TEMPS 17
 #define LW_MAX_FANS 16
 
@@ -83,6 +84,7 @@ typedef struct _LW_CONTEXT
     BOOLEAN Unsupported;
     BOOLEAN Valid;
     UCHAR Strikes;
+    UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     ULONG Model;
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
@@ -135,6 +137,8 @@ static VOID LenovoWsPoll(
 
     if (NT_SUCCESS(status))
         Context->Strikes = 0;
+    else if (status == STATUS_NOINTERFACE) // a later activation can supply the data
+        Context->Backoff = LW_NOINTERFACE_POLLS - 1;
     else if (status == STATUS_NOT_SUPPORTED || (status != STATUS_RETRY && ++Context->Strikes >= LW_STRIKE_LIMIT))
         Context->Unsupported = TRUE;
 
@@ -163,7 +167,11 @@ static VOID NTAPI LenovoWsSourceCallback(
     if (!context->LastPollTime || now - context->LastPollTime >= LW_INTERVAL_MS)
     {
         context->LastPollTime = now;
-        LenovoWsPoll(context);
+
+        if (context->Backoff)
+            context->Backoff--;
+        else
+            LenovoWsPoll(context);
     }
 
     PhAcquireQueuedLockShared(&context->Lock);
