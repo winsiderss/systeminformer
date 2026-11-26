@@ -765,7 +765,13 @@ static BOOLEAN PhpHwAcpiLenovoSystemFans(
     if (!PhpHwQuerySystem(&manufacturer, &product, &family))
         return FALSE;
 
-    matched = PhpHwAcpiLenovoFans(manufacturer->Buffer, PhGetString(product), PhGetString(family), Fields, Multiplier);
+    matched = PhpHwAcpiLenovoFans(
+        manufacturer->Buffer,
+        PhGetStringOrEmpty(product),
+        PhGetStringOrEmpty(family),
+        Fields,
+        Multiplier
+        );
     PhDereferenceObject(manufacturer);
     PhClearReference(&product);
     PhClearReference(&family);
