@@ -36,6 +36,7 @@ typedef struct _PHP_HW_HSMP_PACKAGE
     UCHAR Strikes;
     ULONG Version; // the SMU firmware version
     ULONG InterfaceVersion; // HSMP protocol; 0 when not answered
+    BOOLEAN InterfaceAnswered; // the firmware answered 03h: it is not asked again
     ULONG Dropped; // bit per PhHwSmuHsmpCommands entry
     ULONG LimitSources; // PH_HW_HSMP_LIMIT_*, for the report
     NTSTATUS Status; // the last call's, for the report
@@ -99,6 +100,31 @@ static BOOLEAN PhpHwHsmpApplyStatus(
 }
 
 /**
+ * Asks a package's interface version; contention or a busy mailbox leaves it to be asked again.
+ */
+static VOID PhpHwHsmpAskInterface(
+    _Inout_ PPHP_HW_HSMP_PACKAGE Package,
+    _In_ ULONG PackageIndex
+    )
+{
+    KPH_HW_HSMP_COMMAND command;
+    KPH_HW_HSMP_RESULT result;
+    NTSTATUS status;
+
+    memset(&command, 0, sizeof(KPH_HW_HSMP_COMMAND));
+    command.Opcode = PHP_HW_HSMP_GET_INTERFACE_VERSION;
+    status = KphHwHsmpCommand(Package->Locator, PackageIndex, &command, 1, &result);
+
+    if (status != STATUS_RETRY && (!NT_SUCCESS(status) || (result.Status != STATUS_RETRY && result.Status != STATUS_DEVICE_BUSY)))
+    {
+        Package->InterfaceAnswered = TRUE;
+
+        if (NT_SUCCESS(status) && NT_SUCCESS(result.Status))
+            Package->InterfaceVersion = result.Results[0];
+    }
+}
+
+/**
  * Identifies a package's mailbox through its socket and root complex.
  */
 static VOID PhpHwHsmpIdentify(
@@ -110,17 +136,9 @@ static VOID PhpHwHsmpIdentify(
 
     if (PhpHwHsmpApplyStatus(Package, PackageIndex, KphHwHsmpIdentify(Package->Locator, PackageIndex, &identity)))
     {
-        KPH_HW_HSMP_COMMAND command;
-        KPH_HW_HSMP_RESULT result;
-
         Package->Version = identity.Version;
         Package->Identified = TRUE;
-
-        memset(&command, 0, sizeof(KPH_HW_HSMP_COMMAND));
-        command.Opcode = PHP_HW_HSMP_GET_INTERFACE_VERSION;
-
-        if (NT_SUCCESS(KphHwHsmpCommand(Package->Locator, PackageIndex, &command, 1, &result)) && NT_SUCCESS(result.Status))
-            Package->InterfaceVersion = result.Results[0];
+        PhpHwHsmpAskInterface(Package, PackageIndex);
     }
 }
 
@@ -397,6 +415,9 @@ NTSTATUS PhpHwHsmpPass(
 
         if (!package->Ended && package->Identified)
         {
+            if (!package->InterfaceAnswered)
+                PhpHwHsmpAskInterface(package, i);
+
             PhpHwHsmpRead(package, i, &PhpHwHsmpDecode);
 
             if (package->Status == STATUS_RETRY)
