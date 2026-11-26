@@ -2526,10 +2526,17 @@ static void CheckLibrary(
     {
         local = &found[1]->locvars[foundIndex[1]];
 
+        if (foundIndex[1] < found[1]->numparams)
+        {
+            line = found[1]->linedefined;
+        }
+        else
+        {
+            line = LineOfCode(found[1], local->startpc - 1);
+        }
+
         Report(Context,
-               (foundIndex[1] < found[1]->numparams) ?
-               found[1]->linedefined :
-               LineOfCode(found[1], local->startpc - 1),
+               line,
                "a second local named 'nt'; the name is the library's");
         return;
     }
@@ -2714,10 +2721,17 @@ static Proto* CompileUnit(
     //
     if (Context->Kind != KPHLUAC_KIND_ENTRY)
     {
+        const char* rewrittenText = "";
+
+        if (rewritten.Data)
+        {
+            rewrittenText = rewritten.Data;
+        }
+
         memset(&folded, 0, sizeof(folded));
 
         if (!RewriteLibraryUses(Context,
-                                rewritten.Data ? rewritten.Data : "",
+                                rewrittenText,
                                 rewritten.Length,
                                 &folded))
         {

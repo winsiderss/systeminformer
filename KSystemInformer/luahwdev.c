@@ -1009,6 +1009,7 @@ VOID KphpLuaHwCheckBuffers(
         lua_Integer at;
         lua_Integer into;
         lua_Integer lengthAt;
+        int source;
 
         lua_rawgeti(State, Table, i);
         entry = lua_gettop(State);
@@ -1124,7 +1125,16 @@ VOID KphpLuaHwCheckBuffers(
                           "a length_at over its at");
         }
 
-        lua_pushvalue(State, bytes ? (entry + 1) : (entry + 2));
+        if (bytes)
+        {
+            source = entry + 1;
+        }
+        else
+        {
+            source = entry + 2;
+        }
+
+        lua_pushvalue(State, source);
         lua_pushinteger(State, at);
         lua_pushinteger(State, into);
         lua_pushinteger(State, length);
