@@ -809,10 +809,12 @@ static VOID PhpHwCpuProbeRead(
         if (PhpHwCpuClass == PhpHwCpuIntel)
         {
             if (sample->Valid & (1ULL << PhpHwRegTemperatureTarget))
+            {
                 tjMax = PhIntelTemperatureTargetTjMax(sample->Value[PhpHwRegTemperatureTarget]);
 
                 if (i == 0)
                     PhpHwCpuTccOffset = (ULONG)((sample->Value[PhpHwRegTemperatureTarget] >> 24) & 0x3F);
+            }
             if (!tjMax && (PhpHwCpuRegisterActive(PhpHwRegThermStatus) || PhpHwCpuRegisterActive(PhpHwRegPackageThermStatus)))
                 tjMax = PhIntelFixedTjMax(&PhpHwCpuIdentity);
             if (sample->Valid & (1ULL << PhpHwRegPlatformInfo))
@@ -2418,19 +2420,44 @@ VOID PhpHwCpuDiagnostics(
     // HWP and the energy/performance bias as processor 0 had them at the probe.
     if (PhpHwCpuPolicyValid & 0x7)
     {
-        PhAppendFormatStringBuilder(
-            Builder,
-            L"  HWP: enabled %lu; highest %lu, guaranteed %lu, efficient %lu, lowest %lu; request minimum %lu, maximum %lu, desired %lu, EPP %lu\n",
-            (ULONG)(PhpHwCpuPolicy[0] & 1),
-            (ULONG)(PhpHwCpuPolicy[1] & 0xFF),
-            (ULONG)((PhpHwCpuPolicy[1] >> 8) & 0xFF),
-            (ULONG)((PhpHwCpuPolicy[1] >> 16) & 0xFF),
-            (ULONG)((PhpHwCpuPolicy[1] >> 24) & 0xFF),
-            (ULONG)(PhpHwCpuPolicy[2] & 0xFF),
-            (ULONG)((PhpHwCpuPolicy[2] >> 8) & 0xFF),
-            (ULONG)((PhpHwCpuPolicy[2] >> 16) & 0xFF),
-            (ULONG)((PhpHwCpuPolicy[2] >> 24) & 0xFF)
-            );
+        PCWSTR separator = L" ";
+
+        PhAppendStringBuilder2(Builder, L"  HWP:");
+
+        if (PhpHwCpuPolicyValid & 0x1)
+        {
+            PhAppendFormatStringBuilder(Builder, L"%senabled %lu", separator, (ULONG)(PhpHwCpuPolicy[0] & 1));
+            separator = L"; ";
+        }
+
+        if (PhpHwCpuPolicyValid & 0x2)
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"%shighest %lu, guaranteed %lu, efficient %lu, lowest %lu",
+                separator,
+                (ULONG)(PhpHwCpuPolicy[1] & 0xFF),
+                (ULONG)((PhpHwCpuPolicy[1] >> 8) & 0xFF),
+                (ULONG)((PhpHwCpuPolicy[1] >> 16) & 0xFF),
+                (ULONG)((PhpHwCpuPolicy[1] >> 24) & 0xFF)
+                );
+            separator = L"; ";
+        }
+
+        if (PhpHwCpuPolicyValid & 0x4)
+        {
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"%srequest minimum %lu, maximum %lu, desired %lu, EPP %lu",
+                separator,
+                (ULONG)(PhpHwCpuPolicy[2] & 0xFF),
+                (ULONG)((PhpHwCpuPolicy[2] >> 8) & 0xFF),
+                (ULONG)((PhpHwCpuPolicy[2] >> 16) & 0xFF),
+                (ULONG)((PhpHwCpuPolicy[2] >> 24) & 0xFF)
+                );
+        }
+
+        PhAppendCharStringBuilder(Builder, L'\n');
     }
 
     if (PhpHwCpuPolicyValid & 0x8)
@@ -2460,17 +2487,49 @@ VOID PhpHwCpuDiagnostics(
     // Configurable TDP: the nominal ratio, each level's TDP (power units) and ratio, the level selected.
     if ((PhpHwCpuPolicyValid & 0x780) && PhpHwCpuPowerUnit > 0.0f)
     {
-        PhAppendFormatStringBuilder(
-            Builder,
-            L"  Configurable TDP: nominal ratio %lu; level 1 %.1f W ratio %lu; level 2 %.1f W ratio %lu; level %lu selected%s\n",
-            (ULONG)(PhpHwCpuPolicy[7] & 0xFF),
-            (FLOAT)(PhpHwCpuPolicy[8] & 0x7FFF) * PhpHwCpuPowerUnit,
-            (ULONG)((PhpHwCpuPolicy[8] >> 16) & 0xFF),
-            (FLOAT)(PhpHwCpuPolicy[9] & 0x7FFF) * PhpHwCpuPowerUnit,
-            (ULONG)((PhpHwCpuPolicy[9] >> 16) & 0xFF),
-            (ULONG)(PhpHwCpuPolicy[10] & 0x3),
-            (PhpHwCpuPolicy[10] & 0x80000000) ? L", locked" : L""
-            );
+        PCWSTR separator = L" ";
+
+        PhAppendStringBuilder2(Builder, L"  Configurable TDP:");
+
+        if (PhpHwCpuPolicyValid & 0x80)
+        {
+            PhAppendFormatStringBuilder(Builder, L"%snominal ratio %lu", separator, (ULONG)(PhpHwCpuPolicy[7] & 0xFF));
+            separator = L"; ";
+        }
+
+        for (ULONG level = 1; level <= 2; level++)
+        {
+            if (PhpHwCpuPolicyValid & (0x80UL << level))
+            {
+                PhAppendFormatStringBuilder(
+                    Builder,
+                    L"%slevel %lu %.1f W ratio %lu",
+                    separator,
+                    level,
+                    (FLOAT)(PhpHwCpuPolicy[7 + level] & 0x7FFF) * PhpHwCpuPowerUnit,
+                    (ULONG)((PhpHwCpuPolicy[7 + level] >> 16) & 0xFF)
+                    );
+                separator = L"; ";
+            }
+        }
+
+        if (PhpHwCpuPolicyValid & 0x400)
+        {
+            PCWSTR locked = L"";
+
+            if (PhpHwCpuPolicy[10] & 0x80000000)
+                locked = L", locked";
+
+            PhAppendFormatStringBuilder(
+                Builder,
+                L"%slevel %lu selected%s",
+                separator,
+                (ULONG)(PhpHwCpuPolicy[10] & 0x3),
+                locked
+                );
+        }
+
+        PhAppendCharStringBuilder(Builder, L'\n');
     }
 
     if (PhpHwCpuPolicyValid & 0x800)
