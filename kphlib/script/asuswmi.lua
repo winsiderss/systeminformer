@@ -205,13 +205,19 @@ local function interface()
   return device, method
 end
 
--- One read method with its 4-byte argument: the record's type and data, or nil
--- and a status.
-local function call(device, method, id, value)
+-- One method with its 4-byte argument evaluated: the output, or nil and a
+-- status.
+local function evaluate(device, method, id, value)
   local args = string.pack('<I2I2I4', ARGUMENT_INTEGER, 4, 0)
     .. string.pack('<I2I2I4', ARGUMENT_INTEGER, 4, id)
     .. string.pack('<I2I2I4', ARGUMENT_BUFFER, 4, value)
-  local output, failed = nt.acpi.eval(device, method, MILLISECONDS, args)
+  return nt.acpi.eval(device, method, MILLISECONDS, args)
+end
+
+-- One read method with its 4-byte argument: the record's type and data, or nil
+-- and a status.
+local function call(device, method, id, value)
+  local output, failed = evaluate(device, method, id, value)
   if not output then
     return nil, failed
   end
@@ -388,8 +394,9 @@ function read(input)
   local refreshes = {}
   for _, source in ipairs({ SOURCE_SIO, SOURCE_EC }) do
     if string.find(input, string.char(source), 1, true) then
-      local kind, failed = call(device, method, UPDATE_BUFFER, source)
-      if not kind then
+      -- The refresh is the evaluation: what it returns is not looked at.
+      local output, failed = evaluate(device, method, UPDATE_BUFFER, source)
+      if not output then
         refreshes[source] = failed
       end
     end
