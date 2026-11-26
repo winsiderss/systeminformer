@@ -1421,11 +1421,18 @@ end
 
 -- A read on the entry's page; the old page is put back, also on unwind, unless
 -- another agent moved it (a retry).
-local function paged(s, e, xfer)
+local function paged(s, entries, first, last, xfer, output)
+  local e = entries[first]
   local a = e[1]
+  local function all(status)
+    for i = first, last do
+      output[i] = { status, 0 }
+    end
+  end
   local es, original, abort = xfer(s, a, PMBUS_PAGE, 0)
   if not nt.NT_SUCCESS(es) then
-    return es, 0, abort
+    all(es)
+    return abort
   end
   local pending = false
   -- A transfer cut short by a limit leaves the host busy for a while.
@@ -1464,42 +1471,73 @@ local function paged(s, e, xfer)
     if not nt.NT_SUCCESS(es) or now ~= e[4] then
       ksi.trace('0x%x did not take page %d', a, e[4])
       put_back()
-      return nt.NT_SUCCESS(es) and nt.STATUS_DEVICE_DATA_ERROR or es, 0, abort
+      local failure = es
+      if nt.NT_SUCCESS(es) then
+        failure = nt.STATUS_DEVICE_DATA_ERROR
+      end
+      all(failure)
+      return abort
     end
   end
-  local value
-  es, value, abort = xfer(s, a, e[2], e[3] == 3 and 1 or 0)
+  local stop = false
+  for i = first, last do
+    if stop then
+      output[i] = { nt.STATUS_CANCELLED, 0 }
+    else
+      local kind = 0
+      if entries[i][3] == 3 then
+        kind = 1
+      end
+      local vs, value
+      vs, value, stop = xfer(s, a, entries[i][2], kind)
+      if not nt.NT_SUCCESS(vs) then
+        value = 0
+      end
+      output[i] = { vs, value }
+    end
+  end
   local cs, current = xfer(s, a, PMBUS_PAGE, 0)
   if nt.NT_SUCCESS(cs) and current ~= e[4] then
     ksi.trace('another agent moved 0x%x to page %d', a, current)
     pending = false
-    return nt.STATUS_RETRY, 0, false
+    all(nt.STATUS_RETRY)
+    return false
   end
   if pending and not put_back() then
     ksi.trace('page %d of 0x%x not put back', original, a)
-    return nt.STATUS_DEVICE_CONFIGURATION_ERROR, 0, true
+    all(nt.STATUS_DEVICE_CONFIGURATION_ERROR)
+    return true
   end
   if not nt.NT_SUCCESS(cs) then
-    return cs, 0, true
+    all(cs)
+    return true
   end
-  if not nt.NT_SUCCESS(es) then
-    return es, 0, abort
-  end
-  return es, value, false
+  return stop
 end
 
--- An entry's transfer: a status, the value (a block's byte count) and whether
--- the read stops.
-local function transfer(s, e, xfer)
+-- Entry i's transfer, or the paged entries of one address and page from i on
+-- under one select: each status and value (a block's byte count) in output,
+-- whether the read stops and the last entry done.
+local function transfer(s, entries, i, xfer, output)
+  local e = entries[i]
   if e[3] >= 3 then
-    return paged(s, e, xfer)
+    local last = i
+    while last < #entries do
+      local n = entries[last + 1]
+      if not n.allowed or n[3] < 3 or n[1] ~= e[1] or n[4] ~= e[4] then
+        break
+      end
+      last = last + 1
+    end
+    return paged(s, entries, i, last, xfer, output), last
   end
   local es, value, abort, block = xfer(s, e[1], e[2], e[3])
   if block then
     e.block = block
     value = #block
   end
-  return es, value, abort
+  output[i] = { es, value }
+  return abort, i
 end
 
 -- A status and a value per entry (a block's byte count), then each block's
@@ -1567,20 +1605,22 @@ local function i801_read(s, entries, port)
 
   local output = {}
   local stopped
-  for i, e in ipairs(entries) do
-    local es, value = nt.STATUS_SUCCESS, 0
+  local i = 1
+  while i <= #entries do
+    local e = entries[i]
+    local last = i
     if not e.allowed then
-      es = nt.STATUS_ACCESS_DENIED
+      output[i] = { nt.STATUS_ACCESS_DENIED, 0 }
     elseif stopped then
-      es = nt.STATUS_CANCELLED
+      output[i] = { nt.STATUS_CANCELLED, 0 }
     elseif not i801_confirm(s) then
       ksi.trace('the host changed before entry %d', i)
-      es = nt.STATUS_RETRY
+      output[i] = { nt.STATUS_RETRY, 0 }
       stopped = true
     else
-      es, value, stopped = transfer(s, e, i801_xfer)
+      stopped, last = transfer(s, entries, i, i801_xfer, output)
     end
-    output[i] = { es, value }
+    i = last + 1
   end
 
   if not i801_confirm(s) then
@@ -1745,25 +1785,22 @@ function read(input)
   local output = {}
   if acquired then
     local stopped
-    for i, e in ipairs(entries) do
-      local es, value = nt.STATUS_SUCCESS, 0
+    local i = 1
+    while i <= #entries do
+      local e = entries[i]
+      local last = i
       if not e.allowed then
-        es = nt.STATUS_ACCESS_DENIED
+        output[i] = { nt.STATUS_ACCESS_DENIED, 0 }
       elseif stopped then
-        es = nt.STATUS_CANCELLED
+        output[i] = { nt.STATUS_CANCELLED, 0 }
+      elseif (not s.pm_open or s.view) and confirm(s) ~= OK then
+        ksi.trace('the host changed before entry %d', i)
+        output[i] = { nt.STATUS_RETRY, 0 }
+        stopped = true
       else
-        if not s.pm_open or s.view then
-          if confirm(s) ~= OK then
-            ksi.trace('the host changed before entry %d', i)
-            es = nt.STATUS_RETRY
-            stopped = true
-          end
-        end
-        if nt.NT_SUCCESS(es) then
-          es, value, stopped = transfer(s, e, fch_xfer)
-        end
+        stopped, last = transfer(s, entries, i, fch_xfer, output)
       end
-      output[i] = { es, value }
+      i = last + 1
     end
 
     local cs = confirm(s)
