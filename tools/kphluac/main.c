@@ -86,6 +86,8 @@ typedef struct _STATUS_TEST
     const char* Name;
     const char* Prefix;
     const char* Suffix;
+    const char* Function;
+    const char* Body;
 } STATUS_TEST, *PSTATUS_TEST;
 
 typedef struct _PENDING_TEST
@@ -116,10 +118,10 @@ static const char KphluacPlaceholderEnd[] = "' end)()";
 //
 static const STATUS_TEST KphluacStatusTests[] =
 {
-    { "NT_SUCCESS", "((", ") >= 0)" },
-    { "NT_INFORMATION", "((((", ") >> 30) & 3) == 1)" },
-    { "NT_WARNING", "((((", ") >> 30) & 3) == 2)" },
-    { "NT_ERROR", "((((", ") >> 30) & 3) == 3)" },
+    { "NT_SUCCESS", "((", ") >= 0)", "function M.NT_SUCCESS(s)", "return s >= 0" },
+    { "NT_INFORMATION", "((((", ") >> 30) & 3) == 1)", "function M.NT_INFORMATION(s)", "return (s >> 30) & 3 == 1" },
+    { "NT_WARNING", "((((", ") >> 30) & 3) == 2)", "function M.NT_WARNING(s)", "return (s >> 30) & 3 == 2" },
+    { "NT_ERROR", "((((", ") >> 30) & 3) == 3)", "function M.NT_ERROR(s)", "return (s >> 30) & 3 == 3" },
 };
 
 typedef struct _SOURCE_TEXT
@@ -1840,6 +1842,20 @@ static int LoadStatuses(
                0,
                "the status function is not the one kphluac folds: "
                KPHLUAC_STATUS_FUNCTION " " KPHLUAC_STATUS_BODY " end");
+    }
+
+    for (size_t i = 0; i < ARRAYSIZE(KphluacStatusTests); i++)
+    {
+        if (ContainsText(Text, Length, KphluacStatusTests[i].Function) &&
+            !ContainsText(Text, Length, KphluacStatusTests[i].Body))
+        {
+            Report(Context,
+                   0,
+                   "%s is not the test kphluac folds: %s %s end",
+                   KphluacStatusTests[i].Name,
+                   KphluacStatusTests[i].Function,
+                   KphluacStatusTests[i].Body);
+        }
     }
 
     return 1;
