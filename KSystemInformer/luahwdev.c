@@ -1229,9 +1229,11 @@ VOID KphpLuaHwLayBuffers(
 
             bytes = lua_tolstring(State, slot, &length);
 
-            RtlCopyMemory(KphpLuaHwBufferAddress(State, Request, Buffers, i + 1),
-                          bytes,
-                          length);
+            RtlCopyMemory(
+                KphpLuaHwBufferAddress(State, Request, Buffers, i + 1),
+                bytes,
+                length
+                );
         }
     }
 
@@ -1258,9 +1260,11 @@ VOID KphpLuaHwLayBuffers(
 
             length = KphpLuaHwBufferLength(State, Buffers, i + 1);
 
-            RtlCopyMemory(Add2Ptr(target, (ULONG)lua_tointeger(State, slot + 4)),
-                          &length,
-                          sizeof(ULONG));
+            RtlCopyMemory(
+                Add2Ptr(target, (ULONG)lua_tointeger(State, slot + 4)),
+                &length,
+                sizeof(ULONG)
+                );
         }
     }
 }
@@ -2055,12 +2059,21 @@ VOID KphpLuaHwCheckGuardRequest(
     luaL_checktype(State, Index, LUA_TTABLE);
 
     lua_getfield(State, Index, "code");
-    luaL_argcheck(State, lua_isinteger(State, -1), Index, "a code of an integer");
+    luaL_argcheck(State,
+                  lua_isinteger(State, -1),
+                  Index,
+                  "a code of an integer");
     code = lua_tointeger(State, -1);
-    luaL_argcheck(State, (code >= 0) && (code <= ULONG_MAX), Index, "a code out of range");
+    luaL_argcheck(State,
+                  (code >= 0) && (code <= ULONG_MAX),
+                  Index,
+                  "a code out of range");
 
     lua_getfield(State, Index, "input");
-    luaL_argcheck(State, lua_type(State, -1) == LUA_TSTRING, Index, "an input of a string");
+    luaL_argcheck(State,
+                  lua_type(State, -1) == LUA_TSTRING,
+                  Index,
+                  "an input of a string");
     *Input = lua_tolstring(State, -1, &inputLength);
     luaL_argcheck(State, inputLength <= InputMax, Index, "an input too long");
 
@@ -2125,7 +2138,10 @@ int KphpLuaHwDeviceGuard(
 
     if (!lua_isnil(State, -1))
     {
-        luaL_argcheck(State, lua_isinteger(State, -1), 2, "an output of an integer");
+        luaL_argcheck(State,
+                      lua_isinteger(State, -1),
+                      2,
+                      "an output of an integer");
         outputLength = lua_tointeger(State, -1);
         luaL_argcheck(State,
                       (outputLength >= 0) && (outputLength <= ULONG_MAX),
@@ -2190,7 +2206,8 @@ int KphpLuaHwDeviceGuard(
         return KphLuaNilErrorStatus(State, status);
     }
 
-    guard = KphAllocatePaged(sizeof(KPH_LUA_HW_GUARD), KPH_TAG_LUA_HARDWARE_GUARD);
+    guard = KphAllocatePaged(sizeof(KPH_LUA_HW_GUARD),
+                             KPH_TAG_LUA_HARDWARE_GUARD);
     if (!guard)
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
@@ -2257,7 +2274,8 @@ Exit:
 
         if (length &&
             (((ULONG_PTR)from > request->IoStatus.Information) ||
-             ((ULONG_PTR)length > request->IoStatus.Information - (ULONG_PTR)from)))
+             ((ULONG_PTR)length >
+              request->IoStatus.Information - (ULONG_PTR)from)))
         {
             KphTracePrint(TRACE_LEVEL_VERBOSE,
                           HARDWARE,
@@ -2627,7 +2645,12 @@ int KphpLuaHwDeviceWrite(
         goto Exit;
     }
 
-    status = KphpLuaHwCallRequest(State, request, milliseconds, TRUE, NULL, &completed);
+    status = KphpLuaHwCallRequest(State,
+                                  request,
+                                  milliseconds,
+                                  TRUE,
+                                  NULL,
+                                  &completed);
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,

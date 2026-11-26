@@ -130,13 +130,17 @@ PKPH_HANDLE_TABLE_ENTRY KphpHandleLookupEntry(
             }
 
             tableL2 = KphpHandleTablePointer(table);
-            tableL1 = ReadPointerAcquire((PVOID*)&tableL2[Index / KPH_HANDLE_MAX_L1]);
+            tableL1 = ReadPointerAcquire(
+                (PVOID*)&tableL2[Index / KPH_HANDLE_MAX_L1]
+                );
             if (!tableL1)
             {
                 return NULL;
             }
 
-            tableL0 = ReadPointerAcquire(&tableL1[(Index % KPH_HANDLE_MAX_L1) / KPH_HANDLE_MAX_L0]);
+            tableL0 = ReadPointerAcquire(
+                &tableL1[(Index % KPH_HANDLE_MAX_L1) / KPH_HANDLE_MAX_L0]
+                );
             if (!tableL0)
             {
                 return NULL;
