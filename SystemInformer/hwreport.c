@@ -179,13 +179,10 @@ static NTSTATUS PhpHwReportHashFile(
     PH_HASH_CONTEXT hashContext;
     PVOID buffer;
     ULONG bytesRead;
+    LARGE_INTEGER size;
+    PPH_STRING hash = NULL;
+    ULONG firstValue = 0;
     BOOLEAN first = TRUE;
-
-    Size->QuadPart = 0;
-    *Hash = NULL;
-
-    if (FirstValue)
-        *FirstValue = 0;
 
     status = PhCreateFileWin32(
         &fileHandle,
@@ -200,7 +197,7 @@ static NTSTATUS PhpHwReportHashFile(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, Size)) ||
+    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &size)) ||
         !NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
     {
         NtClose(fileHandle);
@@ -211,8 +208,8 @@ static NTSTATUS PhpHwReportHashFile(
 
     while (NT_SUCCESS(status = PhReadFile(fileHandle, buffer, PAGE_SIZE * 16, NULL, &bytesRead)) && bytesRead)
     {
-        if (first && FirstValue && bytesRead >= sizeof(ULONG))
-            *FirstValue = *(PULONG)buffer;
+        if (first && bytesRead >= sizeof(ULONG))
+            firstValue = *(PULONG)buffer;
 
         first = FALSE;
 
@@ -224,12 +221,21 @@ static NTSTATUS PhpHwReportHashFile(
         status = STATUS_SUCCESS;
 
     if (NT_SUCCESS(status))
-        status = PhFinalHashString(&hashContext, Hash);
+        status = PhFinalHashString(&hashContext, &hash);
     else
         PhFinalHash(&hashContext, buffer, PH_HASH_SHA256_LENGTH, NULL);
 
     PhFree(buffer);
     NtClose(fileHandle);
+
+    if (NT_SUCCESS(status))
+    {
+        *Size = size;
+        *Hash = hash;
+
+        if (FirstValue)
+            *FirstValue = firstValue;
+    }
 
     return status;
 }
