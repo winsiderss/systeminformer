@@ -238,7 +238,7 @@ static ULONG PhpHwCounterAddSensor(
     sensor->Kind = Kind;
     sensor->Id = Id;
     sensor->Active = TRUE;
-    PhCopyStringZ(Name, SIZE_MAX, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
+    PhCopyStringZ(Name, RTL_NUMBER_OF(sensor->Name) - 1, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
 
     PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
 
@@ -856,7 +856,7 @@ static VOID PhpHwCounterReadTrips(
         {
             report[2]++;
             trip = &PhpHwCounterTrips[PhpHwCounterTripCount++];
-            PhCopyStringZ(name, SIZE_MAX, trip->Name, RTL_NUMBER_OF(trip->Name), NULL);
+            PhCopyStringZ(name, RTL_NUMBER_OF(trip->Name) - 1, trip->Name, RTL_NUMBER_OF(trip->Name), NULL);
             trip->Trip[0] = thermal.PassiveTripPoint;
             trip->Trip[1] = thermal.CriticalTripPoint;
         }
@@ -1056,7 +1056,11 @@ static VOID PhpHwCounterPublish(
 
                         PhInitFormatS(&format[0], item->Name);
                         PhInitFormatS(&format[1], suffixes[k]);
-                        PhFormatToBuffer(format, RTL_NUMBER_OF(format), tripName, sizeof(tripName), NULL);
+
+                        // A name too long for its suffix goes without it.
+                        if (!PhFormatToBuffer(format, RTL_NUMBER_OF(format), tripName, sizeof(tripName), NULL))
+                            PhCopyStringZ(item->Name, RTL_NUMBER_OF(tripName) - 1, tripName, RTL_NUMBER_OF(tripName), NULL);
+
                         item->TripIndex[k] = PhpHwCounterAddSensor(PhHwNamedSensorZoneTrip, id * 2 + k, tripName);
 
                         PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);

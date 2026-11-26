@@ -742,7 +742,7 @@ static VOID PhpHwSmbusNameDimms(
             PhDereferenceObject(name);
         }
 
-        PhCopyStringZ(slot->Buffer, SIZE_MAX, dimm->Slot, RTL_NUMBER_OF(dimm->Slot), NULL);
+        PhCopyStringZ(slot->Buffer, RTL_NUMBER_OF(dimm->Slot) - 1, dimm->Slot, RTL_NUMBER_OF(dimm->Slot), NULL);
         PhDereferenceObject(slot);
     }
 
