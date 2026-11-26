@@ -232,8 +232,8 @@ local ROWS = {
     ids = { '17761776' },
     evals = function()
       return {
-        { name = 'NFAN', results = 0x8, max = 0x200 },
-        { name = 'NTMP', results = 0x8, max = 0x200 },
+        { name = 'NFAN', results = 0x2, max = 0x200 },
+        { name = 'NTMP', results = 0x2, max = 0x200 },
         {
           name = 'GFAN',
           results = 0x1,
