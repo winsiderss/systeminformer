@@ -18,7 +18,7 @@ local nt = require('nt')
 local DRIVER = '\\Driver\\HidUsb'
 local READ_LENGTH = 1024
 local READS_MAX = 3
-local MILLISECONDS = 2500
+local MILLISECONDS = 950 -- a call's pushed reports together, inside its limit
 local REQUEST_MILLISECONDS = 500
 local DEVICES_MAX = 8
 local VALUES_MAX = 24
@@ -149,17 +149,27 @@ local function open_collection(device, access)
   return opened, failed
 end
 
--- The next status report of a passive row, decoded into values; a status.
+-- When the call stops waiting for pushed reports.
+local deadline = 0
+
+-- The next status report of a passive row, decoded into values; a status. A
+-- report that has not come by the call's deadline is a timeout of this row;
+-- past the deadline a read still takes a report that is already there.
 local function passive(opened, row, values)
   local report, status
   for _ = 1, READS_MAX do
-    report, status = ksi.hw.device_read(opened, READ_LENGTH, MILLISECONDS)
+    local left = math.max(1, (deadline - ksi.time()) // 10000)
+    report, status = ksi.hw.device_read(opened, READ_LENGTH, left)
     if not report or string.byte(report, 1) == row.report then
       break
     end
     report, status = nil, nt.STATUS_DEVICE_PROTOCOL_ERROR
   end
   if not report then
+    -- STATUS_TIMEOUT is a success code; the answer is an error
+    if status == nt.STATUS_TIMEOUT then
+      status = nt.STATUS_IO_TIMEOUT
+    end
     return status
   end
   if #report < row.minimum then
@@ -424,6 +434,7 @@ function read(input)
   if not nt.NT_SUCCESS(status) then
     return status
   end
+  deadline = ksi.time() + MILLISECONDS * 10000
   return nt.STATUS_SUCCESS, collect(ROWS, nt.FILE_READ_DATA, passive, true)
 end
 
