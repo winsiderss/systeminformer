@@ -153,7 +153,7 @@ static NTSTATUS PhpHwPciIdentify(
  */
 static VOID PhpHwPciRead(
     _In_ ULONG Locator,
-    _In_reads_(Count) const ULONG* Offsets,
+    _In_reads_(Count) PCULONG Offsets,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     )

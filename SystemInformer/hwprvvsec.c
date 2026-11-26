@@ -221,8 +221,8 @@ static BOOLEAN PhpHwVsecApplyStatus(
  */
 static VOID PhpHwVsecReadOnce(
     _In_ ULONG Locator,
-    _In_ const KPH_HW_VSEC_REGION* Region,
-    _In_reads_(Count) const ULONG* Offsets,
+    _In_ PCKPH_HW_VSEC_REGION Region,
+    _In_reads_(Count) PCULONG Offsets,
     _In_ ULONG Count
     )
 {
@@ -258,7 +258,7 @@ static BOOLEAN PhpHwVsecValue(
  */
 static BOOLEAN PhpHwVsecReadReport(
     _In_ PPHP_HW_VSEC_REPORT Report,
-    _In_reads_(Count) const ULONG* Offsets,
+    _In_reads_(Count) PCULONG Offsets,
     _In_ ULONG Count
     )
 {
@@ -393,7 +393,7 @@ static PKPH_HW_VSEC_REGION PhpHwVsecListRegions(
  */
 static ULONG PhpHwVsecDevicePackage(
     _In_ ULONG Locator,
-    _In_reads_(Count) const KPH_HW_VSEC_REGION* Regions,
+    _In_reads_(Count) PCKPH_HW_VSEC_REGION Regions,
     _In_ ULONG Count
     )
 {
@@ -426,7 +426,7 @@ static ULONG PhpHwVsecDevicePackage(
 
 static PPHP_HW_VSEC_REGION PhpHwVsecBeginRegion(
     _In_ ULONG Device,
-    _In_ const KPH_HW_VSEC_REGION* Region
+    _In_ PCKPH_HW_VSEC_REGION Region
     )
 {
     PPHP_HW_VSEC_REGION region;
@@ -497,7 +497,7 @@ static ULONG PhpHwVsecEntryOrdinal(
  */
 static VOID PhpHwVsecProbeRapl(
     _In_ ULONG Device,
-    _In_ const KPH_HW_VSEC_REGION* Region,
+    _In_ PCKPH_HW_VSEC_REGION Region,
     _In_ ULONG PackageIndex
     )
 {
@@ -621,7 +621,7 @@ static VOID PhpHwVsecProbeRapl(
  */
 static VOID PhpHwVsecProbeUncore(
     _In_ ULONG Device,
-    _In_ const KPH_HW_VSEC_REGION* Region,
+    _In_ PCKPH_HW_VSEC_REGION Region,
     _In_ ULONG PackageIndex,
     _Inout_ PULONG DomainIndex
     )
@@ -763,7 +763,7 @@ static BOOLEAN PhpHwVsecDecodePmtSample(
  */
 static VOID PhpHwVsecProbePmt(
     _In_ ULONG Device,
-    _In_ const KPH_HW_VSEC_REGION* Region
+    _In_ PCKPH_HW_VSEC_REGION Region
     )
 {
     ULONG offsets[PHP_HW_VSEC_REGION_ENTRIES];

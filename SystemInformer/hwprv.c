@@ -915,7 +915,7 @@ BOOLEAN NTAPI PhHwGetCpuHistory(
 static VOID PhpHwAppendFlags(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ ULONG Flags,
-    _In_reads_(Count) const PH_KEY_VALUE_PAIR* Names,
+    _In_reads_(Count) PCPH_KEY_VALUE_PAIR Names,
     _In_ ULONG Count
     )
 {

@@ -64,7 +64,7 @@ static ULONG PhpHwCrosEcOffset(
  * Reads map bytes; FALSE with the status when the call or any byte failed.
  */
 static BOOLEAN PhpHwCrosEcRead(
-    _In_reads_(Count) const ULONG* Offsets,
+    _In_reads_(Count) PCULONG Offsets,
     _In_ ULONG Count,
     _Out_writes_(Count) PUCHAR Bytes,
     _Out_ PNTSTATUS Status

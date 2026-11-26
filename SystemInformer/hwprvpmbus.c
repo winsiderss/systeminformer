@@ -187,11 +187,11 @@ BOOLEAN PhpHwPmbusDecode(
  */
 PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
     _In_ UCHAR Revision,
-    _In_reads_bytes_(MfrIdLength) const UCHAR* MfrId,
+    _In_reads_bytes_(MfrIdLength) PCUCHAR MfrId,
     _In_ ULONG MfrIdLength,
-    _In_reads_bytes_(ModelLength) const UCHAR* Model,
+    _In_reads_bytes_(ModelLength) PCUCHAR Model,
     _In_ ULONG ModelLength,
-    _In_reads_bytes_(DeviceIdLength) const UCHAR* DeviceId,
+    _In_reads_bytes_(DeviceIdLength) PCUCHAR DeviceId,
     _In_ ULONG DeviceIdLength
     )
 {

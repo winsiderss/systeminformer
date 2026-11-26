@@ -99,6 +99,26 @@ typedef CONST ULONG *PCULONG;
  */
 typedef CONST UCHAR *PCUCHAR;
 
+/**
+ * The PCUSHORT type is a pointer to a constant unsigned short.
+ */
+typedef CONST USHORT *PCUSHORT;
+
+/**
+ * The PCULONG64 type is a pointer to a constant unsigned 64-bit integer.
+ */
+typedef CONST ULONG64 *PCULONG64;
+
+/**
+ * The PCBOOLEAN type is a pointer to a constant boolean.
+ */
+typedef CONST BOOLEAN *PCBOOLEAN;
+
+/**
+ * The PCFLOAT type is a pointer to a constant float.
+ */
+typedef CONST FLOAT *PCFLOAT;
+
 //
 // Specific
 //

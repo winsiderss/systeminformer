@@ -58,7 +58,7 @@ PPH_STRING PhSipCpuFormatSensorGraphTooltipText(
 
 FLOAT PhSipCpuSensorGraphScale(
     _In_ ULONG Capability,
-    _In_reads_(Count) const FLOAT* Data,
+    _In_reads_(Count) PCFLOAT Data,
     _In_ ULONG Count
     );
 

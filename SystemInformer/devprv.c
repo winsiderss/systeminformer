@@ -4179,7 +4179,7 @@ HICON PhGetDeviceIcon(
  * \return The icon, or NULL when the class has no icon that loads. The caller destroys it.
  */
 HICON PhGetDeviceClassIcon(
-    _In_ const GUID* Class,
+    _In_ PCGUID Class,
     _In_ PPH_INTEGER_PAIR IconSize
     )
 {

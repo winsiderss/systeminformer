@@ -160,6 +160,8 @@ typedef struct _PH_HW_SMU_READING
     FLOAT Value;
 } PH_HW_SMU_READING, *PPH_HW_SMU_READING;
 
+typedef const PH_HW_SMU_READING* PCPH_HW_SMU_READING;
+
 typedef struct _PH_HW_SMU_DECODE
 {
     ULONG Count;
@@ -170,6 +172,8 @@ typedef struct _PH_HW_SMU_DECODE
     ULONG FrequencyLimitSources; // HSMP 19h [15:0], PH_HW_HSMP_LIMIT_*; not in Readings
     PH_HW_SMU_READING Readings[PH_HW_SMU_MAX_READINGS];
 } PH_HW_SMU_DECODE, *PPH_HW_SMU_DECODE;
+
+typedef const PH_HW_SMU_DECODE* PCPH_HW_SMU_DECODE;
 
 // Per-core slot state of a PM table session; zero-initialize at session start.
 typedef struct _PH_HW_SMU_CORE_SLOTS

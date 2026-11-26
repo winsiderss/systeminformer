@@ -52,7 +52,7 @@ static ULONG PhpHwSmuSensorIndex(
     _In_ ULONG PackageIndex,
     _In_ ULONG Position,
     _In_ ULONG Id,
-    _In_ const PH_HW_SMU_READING* Reading
+    _In_ PCPH_HW_SMU_READING Reading
     )
 {
     PH_FORMAT format[3];
@@ -101,7 +101,7 @@ VOID PhpHwSmuPublish(
     _Inout_ PPHP_HW_SMU_SENSORS Sensors,
     _In_ ULONG PackageIndex,
     _In_ ULONG IdFlags,
-    _In_ const PH_HW_SMU_DECODE* Decode
+    _In_ PCPH_HW_SMU_DECODE Decode
     )
 {
     ULONG indices[PH_HW_SMU_MAX_READINGS];

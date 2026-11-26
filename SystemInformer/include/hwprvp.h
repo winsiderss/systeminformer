@@ -233,7 +233,7 @@ VOID PhpHwSmuPublish(
     _Inout_ PPHP_HW_SMU_SENSORS Sensors,
     _In_ ULONG PackageIndex,
     _In_ ULONG IdFlags,
-    _In_ const PH_HW_SMU_DECODE* Decode
+    _In_ PCPH_HW_SMU_DECODE Decode
     );
 
 _Function_class_(PHP_HW_FAMILY_PROBE)
@@ -370,11 +370,11 @@ BOOLEAN PhpHwPmbusDecode(
 
 PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
     _In_ UCHAR Revision,
-    _In_reads_bytes_(MfrIdLength) const UCHAR* MfrId,
+    _In_reads_bytes_(MfrIdLength) PCUCHAR MfrId,
     _In_ ULONG MfrIdLength,
-    _In_reads_bytes_(ModelLength) const UCHAR* Model,
+    _In_reads_bytes_(ModelLength) PCUCHAR Model,
     _In_ ULONG ModelLength,
-    _In_reads_bytes_(DeviceIdLength) const UCHAR* DeviceId,
+    _In_reads_bytes_(DeviceIdLength) PCUCHAR DeviceId,
     _In_ ULONG DeviceIdLength
     );
 
@@ -795,7 +795,7 @@ ULONG PhpHwEnumeratePciFunctions(
     _In_ USHORT VendorId,
     _In_ USHORT AlternateVendorId,
     _In_ USHORT ClassCode,
-    _In_reads_opt_(DeviceIdCount) const USHORT* DeviceIds,
+    _In_reads_opt_(DeviceIdCount) PCUSHORT DeviceIds,
     _In_ ULONG DeviceIdCount,
     _In_ BOOLEAN FunctionZeroOnly,
     _Out_writes_to_(Count, return) PULONG Locators,

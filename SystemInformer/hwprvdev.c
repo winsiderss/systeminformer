@@ -467,7 +467,7 @@ ULONG PhpHwEnumeratePciFunctions(
     _In_ USHORT VendorId,
     _In_ USHORT AlternateVendorId,
     _In_ USHORT ClassCode,
-    _In_reads_opt_(DeviceIdCount) const USHORT* DeviceIds,
+    _In_reads_opt_(DeviceIdCount) PCUSHORT DeviceIds,
     _In_ ULONG DeviceIdCount,
     _In_ BOOLEAN FunctionZeroOnly,
     _Out_writes_to_(Count, return) PULONG Locators,

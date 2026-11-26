@@ -530,7 +530,7 @@ PhDeviceProviderInitialization(
 
 HICON
 PhGetDeviceClassIcon(
-    _In_ const GUID* Class,
+    _In_ PCGUID Class,
     _In_ PPH_INTEGER_PAIR IconSize
     );
 

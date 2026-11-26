@@ -847,7 +847,7 @@ static PHP_HW_MMIO_TIMINGS_FORMAT PhpHwMmioQueryTimingsFormat(
 _Success_(return)
 static BOOLEAN PhpHwMmioDecodeTimings(
     _In_ PHP_HW_MMIO_TIMINGS_FORMAT Format,
-    _In_reads_(PHP_HW_MMIO_TIMINGS_REGISTERS) const ULONG64* Registers,
+    _In_reads_(PHP_HW_MMIO_TIMINGS_REGISTERS) PCULONG64 Registers,
     _Out_ PPH_HW_MEMORY_TIMINGS Timings
     )
 {

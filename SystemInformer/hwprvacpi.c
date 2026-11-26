@@ -153,11 +153,11 @@ static BOOLEAN PhpHwAcpiApplyStatus(
  */
 _Success_(return)
 static BOOLEAN PhpHwAcpiRecord(
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length,
     _In_ ULONG Index,
     _Out_ PNTSTATUS Status,
-    _Out_ const UCHAR** Data,
+    _Out_ PCUCHAR* Data,
     _Out_ PULONG DataLength
     )
 {
@@ -195,7 +195,7 @@ static BOOLEAN PhpHwAcpiRecord(
  */
 _Success_(return)
 static BOOLEAN PhpHwAcpiRecordInteger(
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length,
     _In_ ULONG Index,
     _Out_ PULONG64 Value,
@@ -321,7 +321,7 @@ static PPHP_HW_ACPI_VALUE PhpHwAcpiAddValue(
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED when it is not, or the record's status to count.
  */
 static NTSTATUS PhpHwAcpiPresent(
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -344,7 +344,7 @@ static NTSTATUS PhpHwAcpiPresent(
  */
 static NTSTATUS PhpHwAcpiFanStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -378,7 +378,7 @@ static NTSTATUS PhpHwAcpiFanStatic(
  */
 static NTSTATUS PhpHwAcpiParticipantStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -418,7 +418,7 @@ static NTSTATUS PhpHwAcpiParticipantStatic(
  */
 static NTSTATUS PhpHwAcpiMeterStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -465,7 +465,7 @@ static NTSTATUS PhpHwAcpiMeterStatic(
  */
 static NTSTATUS PhpHwAcpiPowerStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -523,7 +523,7 @@ static PCSTR PhpHwAcpiLastSegment(
  */
 static NTSTATUS PhpHwAcpiAtkStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -644,7 +644,7 @@ static NTSTATUS PhpHwAcpiAtkStatic(
  */
 static NTSTATUS PhpHwAcpiDytcStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -783,7 +783,7 @@ static BOOLEAN PhpHwAcpiLenovoSystemFans(
  */
 static VOID PhpHwAcpiLenovoFanStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -817,7 +817,7 @@ static VOID PhpHwAcpiLenovoFanStatic(
  */
 static NTSTATUS PhpHwAcpiThinkPadStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -865,7 +865,7 @@ static NTSTATUS PhpHwAcpiThinkPadStatic(
  */
 static NTSTATUS PhpHwAcpiSystem76Static(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
-    _In_reads_bytes_(Length) const UCHAR* Output,
+    _In_reads_bytes_(Length) PCUCHAR Output,
     _In_ ULONG Length
     )
 {
@@ -943,7 +943,7 @@ static NTSTATUS PhpHwAcpiSystem76Static(
 _Success_(return == PhHwFanDecodeOk)
 static PH_HW_FAN_DECODE PhpHwDecodeSystem76(
     _In_ PH_HW_NAMED_SENSOR_KIND Kind,
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PFLOAT Reading
     )
@@ -975,7 +975,7 @@ static PH_HW_FAN_DECODE PhpHwDecodeSystem76(
 _Success_(return == PhHwFanDecodeOk)
 static PH_HW_FAN_DECODE PhpHwDecodeLenovoFan(
     _In_ ULONG Multiplier,
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PFLOAT Rpm
     )
@@ -996,7 +996,7 @@ static PH_HW_FAN_DECODE PhpHwDecodeLenovoFan(
  */
 _Success_(return == PhHwFanDecodeOk)
 static PH_HW_FAN_DECODE PhpHwDecodeThinkPadTemperature(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PFLOAT Celsius
     )

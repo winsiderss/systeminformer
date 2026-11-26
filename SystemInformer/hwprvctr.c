@@ -113,6 +113,8 @@ typedef struct _PHP_HW_COUNTER_ITEM
     ULONG TripIndex[2]; // a zone's passive and critical trip point sensors; ULONG_MAX when none
 } PHP_HW_COUNTER_ITEM, *PPHP_HW_COUNTER_ITEM;
 
+typedef const PHP_HW_COUNTER_ITEM* PCPHP_HW_COUNTER_ITEM;
+
 // A thermal zone's trip points, read once a query from its device interface.
 typedef struct _PHP_HW_COUNTER_TRIP
 {
@@ -622,7 +624,7 @@ static VOID PhpHwCounterReadBlock(
  * Returns the change of a counter since the last sample, modulo its width.
  */
 static ULONG64 PhpHwCounterDelta(
-    _In_ const PHP_HW_COUNTER_ITEM* Item,
+    _In_ PCPHP_HW_COUNTER_ITEM Item,
     _In_ UCHAR Slot
     )
 {
@@ -636,7 +638,7 @@ static ULONG64 PhpHwCounterDelta(
  */
 _Success_(return)
 static BOOLEAN PhpHwCounterRatio(
-    _In_ const PHP_HW_COUNTER_ITEM* Item,
+    _In_ PCPHP_HW_COUNTER_ITEM Item,
     _In_ UCHAR Slot,
     _Out_ PDOUBLE Value
     )

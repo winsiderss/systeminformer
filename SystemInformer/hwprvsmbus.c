@@ -99,6 +99,8 @@ typedef struct _PHP_HW_DIMM_PROBE_STATE
     BOOLEAN NotReady; // the host stopped decoding or moved: the host is passed over
 } PHP_HW_DIMM_PROBE_STATE, *PPHP_HW_DIMM_PROBE_STATE;
 
+typedef const PHP_HW_DIMM_PROBE_STATE* PCPHP_HW_DIMM_PROBE_STATE;
+
 static ULONG PhpHwSmbusHosts[PHP_HW_SMBUS_MAX_HOSTS];
 static ULONG PhpHwSmbusHostCount = 0;
 static ULONG PhpHwSmbusHost = ULONG_MAX; // the host with the modules
@@ -226,14 +228,14 @@ static BOOLEAN PhpHwSmbusProbeItem(
 }
 
 static BOOLEAN PhpHwDimmProbeStopped(
-    _In_ const PHP_HW_DIMM_PROBE_STATE* State
+    _In_ PCPHP_HW_DIMM_PROBE_STATE State
     )
 {
     return State->Busy || State->Contended || State->NotReady;
 }
 
 static PHP_HW_DIMM_PROBE PhpHwDimmProbeOutcome(
-    _In_ const PHP_HW_DIMM_PROBE_STATE* State
+    _In_ PCPHP_HW_DIMM_PROBE_STATE State
     )
 {
     if (State->NotReady)
@@ -245,7 +247,7 @@ static PHP_HW_DIMM_PROBE PhpHwDimmProbeOutcome(
 }
 
 static UCHAR PhpHwPmicRegister(
-    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers,
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) PCUCHAR Registers,
     _In_ UCHAR Command
     )
 {
@@ -798,8 +800,8 @@ static VOID PhpHwListPmicSensor(
  */
 static VOID PhpHwSetPmicSensors(
     _Inout_ PPHP_HW_DIMM Dimm,
-    _In_reads_opt_(PH_HW_PMIC_SENSORS) const BOOLEAN* Valid,
-    _In_reads_opt_(PH_HW_PMIC_SENSORS) const FLOAT* Values
+    _In_reads_opt_(PH_HW_PMIC_SENSORS) PCBOOLEAN Valid,
+    _In_reads_opt_(PH_HW_PMIC_SENSORS) PCFLOAT Values
     )
 {
     for (ULONG i = 0; Dimm->Pmic && i < PH_HW_PMIC_SENSORS; i++)
@@ -1276,7 +1278,7 @@ VOID NTAPI PhpHwSmbusEndSession(
  */
 static VOID PhpHwAppendSpd5118Nvm(
     _Inout_ PPH_STRING_BUILDER Builder,
-    _In_reads_(PHP_HW_SPD_NVM_BYTES) const UCHAR* Nvm
+    _In_reads_(PHP_HW_SPD_NVM_BYTES) PCUCHAR Nvm
     )
 {
     static CONST PCWSTR moduleTypes[16] =
@@ -1346,7 +1348,7 @@ static BOOLEAN PhpHwOddParity(
  */
 static VOID PhpHwAppendPmic(
     _Inout_ PPH_STRING_BUILDER Builder,
-    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) PCUCHAR Registers
     )
 {
     static CONST struct
