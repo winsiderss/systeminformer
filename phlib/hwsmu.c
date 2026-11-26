@@ -459,7 +459,7 @@ static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540104[] =
     PHP_SMU_FIELD(70, SmuClock, FabricClock, Fclk, L"Fabric (FCLK)"),
     PHP_SMU_FIELD(74, SmuMemoryClock, FabricClock, Uclk, L"Controller (UCLK)"),
     PHP_SMU_FIELD(82, SmuVoltage, RailVoltage, Vsoc, L"VSOC set point"),
-    PHP_SMU_FIELD(269, SmuVoltage, RailVoltage, Vddp, L"VDDP"),
+    PHP_SMU_FIELD(268, SmuVoltage, RailVoltage, Vddp, L"VDDP"),
     PHP_SMU_FIELD(275, SmuVoltage, RailVoltage, CoreRailPeak, L"Core rail peak"),
 };
 
@@ -507,13 +507,41 @@ static CONST PHP_HW_SMU_FIELD PhpHwSmuFields730204[] =
     PHP_SMU_FIELD(455, SmuVoltage, RailVoltage, VddgCcd, L"VDDG CCD"),
 };
 
-// Raphael 0x540000-0x540005 and 0x540100-0x540108: fabric clocks and SoC rails only
+// Raphael fabric clocks and SoC rail; VDDP at the word of the table version.
+#define PHP_SMU_RAPHAEL_FIELDS(VddpIndex) \
+    PHP_SMU_FIELD(52, SmuVoltage, RailVoltage, SocRail, L"SoC rail"), \
+    PHP_SMU_FIELD(70, SmuClock, FabricClock, Fclk, L"Fabric (FCLK)"), \
+    PHP_SMU_FIELD(74, SmuMemoryClock, FabricClock, Uclk, L"Controller (UCLK)"), \
+    PHP_SMU_FIELD((VddpIndex), SmuVoltage, RailVoltage, Vddp, L"VDDP")
+
+// Raphael 0x540000, 0x540001, 0x540100 and 0x540101
 static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540000[] =
 {
-    PHP_SMU_FIELD(52, SmuVoltage, RailVoltage, SocRail, L"SoC rail"),
-    PHP_SMU_FIELD(70, SmuClock, FabricClock, Fclk, L"Fabric (FCLK)"),
-    PHP_SMU_FIELD(74, SmuMemoryClock, FabricClock, Uclk, L"Controller (UCLK)"),
-    PHP_SMU_FIELD(268, SmuVoltage, RailVoltage, Vddp, L"VDDP"),
+    PHP_SMU_RAPHAEL_FIELDS(241),
+};
+
+// Raphael 0x540002 and 0x540102
+static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540002[] =
+{
+    PHP_SMU_RAPHAEL_FIELDS(254),
+};
+
+// Raphael 0x540003 and 0x540103
+static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540003[] =
+{
+    PHP_SMU_RAPHAEL_FIELDS(262),
+};
+
+// Raphael 0x540005 and 0x540105
+static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540005[] =
+{
+    PHP_SMU_RAPHAEL_FIELDS(268),
+};
+
+// Raphael 0x540108
+static CONST PHP_HW_SMU_FIELD PhpHwSmuFields540108[] =
+{
+    PHP_SMU_RAPHAEL_FIELDS(269),
 };
 
 // Raphael 0x540208: fabric clocks and SoC rails only
@@ -605,17 +633,17 @@ static CONST PHP_HW_SMU_LAYOUT PhpHwSmuLayouts[] =
     { 0x400005, PHP_SMU_FIELDS(PhpHwSmuFields400005), 411, FALSE, PHP_SMU_NO_L3, 8, 200, 208, 216, 240, 248, 256, 272, PHP_HW_SMU_NONE },
     { 0x540000, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x540001, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
-    { 0x540002, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
-    { 0x540003, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540002, PHP_SMU_FIELDS(PhpHwSmuFields540002), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540003, PHP_SMU_FIELDS(PhpHwSmuFields540003), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x540004, PHP_SMU_FIELDS(PhpHwSmuFields540004), 78, TRUE, 2, 539, PHP_SMU_NO_CORES },
-    { 0x540005, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540005, PHP_SMU_FIELDS(PhpHwSmuFields540005), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x540100, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x540101, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
-    { 0x540102, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
-    { 0x540103, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540102, PHP_SMU_FIELDS(PhpHwSmuFields540002), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540103, PHP_SMU_FIELDS(PhpHwSmuFields540003), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x540104, PHP_SMU_FIELDS(PhpHwSmuFields540104), 78, TRUE, PHP_SMU_NO_L3, 8, PHP_HW_SMU_NONE, 301, 309, 317, PHP_HW_SMU_NONE, PHP_HW_SMU_NONE, PHP_HW_SMU_NONE, PHP_HW_SMU_NONE },
-    { 0x540105, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
-    { 0x540108, PHP_SMU_FIELDS(PhpHwSmuFields540000), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540105, PHP_SMU_FIELDS(PhpHwSmuFields540005), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
+    { 0x540108, PHP_SMU_FIELDS(PhpHwSmuFields540108), 78, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x540208, PHP_SMU_FIELDS(PhpHwSmuFields540208), 79, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x5c0002, PHP_SMU_FIELDS(PhpHwSmuFields5c0002), 111, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
     { 0x5c0003, PHP_SMU_FIELDS(PhpHwSmuFields5c0002), 111, TRUE, PHP_SMU_NO_L3, PHP_SMU_NO_CORES },
