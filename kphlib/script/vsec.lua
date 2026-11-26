@@ -433,7 +433,7 @@ local function memory_bar(s, index)
   local resources, failed = nt.resources(s.device)
   if not resources then
     ksi.trace('resources of %04x:%04x not read: 0x%x', s.vendor, s.id, failed)
-    return nil, nt.STATUS_DEVICE_CONFIGURATION_ERROR
+    return nil, failed
   end
   for _, r in ipairs(resources) do
     if r.kind == 1 and r.raw == base then
