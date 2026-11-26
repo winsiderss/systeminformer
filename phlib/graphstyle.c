@@ -33,6 +33,14 @@ static CONST COLORREF PhpLegacySeriesColors[PhGraphSeriesMaximum] =
     0xc8c8c8, // percentage
 };
 
+// The power, temperature and fan defaults of the settings before graph styles.
+static CONST struct { PH_GRAPH_SERIES Series; COLORREF Color; } PhpOldLegacySeriesColors[] =
+{
+    { PhGraphSeriesPower, 0x00ff00 },
+    { PhGraphSeriesTemperature, 0x0000ff },
+    { PhGraphSeriesFan, 0xff0077 },
+};
+
 static VOID PhpInitializeBuiltInStyle(
     _Out_ PPH_GRAPH_STYLE Style,
     _In_ PCWSTR Id,
@@ -877,8 +885,17 @@ VOID NTAPI PhGsMigrateLegacy(
     PCWSTR lightName = NULL; // non-NULL when the light style must be a custom copy
     PCWSTR darkName = NULL;
     BOOLEAN shared = FALSE; // one style serves both modes
+    COLORREF series[PhGraphSeriesMaximum];
 
     NT_VERIFY(PhGsGetBuiltInStyles(&styles) == PH_GRAPH_STYLE_BUILTIN_COUNT);
+
+    memcpy(series, LegacySeries, sizeof(series));
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(PhpOldLegacySeriesColors); i++)
+    {
+        if (series[PhpOldLegacySeriesColors[i].Series] == PhpOldLegacySeriesColors[i].Color)
+            series[PhpOldLegacySeriesColors[i].Series] = PhpLegacySeriesColors[PhpOldLegacySeriesColors[i].Series];
+    }
 
     if (GraphColorMode == 1)
         GraphColorMode = ThemeSupport ? 0 : 3;
@@ -912,19 +929,19 @@ VOID NTAPI PhGsMigrateLegacy(
         break;
     }
 
-    if (memcmp(LegacySeries, PhpLegacySeriesColors, sizeof(PhpLegacySeriesColors)) != 0)
+    if (memcmp(series, PhpLegacySeriesColors, sizeof(PhpLegacySeriesColors)) != 0)
     {
         if (shared)
         {
-            memcpy(light.SeriesColor, LegacySeries, sizeof(light.SeriesColor));
+            memcpy(light.SeriesColor, series, sizeof(light.SeriesColor));
             lightName = L"My colors";
         }
         else
         {
             for (ULONG i = 0; i < PhGraphSeriesMaximum; i++)
-                light.SeriesColor[i] = PhHalveColorBrightness(LegacySeries[i]);
+                light.SeriesColor[i] = PhHalveColorBrightness(series[i]);
 
-            memcpy(dark.SeriesColor, LegacySeries, sizeof(dark.SeriesColor));
+            memcpy(dark.SeriesColor, series, sizeof(dark.SeriesColor));
             lightName = L"My colors (light)";
             darkName = L"My colors (dark)";
         }
