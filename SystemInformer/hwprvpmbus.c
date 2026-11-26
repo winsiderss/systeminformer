@@ -243,6 +243,8 @@ typedef struct _PHP_HW_VRM
     ULONG Named[PHP_HW_VRM_PAGES][3]; // voltage, temperature, power
     BOOLEAN ModeKnown[PHP_HW_VRM_PAGES];
     UCHAR Mode[PHP_HW_VRM_PAGES]; // VOUT_MODE
+    UCHAR Strikes; // reads in a row in which it was asked and nothing of it answered
+    BOOLEAN Ended;
 } PHP_HW_VRM, *PPHP_HW_VRM;
 
 static CONST UCHAR PhpHwVrmAddresses[] =
@@ -265,7 +267,6 @@ static ULONG PhpHwVrmCount = 0;
 static ULONG PhpHwVrmHost = 0;
 static ULONG PhpHwVrmUnidentified = 0; // devices that answered and were not identified
 static NTSTATUS PhpHwVrmStatus = STATUS_NOT_SUPPORTED; // the last read, for the report
-static UCHAR PhpHwVrmStrikes = 0;
 static ULONG PhpHwVrmPasses = 0;
 static BOOLEAN PhpHwVrmEnded = FALSE;
 static ULONG PhpHwVrmHosts[PHP_HW_VRM_MAX_HOSTS];
@@ -375,6 +376,8 @@ static VOID PhpHwVrmProbeAddresses(
             PhpHwVrms[PhpHwVrmCount].Address = PhpHwVrmAddresses[i];
             PhpHwVrms[PhpHwVrmCount].Family = family;
             memset(PhpHwVrms[PhpHwVrmCount].ModeKnown, 0, sizeof(PhpHwVrms[PhpHwVrmCount].ModeKnown));
+            PhpHwVrms[PhpHwVrmCount].Strikes = 0;
+            PhpHwVrms[PhpHwVrmCount].Ended = FALSE;
             PhpHwVrmHost = host;
             PhpHwVrmList(PhpHwVrmCount);
             PhpHwVrmCount++;
@@ -440,10 +443,11 @@ NTSTATUS NTAPI PhpHwVrmPass(
     static CONST UCHAR commands[4] = { 0x20, 0x8B, 0x8D, 0x96 }; // VOUT_MODE, READ_VOUT, READ_TEMPERATURE_1, READ_POUT
     KPH_HW_SMBUS_ITEM items[PHP_HW_VRM_MAX * PHP_HW_VRM_PAGES * 4];
     KPH_HW_VALUE32 values[RTL_NUMBER_OF(items)];
+    BOOLEAN asked[PHP_HW_VRM_MAX];
     ULONG count = 0;
     ULONG capabilities = 0;
     BOOLEAN read;
-    BOOLEAN answered = FALSE;
+    BOOLEAN ended = TRUE;
     BOOLEAN modePass;
 
     if (PhpHwVrmProbing)
@@ -461,7 +465,9 @@ NTSTATUS NTAPI PhpHwVrmPass(
 
     for (ULONG i = 0; i < PhpHwVrmCount; i++)
     {
-        for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++)
+        asked[i] = !PhpHwVrms[i].Ended;
+
+        for (ULONG page = 0; asked[i] && page < PHP_HW_VRM_PAGES; page++)
         {
             ULONG first = 1;
 
@@ -486,23 +492,12 @@ NTSTATUS NTAPI PhpHwVrmPass(
 
     read = NT_SUCCESS(PhpHwVrmStatus);
 
-    // a read that ran fails when no item succeeded; contention at an item is not a failure
-    for (ULONG i = 0; read && i < count; i++)
-    {
-        if (NT_SUCCESS(values[i].Status) || values[i].Status == STATUS_RETRY || values[i].Status == STATUS_DEVICE_BUSY)
-            answered = TRUE;
-    }
-
-    if (read && answered)
-        PhpHwVrmStrikes = 0;
-    else if (++PhpHwVrmStrikes >= 3)
-        PhpHwVrmEnded = TRUE;
-
     for (ULONG i = 0, at = 0; i < PhpHwVrmCount; i++)
     {
         PPHP_HW_VRM vrm = &PhpHwVrms[i];
+        ULONG first = at;
 
-        for (ULONG page = 0; page < PHP_HW_VRM_PAGES; page++, at += 3)
+        for (ULONG page = 0; asked[i] && page < PHP_HW_VRM_PAGES; page++, at += 3)
         {
             static CONST PHP_HW_PMBUS_QUANTITY quantities[3] = { PhpHwPmbusVout, PhpHwPmbusTemperature, PhpHwPmbusPout };
 
@@ -530,8 +525,35 @@ NTSTATUS NTAPI PhpHwVrmPass(
                     capabilities |= q == 2 ? PH_HW_CAP_ACPI_POWER : PH_HW_CAP_ACPI_TEMP;
             }
         }
+
+        // A controller strikes when its items were reached and none answered: contention is an answer, and an item
+        // cancelled after another's failure was not reached. A read that failed counts against every one asked.
+        if (asked[i])
+        {
+            BOOLEAN answered = FALSE;
+            BOOLEAN reached = !read;
+
+            for (ULONG item = first; read && item < at; item++)
+            {
+                NTSTATUS status = values[item].Status;
+
+                if (NT_SUCCESS(status) || status == STATUS_RETRY || status == STATUS_DEVICE_BUSY)
+                    answered = TRUE;
+                if (status != STATUS_CANCELLED)
+                    reached = TRUE;
+            }
+
+            if (answered)
+                vrm->Strikes = 0;
+            else if (reached && ++vrm->Strikes >= 3)
+                vrm->Ended = TRUE;
+        }
+
+        if (!vrm->Ended)
+            ended = FALSE;
     }
 
+    PhpHwVrmEnded = ended;
     PhpHwFamilies[PhpHwFamilyVrm].Capabilities = PhpHwVrmEnded ? 0 : capabilities;
 
     return PhpHwVrmEnded ? STATUS_NOT_SUPPORTED : STATUS_SUCCESS;
@@ -547,7 +569,6 @@ VOID NTAPI PhpHwVrmEnd(
 {
     PhpHwVrmStatus = STATUS_NOT_SUPPORTED;
     PhpHwVrmCount = 0;
-    PhpHwVrmStrikes = 0;
     PhpHwVrmPasses = 0;
     PhpHwVrmEnded = FALSE;
     PhpHwVrmProbing = FALSE;
@@ -582,7 +603,20 @@ VOID NTAPI PhpHwVrmDiagnostics(
         );
 
     for (ULONG i = 0; i < PhpHwVrmCount; i++)
-        PhAppendFormatStringBuilder(Builder, L"    %02Xh: family %d\n", PhpHwVrms[i].Address, PhpHwVrms[i].Family);
+    {
+        PCWSTR controllerEnded = L"";
+
+        if (PhpHwVrms[i].Ended)
+            controllerEnded = L", ended";
+
+        PhAppendFormatStringBuilder(
+            Builder,
+            L"    %02Xh: family %d%s\n",
+            PhpHwVrms[i].Address,
+            PhpHwVrms[i].Family,
+            controllerEnded
+            );
+    }
 }
 
 // Collector sch5027: an SCH5027 hardware monitor on an Intel SMBus host at 2Ch-2Eh, accepted on its company and stepping;
