@@ -840,7 +840,9 @@ local function restore_idle(s, idle)
     if nt.NT_SUCCESS(st) then
       return st
     end
-    if st == nt.STATUS_DEVICE_NOT_READY then
+    -- Tried again while the index is contended or the write unproven; a bus
+    -- call that failed ends it.
+    if st ~= nt.STATUS_RETRY and st ~= nt.STATUS_DEVICE_DATA_ERROR then
       break
     end
     ksi.sleep(1)
