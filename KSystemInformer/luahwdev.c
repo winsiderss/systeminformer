@@ -1548,16 +1548,20 @@ int KphpLuaHwDeviceOpen(
     PCSTR text;
     SIZE_T length;
     lua_Integer access;
+    lua_Integer share;
     ANSI_STRING ansi;
     UNICODE_STRING name;
     PKPH_LUA_HW_NAMED_DEVICE device;
+    OBJECT_ATTRIBUTES attributes;
+    IO_STATUS_BLOCK ioStatus;
+    HANDLE handle;
     PFILE_OBJECT fileObject;
-    PDEVICE_OBJECT deviceObject;
 
     KPH_PAGED_CODE_PASSIVE();
 
     text = luaL_checklstring(State, 1, &length);
     access = luaL_optinteger(State, 2, FILE_READ_DATA);
+    share = luaL_optinteger(State, 3, 0);
 
     luaL_argcheck(State,
                   (length >= 1) && (length <= KPH_LUA_HW_DEVICE_NAME_MAX),
@@ -1566,6 +1570,10 @@ int KphpLuaHwDeviceOpen(
     luaL_argcheck(State,
                   (access >= 0) && (access <= ULONG_MAX),
                   2,
+                  "out of range");
+    luaL_argcheck(State,
+                  (share >= 0) && !(share & ~FILE_SHARE_VALID_FLAGS),
+                  3,
                   "out of range");
 
     device = KphAllocateFromPagedLookaside(&KphpLuaHwNamedDeviceLookaside);
@@ -1601,10 +1609,18 @@ int KphpLuaHwDeviceOpen(
         goto Exit;
     }
 
-    status = IoGetDeviceObjectPointer(&name,
-                                      (ACCESS_MASK)access,
-                                      &fileObject,
-                                      &deviceObject);
+    InitializeObjectAttributes(&attributes,
+                               &name,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
+    status = ZwOpenFile(&handle,
+                        (ACCESS_MASK)access,
+                        &attributes,
+                        &ioStatus,
+                        (ULONG)share,
+                        FILE_NON_DIRECTORY_FILE);
 
     RtlFreeUnicodeString(&name);
 
@@ -1612,7 +1628,27 @@ int KphpLuaHwDeviceOpen(
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       HARDWARE,
-                      "IoGetDeviceObjectPointer failed: %!STATUS!",
+                      "ZwOpenFile failed: %!STATUS!",
+                      status);
+
+        results = KphLuaNilErrorStatus(State, status);
+        goto Exit;
+    }
+
+    status = ObReferenceObjectByHandle(handle,
+                                       0,
+                                       *IoFileObjectType,
+                                       KernelMode,
+                                       &fileObject,
+                                       NULL);
+
+    ObCloseHandle(handle, KernelMode);
+
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "ObReferenceObjectByHandle failed: %!STATUS!",
                       status);
 
         results = KphLuaNilErrorStatus(State, status);
