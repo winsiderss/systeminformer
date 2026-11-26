@@ -1444,7 +1444,7 @@ static NTSTATUS PhpHwAcpiReadDevice(
     )
 {
     ULONG records = 0;
-    ULONG record = 0;
+    ULONG at = 0;
     ULONG returnLength = 0;
     BOOLEAN dropped = FALSE;
     NTSTATUS status;
@@ -1475,10 +1475,13 @@ static NTSTATUS PhpHwAcpiReadDevice(
             continue;
 
         // A call that fails whole counts against each of its values; a record's own status counts otherwise.
-        if (NT_SUCCESS(status) && !PhpHwAcpiRecord(PhpHwAcpiReadBuffer, returnLength, record, &recordStatus, &data, &dataLength))
-            recordStatus = STATUS_INFO_LENGTH_MISMATCH;
-
-        record++;
+        if (NT_SUCCESS(status))
+        {
+            if (at <= returnLength && PhpHwAcpiRecord(PhpHwAcpiReadBuffer + at, returnLength - at, 0, &recordStatus, &data, &dataLength))
+                at += 8 + dataLength + (8 - dataLength % 8) % 8;
+            else
+                recordStatus = STATUS_INFO_LENGTH_MISMATCH;
+        }
 
         if (PhpHwAcpiApplyStatus(&value->State, Device->Path, recordStatus))
         {
