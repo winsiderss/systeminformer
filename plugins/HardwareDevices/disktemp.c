@@ -22,10 +22,12 @@
 #define DT_ATA_INTERVAL_MS 15000
 #define DT_MAX_DISKS 32
 #define DT_SENSORS 9 // the composite temperature, then sensors 1 to 8
+#define DT_ENUMERATE_POLLS 12 // the disks are listed again every this many polls: new ones added, gone ones dropped
 
 typedef struct _DT_DISK
 {
-    HANDLE Handle;
+    PPH_STRING Path; // the disk interface, opened for each read and closed after
+    BOOLEAN Present; // listed by the last enumeration
     ULONG Index;
     PPH_STRING Name;
     BOOLEAN Ata; // SMART attributes, not the NVMe health log
@@ -41,6 +43,8 @@ typedef struct _DT_CONTEXT
 {
     PH_QUEUED_LOCK Lock;
     BOOLEAN Enumerated;
+    ULONG Polls; // since the last enumeration
+    PPH_LIST Probed; // the interface paths tried, a disk or not, while they stay listed
     ULONG64 LastPollTime;
     ULONG Count;
     DT_DISK Disks[DT_MAX_DISKS];
@@ -146,7 +150,25 @@ static BOOLEAN DiskTemperatureIsAwake(
 }
 
 /**
- * Lists the disks: NVMe ones whose health log answers, ATA ones with a SMART temperature. Called on the provider
+ * The position of a path in a list of paths, or ULONG_MAX.
+ */
+static ULONG DiskTemperatureFindPath(
+    _In_ PPH_LIST Paths,
+    _In_ PPH_STRING Path
+    )
+{
+    for (ULONG i = 0; i < Paths->Count; i++)
+    {
+        if (PhEqualString(Paths->Items[i], Path, TRUE))
+            return i;
+    }
+
+    return ULONG_MAX;
+}
+
+/**
+ * Lists the disks: NVMe ones whose health log answers, ATA ones with a SMART temperature. A path already tried is not
+ * tried again while it stays listed; a disk no longer listed keeps its slot without values. Called on the provider
  * thread.
  */
 static VOID DiskTemperatureEnumerate(
@@ -163,6 +185,7 @@ static VOID DiskTemperatureEnumerate(
     {
         { DEVPROP_OPERATOR_EQUALS, {{ DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DEVINTERFACE_DISK } }
     };
+    PPH_LIST listed;
 
     if (HR_FAILED(PhDevGetObjects(
         DevObjectTypeDeviceInterface,
@@ -178,7 +201,15 @@ static VOID DiskTemperatureEnumerate(
         return;
     }
 
-    for (ULONG i = 0; i < deviceCount && Context->Count < DT_MAX_DISKS; i++)
+    if (!Context->Probed)
+        Context->Probed = PhCreateList(DT_MAX_DISKS);
+
+    listed = PhCreateList(deviceCount);
+
+    for (ULONG i = 0; i < Context->Count; i++)
+        Context->Disks[i].Present = FALSE;
+
+    for (ULONG i = 0; i < deviceCount; i++)
     {
         PPH_STRING description = NULL;
         PPH_STRING path;
@@ -197,6 +228,19 @@ static VOID DiskTemperatureEnumerate(
         if (path->Length >= 2 * sizeof(WCHAR) && path->Buffer[1] == OBJ_NAME_PATH_SEPARATOR)
             path->Buffer[1] = L'?';
 
+        PhAddItemList(listed, path);
+
+        for (ULONG d = 0; d < Context->Count; d++)
+        {
+            if (PhEqualString(Context->Disks[d].Path, path, TRUE))
+                Context->Disks[d].Present = TRUE;
+        }
+
+        if (Context->Count == DT_MAX_DISKS || DiskTemperatureFindPath(Context->Probed, path) != ULONG_MAX)
+            continue;
+
+        PhAddItemList(Context->Probed, PhReferenceObject(path));
+
         if (!NT_SUCCESS(PhCreateFile(
             &handle,
             &path->sr,
@@ -207,7 +251,6 @@ static VOID DiskTemperatureEnumerate(
             FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
             )))
         {
-            PhDereferenceObject(path);
             continue;
         }
 
@@ -228,7 +271,6 @@ static VOID DiskTemperatureEnumerate(
             if ((rotational && !DiskTemperatureIsAwake(devInst)) || !NT_SUCCESS(DiskTemperatureQuerySmart(handle, &celsius)))
             {
                 NtClose(handle);
-                PhDereferenceObject(path);
                 continue;
             }
 
@@ -236,10 +278,12 @@ static VOID DiskTemperatureEnumerate(
         }
 
         DiskDriveQueryDeviceTypeAndNumber(handle, &diskIndex, NULL);
+        NtClose(handle);
         QueryDiskDeviceInterfaceDescription((PWSTR)deviceObjects[i].pszObjectId, &description);
 
         disk = &Context->Disks[Context->Count++];
-        disk->Handle = handle;
+        disk->Path = PhReferenceObject(path);
+        disk->Present = TRUE;
         disk->Index = diskIndex;
         disk->Ata = ata;
         disk->Rotational = rotational;
@@ -254,9 +298,26 @@ static VOID DiskTemperatureEnumerate(
         disk->Name = PhFormat(format, RTL_NUMBER_OF(format), 0);
 
         PhClearReference(&description);
-        PhDereferenceObject(path);
     }
 
+    // A path no longer listed is tried again when it returns.
+    for (ULONG i = Context->Probed->Count; i > 0; i--)
+    {
+        if (DiskTemperatureFindPath(listed, Context->Probed->Items[i - 1]) == ULONG_MAX)
+        {
+            PhDereferenceObject(Context->Probed->Items[i - 1]);
+            PhRemoveItemList(Context->Probed, i - 1);
+        }
+    }
+
+    for (ULONG i = 0; i < Context->Count; i++)
+    {
+        if (!Context->Disks[i].Present)
+            memset(Context->Disks[i].Valid, 0, sizeof(Context->Disks[i].Valid));
+    }
+
+    PhDereferenceObjects(listed->Items, listed->Count);
+    PhDereferenceObject(listed);
     PhDevFreeObjects(deviceCount, deviceObjects);
 }
 
@@ -270,29 +331,48 @@ static VOID DiskTemperaturePoll(
 {
     NVME_HEALTH_INFO_LOG health;
     USHORT kelvin[DT_SENSORS];
+    HANDLE handle;
 
-    if (Disk->LastPollTime && Now - Disk->LastPollTime < (Disk->Ata ? DT_ATA_INTERVAL_MS : DT_INTERVAL_MS))
+    if (!Disk->Present || (Disk->LastPollTime && Now - Disk->LastPollTime < (Disk->Ata ? DT_ATA_INTERVAL_MS : DT_INTERVAL_MS)))
         return;
 
     Disk->LastPollTime = Now;
 
-    if (Disk->Ata)
+    // A sleeping hard disk keeps its row, without a value, until Windows wakes it.
+    if (Disk->Ata && Disk->Rotational && !DiskTemperatureIsAwake(Disk->DevInst))
     {
         memset(Disk->Valid, 0, sizeof(Disk->Valid));
-
-        // A sleeping hard disk keeps its row, without a value, until Windows wakes it.
-        if (Disk->Rotational && !DiskTemperatureIsAwake(Disk->DevInst))
-        {
-            Disk->LastStatus = STATUS_DEVICE_POWERED_OFF;
-            return;
-        }
-
-        Disk->LastStatus = DiskTemperatureQuerySmart(Disk->Handle, &Disk->Celsius[0]);
-        Disk->Valid[0] = NT_SUCCESS(Disk->LastStatus);
+        Disk->LastStatus = STATUS_DEVICE_POWERED_OFF;
         return;
     }
 
-    Disk->LastStatus = DiskDriveQueryNvmeHealthInfo(Disk->Handle, &health);
+    Disk->LastStatus = PhCreateFile(
+        &handle,
+        &Disk->Path->sr,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(Disk->LastStatus))
+    {
+        memset(Disk->Valid, 0, sizeof(Disk->Valid));
+        return;
+    }
+
+    if (Disk->Ata)
+    {
+        memset(Disk->Valid, 0, sizeof(Disk->Valid));
+        Disk->LastStatus = DiskTemperatureQuerySmart(handle, &Disk->Celsius[0]);
+        Disk->Valid[0] = NT_SUCCESS(Disk->LastStatus);
+        NtClose(handle);
+        return;
+    }
+
+    Disk->LastStatus = DiskDriveQueryNvmeHealthInfo(handle, &health);
+    NtClose(handle);
 
     if (!NT_SUCCESS(Disk->LastStatus))
     {
@@ -337,9 +417,10 @@ static VOID NTAPI DiskTemperatureSourceCallback(
     {
         PhAcquireQueuedLockExclusive(&context->Lock);
 
-        if (!context->Enumerated)
+        if (!context->Enumerated || ++context->Polls >= DT_ENUMERATE_POLLS)
         {
             context->Enumerated = TRUE;
+            context->Polls = 0;
             DiskTemperatureEnumerate(context);
         }
 
@@ -469,8 +550,14 @@ VOID DiskTemperatureUninitialize(
 
     for (ULONG i = 0; i < context->Count; i++)
     {
-        NtClose(context->Disks[i].Handle);
+        PhClearReference(&context->Disks[i].Path);
         PhClearReference(&context->Disks[i].Name);
+    }
+
+    if (context->Probed)
+    {
+        PhDereferenceObjects(context->Probed->Items, context->Probed->Count);
+        PhDereferenceObject(context->Probed);
     }
 
     PhFree(context);
