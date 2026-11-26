@@ -183,6 +183,8 @@ static ULONG PhpHwMmioMcCount = 0;
 static ULONG PhpHwMmioCandidateCount = 0;
 static ULONG PhpHwMmioWindowCount = 0;
 static PPHP_HW_MMIO_WINDOW PhpHwMmioWindows = NULL; // PHP_HW_MMIO_MAX_WINDOWS
+static ULONG PhpHwMmioOwned = 0; // the capabilities the active registers own
+static BOOLEAN PhpHwMmioOwnedStale = TRUE; // a register or window was disabled since PhpHwMmioOwned
 static FLOAT PhpHwMmioUnitWatts = 0.0f; // watts a power limit increment
 static FLOAT PhpHwMmioLimit1 = 0.0f; // watts, 0 when unavailable or disabled
 static FLOAT PhpHwMmioLimit2 = 0.0f;
@@ -238,11 +240,13 @@ static BOOLEAN PhpHwMmioApplyStatus(
         break;
     case STATUS_ACCESS_DENIED: // not permitted
         reg->Disabled = TRUE;
+        PhpHwMmioOwnedStale = TRUE;
         break;
     default:
         if (++reg->Strikes >= PHP_HW_MMIO_STRIKE_LIMIT)
         {
             reg->Disabled = TRUE;
+            PhpHwMmioOwnedStale = TRUE;
             PhTraceInfo("Hardware sensor window 0x%lx:%lu offset 0x%lx unavailable: 0x%lx", Window->Locator, Window->Window, PhpHwMmioRegInfo[Reg].Offset, Status);
         }
         break;
@@ -299,6 +303,7 @@ static NTSTATUS PhpHwMmioReadWindow(
     if (!NT_SUCCESS(status))
     {
         Window->Disabled = TRUE;
+        PhpHwMmioOwnedStale = TRUE;
         PhTraceInfo("Hardware sensor window 0x%lx:%lu unavailable: 0x%lx", Window->Locator, Window->Window, status);
         return status;
     }
@@ -345,6 +350,8 @@ static VOID PhpHwMmioDisable(
 {
     for (ULONG i = 0; i < PhpHwMmioWindowCount; i++)
         PhpHwMmioWindows[i].Registers[Reg].Disabled = TRUE;
+
+    PhpHwMmioOwnedStale = TRUE;
 }
 
 /**
@@ -1193,6 +1200,7 @@ NTSTATUS NTAPI PhpHwMmioProbe(
 
     PhpHwMmioWindows = PhAllocateZero(sizeof(PHP_HW_MMIO_WINDOW) * PHP_HW_MMIO_MAX_WINDOWS);
     PhpHwMmioWindowCount = 0;
+    PhpHwMmioOwnedStale = TRUE;
 
     for (ULONG i = 0; i < PhpHwMmioCandidateCount; i++)
     {
@@ -1384,21 +1392,30 @@ NTSTATUS NTAPI PhpHwMmioPass(
         PhpHwMmioPublishMcs(seconds);
     }
 
-    if (PhpHwMmioActive(PhpHwMmioPackageTemperature))
-        owned |= PH_HW_CAP_PACKAGE_TEMP;
-    if (PhpHwMmioActive(PhpHwMmioPp0Temperature))
-        owned |= PH_HW_CAP_CORES_TEMP;
-    if (PhpHwMmioActive(PhpHwMmioPp1Temperature))
-        owned |= PH_HW_CAP_GRAPHICS_TEMP;
-    if (PhpHwMmioActive(PhpHwMmioMcBiosData) || PhpHwMmioActive(PhpHwMmioSaPerfStatus) || PhpHwMmioActive(PhpHwMmioMcBiosReq) ||
-        PhpHwMmioActive(PhpHwMmioMemssBiosData))
-        owned |= PH_HW_CAP_MEMORY_CLOCK;
-
-    for (PHP_HW_MMIO_REG reg = 0; reg < PhpHwMmioMaximum; reg++)
+    if (PhpHwMmioOwnedStale)
     {
-        if (PhpHwMmioRegInfo[reg].Imc && PhpHwMmioActive(reg))
-            owned |= PH_HW_CAP_MEMORY_BANDWIDTH;
+        PhpHwMmioOwned = 0;
+
+        if (PhpHwMmioActive(PhpHwMmioPackageTemperature))
+            PhpHwMmioOwned |= PH_HW_CAP_PACKAGE_TEMP;
+        if (PhpHwMmioActive(PhpHwMmioPp0Temperature))
+            PhpHwMmioOwned |= PH_HW_CAP_CORES_TEMP;
+        if (PhpHwMmioActive(PhpHwMmioPp1Temperature))
+            PhpHwMmioOwned |= PH_HW_CAP_GRAPHICS_TEMP;
+        if (PhpHwMmioActive(PhpHwMmioMcBiosData) || PhpHwMmioActive(PhpHwMmioSaPerfStatus) || PhpHwMmioActive(PhpHwMmioMcBiosReq) ||
+            PhpHwMmioActive(PhpHwMmioMemssBiosData))
+            PhpHwMmioOwned |= PH_HW_CAP_MEMORY_CLOCK;
+
+        for (PHP_HW_MMIO_REG reg = 0; reg < PhpHwMmioMaximum; reg++)
+        {
+            if (PhpHwMmioRegInfo[reg].Imc && PhpHwMmioActive(reg))
+                PhpHwMmioOwned |= PH_HW_CAP_MEMORY_BANDWIDTH;
+        }
+
+        PhpHwMmioOwnedStale = FALSE;
     }
+
+    owned = PhpHwMmioOwned;
 
     // The timings are the probe's.
     if (PhpHwMmioTimingsValid)
@@ -1561,6 +1578,8 @@ VOID NTAPI PhpHwMmioEnd(
     PhpHwMmioMcCount = 0;
     PhpHwMmioCandidateCount = 0;
     PhpHwMmioWindowCount = 0;
+    PhpHwMmioOwned = 0;
+    PhpHwMmioOwnedStale = TRUE;
     PhpHwMmioUnitWatts = 0.0f;
     PhpHwMmioLimit1 = 0.0f;
     PhpHwMmioLimit2 = 0.0f;
