@@ -22,10 +22,10 @@ local RD_EC = 0x80
 local WR_EC = 0x81
 local FLOATING = 0xff
 local PORT = 2
-local WAIT_US = 550
-local WAIT_SPINS = 8
+local WAIT_US = 50
+local WAIT_SPINS = 88
 local WAIT_MS = 100
-local PUT_BACK_ROUNDS = 182
+local PUT_BACK_ROUNDS = 2000
 local GLOBAL_LOCK_MS = 100
 local EVAL_MS = 100
 
