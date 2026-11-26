@@ -158,10 +158,19 @@ local function signature_present()
     and ksi.hw.port_read(EMI_DATA + 3, 1) == 0x50
 end
 
--- Releases the window when the scope that claimed it ends.
+-- Whether the call wrote its claim of the window.
+local claimed = false
+
+-- Releases the window when the scope that claims it ends, while the window
+-- reads as this call's.
 local release = setmetatable({}, {
   __close = function()
-    ksi.hw.port_write(EMI_APPLICATION, 1, APPLICATION_ID)
+    if claimed then
+      claimed = false
+      if ksi.hw.port_read(EMI_APPLICATION, 1) == APPLICATION_ID then
+        ksi.hw.port_write(EMI_APPLICATION, 1, APPLICATION_ID)
+      end
+    end
   end,
 })
 
@@ -192,12 +201,13 @@ function read(input)
     ksi.trace('the window is held by another agent')
     return nt.STATUS_DEVICE_BUSY
   end
+  local claim <close> = release
+  claimed = true
   ksi.hw.port_write(EMI_APPLICATION, 1, APPLICATION_ID)
   if ksi.hw.port_read(EMI_APPLICATION, 1) ~= APPLICATION_ID then
     ksi.trace('the window was not granted')
     return nt.STATUS_DEVICE_BUSY
   end
-  local claim <close> = release
   if not signature_present() then
     ksi.trace('no MCHP signature at 0x%x', EMI)
     return nt.STATUS_NOT_FOUND
