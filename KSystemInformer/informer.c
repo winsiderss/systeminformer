@@ -68,6 +68,7 @@ PVOID KSIAPI KphpAllocateInformerState(
  * \return STATUS_SUCCESS
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 NTSTATUS
 KSIAPI
@@ -79,6 +80,8 @@ KphpInitializeInformerState(
     PKPH_INFORMER_STATE state;
     PKPH_INFORMER_SETTINGS settings;
     LARGE_INTEGER timeStamp;
+
+    KPH_NPAGED_CODE_DISPATCH_MAX();
 
     state = Object;
     settings = Parameter;

@@ -41,6 +41,7 @@ static ULONG KphpDbgPrintSlotCount = 0;
 static PKPH_DBG_PRINT_SLOT KphpDbgPrintSlots = NULL;
 
 FORCEINLINE
+_IRQL_requires_max_(HIGH_LEVEL)
 KPH_DBG_PRINT_SLOT_STATE
 KphpGetDbgPrintSlotState(
     _In_ PKPH_DBG_PRINT_SLOT Slot
@@ -50,6 +51,7 @@ KphpGetDbgPrintSlotState(
 }
 
 FORCEINLINE
+_IRQL_requires_max_(HIGH_LEVEL)
 VOID
 KphpSetDbgPrintSlotState(
     _In_ PKPH_DBG_PRINT_SLOT Slot,
@@ -60,6 +62,7 @@ KphpSetDbgPrintSlotState(
 }
 
 FORCEINLINE
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 BOOLEAN
 KphpTryClaimDbgPrintSlot(

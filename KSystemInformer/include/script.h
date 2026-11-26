@@ -164,6 +164,7 @@ VOID KphLuaRaiseAbort(
     );
 
 FORCEINLINE
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID KphLuaPushStatus(
     _In_ lua_State* State,
     _In_ NTSTATUS Status
@@ -173,6 +174,7 @@ VOID KphLuaPushStatus(
 }
 
 FORCEINLINE
+_IRQL_requires_max_(PASSIVE_LEVEL)
 int KphLuaNilErrorStatus(
     _In_ lua_State* State,
     _In_ NTSTATUS Status
