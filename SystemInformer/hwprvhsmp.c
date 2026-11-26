@@ -147,7 +147,8 @@ static VOID PhpHwHsmpIdentify(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED when no package has a mailbox, or the status of the first identify.
  */
-NTSTATUS PhpHwHsmpProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwHsmpProbe(
     VOID
     )
 {
@@ -388,7 +389,8 @@ CleanupExit:
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwHsmpPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwHsmpPass(
     VOID
     )
 {
@@ -487,7 +489,8 @@ BOOLEAN PhpHwHsmpQueryMemoryClock(
 /**
  * Ends the session.
  */
-VOID PhpHwHsmpEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwHsmpEnd(
     VOID
     )
 {
@@ -505,7 +508,8 @@ VOID PhpHwHsmpEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwHsmpDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwHsmpDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

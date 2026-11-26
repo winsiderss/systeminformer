@@ -830,7 +830,8 @@ static VOID PhpHwVsecProbePmt(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a region to read, or the first identify's status.
  */
-NTSTATUS PhpHwVsecProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwVsecProbe(
     VOID
     )
 {
@@ -996,7 +997,8 @@ static VOID PhpHwVsecRelistDevice(
  *
  * \return STATUS_RETRY when every read met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwVsecPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwVsecPass(
     VOID
     )
 {
@@ -1225,7 +1227,8 @@ NTSTATUS PhpHwVsecPass(
 /**
  * Ends the session: the functions are found and listed again at the next probe.
  */
-VOID PhpHwVsecEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwVsecEnd(
     VOID
     )
 {
@@ -1278,7 +1281,8 @@ ULONG PhpHwVsecPackageCaps(
  *
  * \param Builder The report.
  */
-VOID PhpHwVsecDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwVsecDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

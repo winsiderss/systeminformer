@@ -953,7 +953,8 @@ static NTSTATUS PhpHwSmbusProbeHosts(
  * \return STATUS_SUCCESS with modules or a probe to go on with, STATUS_NOT_SUPPORTED without, or the first host's
  * identify status when no host answered.
  */
-NTSTATUS PhpHwSmbusProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSmbusProbe(
     VOID
     )
 {
@@ -1210,7 +1211,8 @@ static NTSTATUS PhpHwSmbusRead(
  *
  * \return STATUS_RETRY when the pass met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwSmbusPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSmbusPass(
     VOID
     )
 {
@@ -1247,7 +1249,8 @@ NTSTATUS PhpHwSmbusPass(
 /**
  * Ends the session: the hosts are listed and probed again at the next probe.
  */
-VOID PhpHwSmbusEndSession(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSmbusEndSession(
     VOID
     )
 {
@@ -1433,7 +1436,8 @@ static VOID PhpHwAppendPmic(
  *
  * \param Builder The report.
  */
-VOID PhpHwSmbusDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSmbusDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

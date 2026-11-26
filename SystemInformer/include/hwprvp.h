@@ -72,19 +72,34 @@ typedef enum _PHP_HW_FAMILY_ID
 
 // A probe or pass returns STATUS_SUCCESS, STATUS_RETRY (no strike; see PHP_HW_RETRY_BACKOFF), STATUS_NOT_SUPPORTED
 // (the family is absent for the session) or another status (a failed pass, handled by the collector).
-typedef NTSTATUS (*PPHP_HW_FAMILY_PROBE)(VOID);
-typedef NTSTATUS (*PPHP_HW_FAMILY_PASS)(VOID);
-typedef VOID (*PPHP_HW_FAMILY_END)(VOID);
-typedef VOID (*PPHP_HW_FAMILY_DIAGNOSTICS)(_Inout_ PPH_STRING_BUILDER Builder);
+_Function_class_(PHP_HW_FAMILY_PROBE)
+typedef NTSTATUS (NTAPI PHP_HW_FAMILY_PROBE)(
+    VOID
+    );
+
+_Function_class_(PHP_HW_FAMILY_PASS)
+typedef NTSTATUS (NTAPI PHP_HW_FAMILY_PASS)(
+    VOID
+    );
+
+_Function_class_(PHP_HW_FAMILY_END)
+typedef VOID (NTAPI PHP_HW_FAMILY_END)(
+    VOID
+    );
+
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+typedef VOID (NTAPI PHP_HW_FAMILY_DIAGNOSTICS)(
+    _Inout_ PPH_STRING_BUILDER Builder
+    );
 
 typedef struct _PHP_HW_FAMILY
 {
     PCWSTR Name;
     ULONG64 Interval; // the least time between passes; 0 for every update
-    PPHP_HW_FAMILY_PROBE Probe;
-    PPHP_HW_FAMILY_PASS Pass;
-    PPHP_HW_FAMILY_END End;
-    PPHP_HW_FAMILY_DIAGNOSTICS Diagnostics;
+    PHP_HW_FAMILY_PROBE* Probe;
+    PHP_HW_FAMILY_PASS* Pass;
+    PHP_HW_FAMILY_END* End;
+    PHP_HW_FAMILY_DIAGNOSTICS* Diagnostics;
     ULONG Capabilities; // PH_HW_CAP_* of the family's named sensors, set by its pass
 
     // the core's, for the session
@@ -100,51 +115,63 @@ extern PHP_HW_FAMILY PhpHwFamilies[PhpHwFamilyMaximum];
 
 // Collector cpu (hwprvcpu.c).
 
-NTSTATUS PhpHwCpuProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwCpuProbe(
     VOID
     );
 
-NTSTATUS PhpHwCpuPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwCpuPass(
     VOID
     );
 
-VOID PhpHwCpuEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwCpuEnd(
     VOID
     );
 
-VOID PhpHwCpuDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwCpuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwSmnProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSmnProbe(
     VOID
     );
 
-NTSTATUS PhpHwSmnPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSmnPass(
     VOID
     );
 
-VOID PhpHwSmnEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSmnEnd(
     VOID
     );
 
-VOID PhpHwSmnDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSmnDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwMmioProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwMmioProbe(
     VOID
     );
 
-NTSTATUS PhpHwMmioPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwMmioPass(
     VOID
     );
 
-VOID PhpHwMmioEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwMmioEnd(
     VOID
     );
 
-VOID PhpHwMmioDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwMmioDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
@@ -163,19 +190,23 @@ BOOLEAN PhpHwSmnQueryRoot(
     _Out_ PULONG Locator
     );
 
-NTSTATUS PhpHwSmuProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSmuProbe(
     VOID
     );
 
-NTSTATUS PhpHwSmuPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSmuPass(
     VOID
     );
 
-VOID PhpHwSmuEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSmuEnd(
     VOID
     );
 
-VOID PhpHwSmuDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSmuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
@@ -205,83 +236,103 @@ VOID PhpHwSmuPublish(
     _In_ const PH_HW_SMU_DECODE* Decode
     );
 
-NTSTATUS PhpHwCrosEcProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwCrosEcProbe(
     VOID
     );
 
-NTSTATUS PhpHwCrosEcPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwCrosEcPass(
     VOID
     );
 
-VOID PhpHwCrosEcEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwCrosEcEnd(
     VOID
     );
 
-VOID PhpHwCrosEcDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwCrosEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwBoardEcProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwBoardEcProbe(
     VOID
     );
 
-NTSTATUS PhpHwBoardEcPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwBoardEcPass(
     VOID
     );
 
-VOID PhpHwBoardEcEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwBoardEcEnd(
     VOID
     );
 
-VOID PhpHwBoardEcDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwBoardEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwGigabyteProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwGigabyteProbe(
     VOID
     );
 
-NTSTATUS PhpHwGigabytePass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwGigabytePass(
     VOID
     );
 
-VOID PhpHwGigabyteEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwGigabyteEnd(
     VOID
     );
 
-VOID PhpHwGigabyteDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwGigabyteDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwAlienwareProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwAlienwareProbe(
     VOID
     );
 
-NTSTATUS PhpHwAlienwarePass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwAlienwarePass(
     VOID
     );
 
-VOID PhpHwAlienwareEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwAlienwareEnd(
     VOID
     );
 
-VOID PhpHwAlienwareDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwAlienwareDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwHpProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwHpProbe(
     VOID
     );
 
-NTSTATUS PhpHwHpPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwHpPass(
     VOID
     );
 
-VOID PhpHwHpEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwHpEnd(
     VOID
     );
 
-VOID PhpHwHpDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwHpDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
@@ -327,115 +378,143 @@ PHP_HW_PMBUS_FAMILY PhpHwPmbusIdentify(
     _In_ ULONG DeviceIdLength
     );
 
-NTSTATUS PhpHwSch5027Probe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSch5027Probe(
     VOID
     );
 
-NTSTATUS PhpHwSch5027Pass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSch5027Pass(
     VOID
     );
 
-VOID PhpHwSch5027End(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSch5027End(
     VOID
     );
 
-VOID PhpHwSch5027Diagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSch5027Diagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwVrmProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwVrmProbe(
     VOID
     );
 
-NTSTATUS PhpHwVrmPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwVrmPass(
     VOID
     );
 
-VOID PhpHwVrmEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwVrmEnd(
     VOID
     );
 
-VOID PhpHwVrmDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwVrmDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwProm21Probe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwProm21Probe(
     VOID
     );
 
-NTSTATUS PhpHwProm21Pass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwProm21Pass(
     VOID
     );
 
-VOID PhpHwProm21End(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwProm21End(
     VOID
     );
 
-VOID PhpHwProm21Diagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwProm21Diagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwAqtionProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwAqtionProbe(
     VOID
     );
 
-NTSTATUS PhpHwAqtionPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwAqtionPass(
     VOID
     );
 
-VOID PhpHwAqtionEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwAqtionEnd(
     VOID
     );
 
-VOID PhpHwAqtionDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwAqtionDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwTsensProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwTsensProbe(
     VOID
     );
 
-NTSTATUS PhpHwTsensPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwTsensPass(
     VOID
     );
 
-VOID PhpHwTsensEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwTsensEnd(
     VOID
     );
 
-VOID PhpHwTsensDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwTsensDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwSpbmProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSpbmProbe(
     VOID
     );
 
-NTSTATUS PhpHwSpbmPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSpbmPass(
     VOID
     );
 
-VOID PhpHwSpbmEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSpbmEnd(
     VOID
     );
 
-VOID PhpHwSpbmDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSpbmDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwVsecProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwVsecProbe(
     VOID
     );
 
-NTSTATUS PhpHwVsecPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwVsecPass(
     VOID
     );
 
-VOID PhpHwVsecEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwVsecEnd(
     VOID
     );
 
-VOID PhpHwVsecDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwVsecDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
@@ -443,51 +522,63 @@ ULONG PhpHwVsecPackageCaps(
     _In_ ULONG PackageIndex
     );
 
-NTSTATUS PhpHwAcpiProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwAcpiProbe(
     VOID
     );
 
-NTSTATUS PhpHwAcpiPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwAcpiPass(
     VOID
     );
 
-VOID PhpHwAcpiEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwAcpiEnd(
     VOID
     );
 
-VOID PhpHwAcpiDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwAcpiDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwSmbusProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSmbusProbe(
     VOID
     );
 
-NTSTATUS PhpHwSmbusPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSmbusPass(
     VOID
     );
 
-VOID PhpHwSmbusEndSession(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSmbusEndSession(
     VOID
     );
 
-VOID PhpHwSmbusDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSmbusDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
-NTSTATUS PhpHwHsmpProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwHsmpProbe(
     VOID
     );
 
-NTSTATUS PhpHwHsmpPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwHsmpPass(
     VOID
     );
 
-VOID PhpHwHsmpEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwHsmpEnd(
     VOID
     );
 
-VOID PhpHwHsmpDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwHsmpDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
@@ -497,19 +588,23 @@ BOOLEAN PhpHwHsmpQueryMemoryClock(
     _Out_ PFLOAT MemoryClock
     );
 
-NTSTATUS PhpHwPlatformProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwPlatformProbe(
     VOID
     );
 
-NTSTATUS PhpHwPlatformPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwPlatformPass(
     VOID
     );
 
-VOID PhpHwPlatformEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwPlatformEnd(
     VOID
     );
 
-VOID PhpHwPlatformDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwPlatformDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 
@@ -652,19 +747,23 @@ VOID PhpHwPciQueryLegacyClock(
     _Out_ PULONG ClockPowerTimingControl0
     );
 
-NTSTATUS PhpHwPciProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwPciProbe(
     VOID
     );
 
-NTSTATUS PhpHwPciPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwPciPass(
     VOID
     );
 
-VOID PhpHwPciEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwPciEnd(
     VOID
     );
 
-VOID PhpHwPciDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwPciDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     );
 

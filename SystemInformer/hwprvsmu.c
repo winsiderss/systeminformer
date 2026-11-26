@@ -179,7 +179,8 @@ static BOOLEAN PhpHwSmuApplyStatus(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a table on any package, or the status of the first identify.
  */
-NTSTATUS PhpHwSmuProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSmuProbe(
     VOID
     )
 {
@@ -248,7 +249,8 @@ NTSTATUS PhpHwSmuProbe(
  *
  * \return STATUS_RETRY when every read met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwSmuPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSmuPass(
     VOID
     )
 {
@@ -339,7 +341,8 @@ BOOLEAN PhpHwSmuQueryMemoryClock(
 /**
  * Ends the session.
  */
-VOID PhpHwSmuEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSmuEnd(
     VOID
     )
 {
@@ -361,7 +364,8 @@ VOID PhpHwSmuEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwSmuDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSmuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

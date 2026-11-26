@@ -1307,7 +1307,8 @@ static VOID PhpHwAcpiNameValues(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a device, or identify's status.
  */
-NTSTATUS PhpHwAcpiProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwAcpiProbe(
     VOID
     )
 {
@@ -1571,7 +1572,8 @@ static NTSTATUS PhpHwAcpiReadDevice(
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwAcpiPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwAcpiPass(
     VOID
     )
 {
@@ -1661,7 +1663,8 @@ NTSTATUS PhpHwAcpiPass(
 /**
  * Ends the session: identify is asked again at the next probe.
  */
-VOID PhpHwAcpiEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwAcpiEnd(
     VOID
     )
 {
@@ -1692,7 +1695,8 @@ VOID PhpHwAcpiEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwAcpiDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwAcpiDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

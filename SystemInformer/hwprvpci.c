@@ -350,7 +350,8 @@ static VOID PhpHwPciAssignPowerNodes(
  *
  * \return STATUS_SUCCESS, or STATUS_NOT_SUPPORTED without such a processor or a register to read.
  */
-NTSTATUS PhpHwPciProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwPciProbe(
     VOID
     )
 {
@@ -473,7 +474,8 @@ static VOID PhpHwPciReadBridges(
  *
  * \return STATUS_SUCCESS.
  */
-NTSTATUS PhpHwPciPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwPciPass(
     VOID
     )
 {
@@ -550,7 +552,8 @@ NTSTATUS PhpHwPciPass(
 /**
  * Ends the session: the functions are found and identified again at the next.
  */
-VOID PhpHwPciEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwPciEnd(
     VOID
     )
 {
@@ -592,7 +595,8 @@ ULONG PhpHwPciPackageCaps(
  *
  * \param Builder The report.
  */
-VOID PhpHwPciDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwPciDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -1004,7 +1008,8 @@ static BOOLEAN PhpHwProm21Ended = FALSE;
  *
  * \return STATUS_SUCCESS, or STATUS_NOT_SUPPORTED when there is none.
  */
-NTSTATUS PhpHwProm21Probe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwProm21Probe(
     VOID
     )
 {
@@ -1039,7 +1044,8 @@ NTSTATUS PhpHwProm21Probe(
  *
  * \return STATUS_RETRY when another tool holds the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwProm21Pass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwProm21Pass(
     VOID
     )
 {
@@ -1092,7 +1098,8 @@ NTSTATUS PhpHwProm21Pass(
 /**
  * Ends the session: the controllers are found again at the next.
  */
-VOID PhpHwProm21End(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwProm21End(
     VOID
     )
 {
@@ -1107,7 +1114,8 @@ VOID PhpHwProm21End(
  *
  * \param Builder The report.
  */
-VOID PhpHwProm21Diagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwProm21Diagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -1144,7 +1152,8 @@ static BOOLEAN PhpHwAqtionEnded = FALSE;
  *
  * \return STATUS_SUCCESS, or STATUS_NOT_SUPPORTED when there is none.
  */
-NTSTATUS PhpHwAqtionProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwAqtionProbe(
     VOID
     )
 {
@@ -1179,7 +1188,8 @@ NTSTATUS PhpHwAqtionProbe(
  *
  * \return STATUS_RETRY when another tool holds the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwAqtionPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwAqtionPass(
     VOID
     )
 {
@@ -1224,7 +1234,8 @@ NTSTATUS PhpHwAqtionPass(
 /**
  * Ends the session: the controllers are found again at the next.
  */
-VOID PhpHwAqtionEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwAqtionEnd(
     VOID
     )
 {
@@ -1239,7 +1250,8 @@ VOID PhpHwAqtionEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwAqtionDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwAqtionDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

@@ -450,7 +450,8 @@ static VOID PhpHwSmnAssignRootComplexes(
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED for a machine or processor the collector does not serve, or the
  * status of the identify call.
  */
-NTSTATUS PhpHwSmnProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSmnProbe(
     VOID
     )
 {
@@ -558,7 +559,8 @@ NTSTATUS PhpHwSmnProbe(
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwSmnPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSmnPass(
     VOID
     )
 {
@@ -683,7 +685,8 @@ BOOLEAN PhpHwSmnQueryRoot(
 /**
  * Ends the session: the plan and the root complexes are found again at the next probe.
  */
-VOID PhpHwSmnEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSmnEnd(
     VOID
     )
 {
@@ -708,7 +711,8 @@ VOID PhpHwSmnEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwSmnDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSmnDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

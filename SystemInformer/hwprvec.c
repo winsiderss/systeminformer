@@ -174,7 +174,8 @@ static NTSTATUS PhpHwCrosEcList(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a map to read, or the failed call's status.
  */
-NTSTATUS PhpHwCrosEcProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwCrosEcProbe(
     VOID
     )
 {
@@ -191,7 +192,8 @@ NTSTATUS PhpHwCrosEcProbe(
  *
  * \return STATUS_RETRY when the read met contention, STATUS_NOT_SUPPORTED once the EC ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwCrosEcPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwCrosEcPass(
     VOID
     )
 {
@@ -282,7 +284,8 @@ NTSTATUS PhpHwCrosEcPass(
 /**
  * Ends the session: the EC is identified again at the next.
  */
-VOID PhpHwCrosEcEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwCrosEcEnd(
     VOID
     )
 {
@@ -301,7 +304,8 @@ VOID PhpHwCrosEcEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwCrosEcDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwCrosEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -415,7 +419,8 @@ static NTSTATUS PhpHwBoardEcList(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a row, or the failed call's status.
  */
-NTSTATUS PhpHwBoardEcProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwBoardEcProbe(
     VOID
     )
 {
@@ -432,7 +437,8 @@ NTSTATUS PhpHwBoardEcProbe(
  *
  * \return STATUS_RETRY when the read met contention, STATUS_NOT_SUPPORTED once the EC ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwBoardEcPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwBoardEcPass(
     VOID
     )
 {
@@ -546,7 +552,8 @@ NTSTATUS PhpHwBoardEcPass(
 /**
  * Ends the session: the board EC is listed again at the next.
  */
-VOID PhpHwBoardEcEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwBoardEcEnd(
     VOID
     )
 {
@@ -565,7 +572,8 @@ VOID PhpHwBoardEcEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwBoardEcDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwBoardEcDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -615,7 +623,8 @@ static BOOLEAN PhpHwGigabyteEnded = FALSE;
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED on another vendor's board or without the method, or a failed call's
  * status.
  */
-NTSTATUS PhpHwGigabyteProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwGigabyteProbe(
     VOID
     )
 {
@@ -657,7 +666,8 @@ NTSTATUS PhpHwGigabyteProbe(
  *
  * \return STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwGigabytePass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwGigabytePass(
     VOID
     )
 {
@@ -694,7 +704,8 @@ NTSTATUS PhpHwGigabytePass(
 /**
  * Ends the session: the temperatures are listed again at the next.
  */
-VOID PhpHwGigabyteEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwGigabyteEnd(
     VOID
     )
 {
@@ -709,7 +720,8 @@ VOID PhpHwGigabyteEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwGigabyteDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwGigabyteDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -785,7 +797,8 @@ static PPH_STRING PhpHwAlienwareName(
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED on a machine the script does not list or without the method, or
  * a failed call's status.
  */
-NTSTATUS PhpHwAlienwareProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwAlienwareProbe(
     VOID
     )
 {
@@ -844,7 +857,8 @@ NTSTATUS PhpHwAlienwareProbe(
  *
  * \return STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwAlienwarePass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwAlienwarePass(
     VOID
     )
 {
@@ -885,7 +899,8 @@ NTSTATUS PhpHwAlienwarePass(
 /**
  * Ends the session: the sensors are listed again at the next.
  */
-VOID PhpHwAlienwareEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwAlienwareEnd(
     VOID
     )
 {
@@ -900,7 +915,8 @@ VOID PhpHwAlienwareEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwAlienwareDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwAlienwareDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -933,7 +949,8 @@ static BOOLEAN PhpHwHpEnded = FALSE;
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without the block or its sensors, or a failed call's status.
  */
-NTSTATUS PhpHwHpProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwHpProbe(
     VOID
     )
 {
@@ -997,7 +1014,8 @@ NTSTATUS PhpHwHpProbe(
  *
  * \return STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwHpPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwHpPass(
     VOID
     )
 {
@@ -1045,7 +1063,8 @@ NTSTATUS PhpHwHpPass(
 /**
  * Ends the session: the sensors are listed again at the next.
  */
-VOID PhpHwHpEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwHpEnd(
     VOID
     )
 {
@@ -1060,7 +1079,8 @@ VOID PhpHwHpEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwHpDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwHpDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

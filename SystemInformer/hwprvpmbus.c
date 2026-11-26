@@ -389,7 +389,8 @@ static VOID PhpHwVrmProbeAddresses(
  * \return STATUS_SUCCESS (also when another tool held the bus: the pass goes on with the probe), or
  * STATUS_NOT_SUPPORTED when none is found or the board has a row.
  */
-NTSTATUS PhpHwVrmProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwVrmProbe(
     VOID
     )
 {
@@ -426,7 +427,8 @@ NTSTATUS PhpHwVrmProbe(
  *
  * \return STATUS_RETRY when another tool held the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwVrmPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwVrmPass(
     VOID
     )
 {
@@ -519,7 +521,8 @@ NTSTATUS PhpHwVrmPass(
 /**
  * Ends the session: the controllers are found again at the next.
  */
-VOID PhpHwVrmEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwVrmEnd(
     VOID
     )
 {
@@ -535,7 +538,8 @@ VOID PhpHwVrmEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwVrmDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwVrmDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
@@ -684,7 +688,8 @@ static VOID PhpHwSch5027ProbeHosts(
  * \return STATUS_SUCCESS (also when another tool held the bus: the pass goes on with the probe), or
  * STATUS_NOT_SUPPORTED when there is none.
  */
-NTSTATUS PhpHwSch5027Probe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSch5027Probe(
     VOID
     )
 {
@@ -706,7 +711,8 @@ NTSTATUS PhpHwSch5027Probe(
  *
  * \return STATUS_RETRY when another tool held the bus, STATUS_NOT_SUPPORTED once ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwSch5027Pass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSch5027Pass(
     VOID
     )
 {
@@ -806,7 +812,8 @@ NTSTATUS PhpHwSch5027Pass(
 /**
  * Ends the session: the monitor is found again at the next.
  */
-VOID PhpHwSch5027End(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSch5027End(
     VOID
     )
 {
@@ -822,7 +829,8 @@ VOID PhpHwSch5027End(
  *
  * \param Builder The report.
  */
-VOID PhpHwSch5027Diagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSch5027Diagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

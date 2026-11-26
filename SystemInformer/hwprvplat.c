@@ -120,7 +120,8 @@ static BOOLEAN PhpHwPlatformRead(
  *
  * \return STATUS_SUCCESS, or STATUS_NOT_SUPPORTED without an Intel processor or a window.
  */
-NTSTATUS PhpHwPlatformProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwPlatformProbe(
     VOID
     )
 {
@@ -182,7 +183,8 @@ NTSTATUS PhpHwPlatformProbe(
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwPlatformPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwPlatformPass(
     VOID
     )
 {
@@ -279,7 +281,8 @@ NTSTATUS PhpHwPlatformPass(
 /**
  * Ends the session.
  */
-VOID PhpHwPlatformEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwPlatformEnd(
     VOID
     )
 {
@@ -299,7 +302,8 @@ VOID PhpHwPlatformEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwPlatformDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwPlatformDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

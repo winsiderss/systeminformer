@@ -170,7 +170,8 @@ static NTSTATUS PhpHwTsensList(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a part to read, or the failed call's status.
  */
-NTSTATUS PhpHwTsensProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwTsensProbe(
     VOID
     )
 {
@@ -192,7 +193,8 @@ NTSTATUS PhpHwTsensProbe(
  *
  * \return STATUS_NOT_SUPPORTED once the sensors ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwTsensPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwTsensPass(
     VOID
     )
 {
@@ -319,7 +321,8 @@ NTSTATUS PhpHwTsensPass(
 /**
  * Ends the session: the controllers are identified again at the next.
  */
-VOID PhpHwTsensEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwTsensEnd(
     VOID
     )
 {
@@ -346,7 +349,8 @@ VOID PhpHwTsensEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwTsensDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwTsensDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

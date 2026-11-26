@@ -1148,7 +1148,8 @@ static VOID PhpHwMmioReadMemoryConfig(
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without an Intel processor or a window, or the status of the identify
  * calls when every one was not shipped.
  */
-NTSTATUS PhpHwMmioProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwMmioProbe(
     VOID
     )
 {
@@ -1341,7 +1342,8 @@ NTSTATUS PhpHwMmioProbe(
  *
  * \return STATUS_RETRY when every call met contention, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwMmioPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwMmioPass(
     VOID
     )
 {
@@ -1539,7 +1541,8 @@ FLOAT PhpHwMmioPowerLimit(
 /**
  * Ends the session: the windows are found again at the next probe.
  */
-VOID PhpHwMmioEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwMmioEnd(
     VOID
     )
 {
@@ -1582,7 +1585,8 @@ VOID PhpHwMmioEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwMmioDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwMmioDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

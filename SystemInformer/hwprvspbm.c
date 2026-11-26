@@ -181,7 +181,8 @@ static NTSTATUS PhpHwSpbmRead(
  *
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED without a part to read, or the failed read's status.
  */
-NTSTATUS PhpHwSpbmProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwSpbmProbe(
     VOID
     )
 {
@@ -242,7 +243,8 @@ static BOOLEAN PhpHwSpbmPower(
  *
  * \return STATUS_NOT_SUPPORTED once the sensors ended, else STATUS_SUCCESS.
  */
-NTSTATUS PhpHwSpbmPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwSpbmPass(
     VOID
     )
 {
@@ -374,7 +376,8 @@ NTSTATUS PhpHwSpbmPass(
 /**
  * Ends the session: the page is read and the sensors listed again at the next.
  */
-VOID PhpHwSpbmEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwSpbmEnd(
     VOID
     )
 {
@@ -395,7 +398,8 @@ VOID PhpHwSpbmEnd(
  *
  * \param Builder The report.
  */
-VOID PhpHwSpbmDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwSpbmDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {

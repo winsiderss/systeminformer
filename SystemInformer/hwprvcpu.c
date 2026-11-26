@@ -982,7 +982,8 @@ static VOID PhpHwCpuQueryComputeUnits(
  * \return STATUS_SUCCESS, STATUS_NOT_SUPPORTED for a machine or processor the collector does not serve, or the
  * status of the identify call.
  */
-NTSTATUS PhpHwCpuProbe(
+_Function_class_(PHP_HW_FAMILY_PROBE)
+NTSTATUS NTAPI PhpHwCpuProbe(
     VOID
     )
 {
@@ -2020,7 +2021,8 @@ static VOID PhpHwCpuPublish(
  *
  * \return STATUS_SUCCESS, STATUS_RETRY, or the status of a call when no call was answered.
  */
-NTSTATUS PhpHwCpuPass(
+_Function_class_(PHP_HW_FAMILY_PASS)
+NTSTATUS NTAPI PhpHwCpuPass(
     VOID
     )
 {
@@ -2087,7 +2089,8 @@ static VOID PhpHwCpuFree(
 /**
  * Forgets the session: the plan, the samples and the identity.
  */
-VOID PhpHwCpuEnd(
+_Function_class_(PHP_HW_FAMILY_END)
+VOID NTAPI PhpHwCpuEnd(
     VOID
     )
 {
@@ -2447,7 +2450,8 @@ static VOID PhpHwCpuAppendMicrocode(
  *
  * \param Builder The report.
  */
-VOID PhpHwCpuDiagnostics(
+_Function_class_(PHP_HW_FAMILY_DIAGNOSTICS)
+VOID NTAPI PhpHwCpuDiagnostics(
     _Inout_ PPH_STRING_BUILDER Builder
     )
 {
