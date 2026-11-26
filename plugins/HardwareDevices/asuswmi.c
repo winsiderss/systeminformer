@@ -15,10 +15,11 @@
 // An ASUS board's hardware monitor through its firmware's WMI method (the asuswmi script) as a hardware sensor source:
 // the sensors the firmware lists, identified once and read every AW_INTERVAL_MS while the driver is connected, each
 // read running the board's AML. Water flow sensors are left out (no sensor type for their unit). A board the script
-// does not list ends the source for the session.
+// does not list, or AW_STRIKE_LIMIT failures in a row other than contention, end the source for the session.
 //
 
 #define AW_INTERVAL_MS 3000
+#define AW_STRIKE_LIMIT 3
 
 typedef struct _AW_CONTEXT
 {
@@ -26,6 +27,7 @@ typedef struct _AW_CONTEXT
     BOOLEAN Identified;
     BOOLEAN Stopped;
     BOOLEAN Valid;
+    UCHAR Strikes;
     ULONG64 LastPollTime;
     NTSTATUS LastStatus;
     KPH_HW_ASUSWMI_IDENTITY Identity;
@@ -77,6 +79,8 @@ static VOID AsusWmiPoll(
 
         if (status == STATUS_NOT_SUPPORTED || status == STATUS_NOT_FOUND)
             Context->Stopped = TRUE;
+        else if (!NT_SUCCESS(status) && status != STATUS_RETRY && ++Context->Strikes >= AW_STRIKE_LIMIT)
+            Context->Stopped = TRUE;
 
         PhReleaseQueuedLockExclusive(&Context->Lock);
 
@@ -92,7 +96,14 @@ static VOID AsusWmiPoll(
     Context->Valid = NT_SUCCESS(status);
 
     if (NT_SUCCESS(status))
+    {
         memcpy(Context->Values, values, sizeof(KPH_HW_VALUE32) * Context->Identity.Count);
+        Context->Strikes = 0;
+    }
+    else if (status != STATUS_RETRY && ++Context->Strikes >= AW_STRIKE_LIMIT)
+    {
+        Context->Stopped = TRUE;
+    }
 
     PhReleaseQueuedLockExclusive(&Context->Lock);
 }
