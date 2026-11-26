@@ -109,6 +109,16 @@ typedef struct _TEXT_BUFFER
 
 static const char* KphluacOpeningWords[] = { "function", "do", "if", "repeat" };
 static const char* KphluacClosingWords[] = { "end", "until" };
+
+//
+// The globals the driver leaves in a script's state.
+//
+static const char* KphluacDriverGlobals[] =
+{
+    "_G", "_VERSION", "assert", "error", "getmetatable", "ipairs", "ksi", "math", "next", "pairs", "pcall",
+    "rawequal", "rawget", "rawlen", "rawset", "select", "setmetatable", "string", "table", "tonumber", "tostring",
+    "type",
+};
 static const char KphluacPlaceholderStart[] =
     "(function(...) local _ = '" KPHLUAC_MARKER;
 static const char KphluacPlaceholderEnd[] = "' end)()";
@@ -935,6 +945,28 @@ static void CheckGlobalStore(
 }
 
 /**
+ * \brief Finds a global the driver leaves in a script's state.
+ *
+ * \param[in] Name The name.
+ *
+ * \return Non-zero when it is one.
+ */
+static int IsDriverGlobal(
+    _In_z_ const char* Name
+    )
+{
+    for (size_t i = 0; i < ARRAYSIZE(KphluacDriverGlobals); i++)
+    {
+        if (strcmp(KphluacDriverGlobals[i], Name) == 0)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/**
  * \brief Checks the code of a function: the globals it assigns and the
  * formats it passes.
  *
@@ -977,6 +1009,29 @@ static void CheckCode(
                 if (IsEnvironment(Function, GETARG_A(instruction)))
                 {
                     name = GetStringConstant(Function, GETARG_B(instruction));
+                }
+
+                break;
+            }
+            case OP_GETTABUP:
+            {
+                if (IsEnvironment(Function, GETARG_B(instruction)))
+                {
+                    name = GetStringConstant(Function, GETARG_C(instruction));
+
+                    if (name &&
+                        ((strcmp(name, "nt") == 0) ||
+                         (!IsDriverGlobal(name) && (FindRoutine(Context, name) < 0))))
+                    {
+                        Report(Context,
+                               luaG_getfuncline(Function, pc),
+                               "global '%s' is read; a script reads only its "
+                               "routines and the driver's globals (a missing "
+                               "'local'?)",
+                               name);
+                    }
+
+                    name = NULL;
                 }
 
                 break;
