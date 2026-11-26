@@ -1322,6 +1322,55 @@ static int AddRequire(
 }
 
 /**
+ * \brief Skips an escape in a short string: after \z the white space that
+ * follows, line breaks included; after a backslash and a line break the whole
+ * break, CR LF or LF CR as one.
+ *
+ * \param[in] Text The source text.
+ * \param[in] Length The length of the source text.
+ * \param[in] At The index of the backslash.
+ *
+ * \return The index after the escape.
+ */
+static size_t SkipEscape(
+    _In_reads_bytes_(Length) const char* Text,
+    _In_ size_t Length,
+    _In_ size_t At
+    )
+{
+    At++;
+
+    if (At >= Length)
+    {
+        return At;
+    }
+
+    if (Text[At] == 'z')
+    {
+        At++;
+
+        while ((At < Length) && isspace((unsigned char)Text[At]))
+        {
+            At++;
+        }
+
+        return At;
+    }
+
+    if ((Text[At] == '\r') || (Text[At] == '\n'))
+    {
+        if ((At + 1 < Length) &&
+            ((Text[At + 1] == '\r') || (Text[At + 1] == '\n')) &&
+            (Text[At + 1] != Text[At]))
+        {
+            return At + 2;
+        }
+    }
+
+    return At + 1;
+}
+
+/**
  * \brief Rewrites each require of a unit, in place on its own line, as a call
  * of an empty function marked with the library's name, and records the
  * libraries required.
@@ -1398,7 +1447,8 @@ static int RewriteRequires(
             {
                 if (Text[i] == '\\')
                 {
-                    i++;
+                    i = SkipEscape(Text, Length, i);
+                    continue;
                 }
 
                 i++;
@@ -1907,7 +1957,8 @@ static int RewriteLibraryUses(
             {
                 if (Text[i] == '\\')
                 {
-                    i++;
+                    i = SkipEscape(Text, Length, i);
+                    continue;
                 }
 
                 i++;
