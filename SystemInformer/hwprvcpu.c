@@ -1366,8 +1366,11 @@ static BOOLEAN PhpHwCpuComputeUnitPower(
         found = TRUE;
     }
 
+    if (!found)
+        return FALSE;
+
     *Watts = total;
-    return found;
+    return TRUE;
 }
 
 /**
