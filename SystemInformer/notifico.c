@@ -2573,7 +2573,6 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     PhInitFormatF(&format[3], physicalFraction * 100.f, PhMaxPrecisionUnit);
     PhInitFormatS(&format[4], L"%)");
 
-    *NewText = PhFormat(format, 5, 96);
     *NewText = PhFormat(format, 5, 0);
 }
 
