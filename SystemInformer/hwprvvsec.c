@@ -360,29 +360,28 @@ static PKPH_HW_VSEC_REGION PhpHwVsecListRegions(
 {
     PKPH_HW_VSEC_REGION regions;
     ULONG capacity = PHP_HW_VSEC_LIST_REGIONS;
+    ULONG count = 0;
     NTSTATUS status;
 
-    *Count = 0;
     regions = PhAllocate(sizeof(KPH_HW_VSEC_REGION) * capacity);
-    status = KphHwVsecRegions(Locator, regions, capacity, Count);
+    status = KphHwVsecRegions(Locator, regions, capacity, &count);
 
-    if (status == STATUS_BUFFER_TOO_SMALL && *Count > capacity)
+    if (status == STATUS_BUFFER_TOO_SMALL && count > capacity)
     {
         PhFree(regions);
-        capacity = *Count;
+        capacity = count;
         regions = PhAllocate(sizeof(KPH_HW_VSEC_REGION) * capacity);
-        status = KphHwVsecRegions(Locator, regions, capacity, Count);
+        status = KphHwVsecRegions(Locator, regions, capacity, &count);
     }
 
     if (!NT_SUCCESS(status))
     {
         PhTraceInfo("Hardware sensors: TPMI device 0x%lx unavailable: 0x%lx", Locator, status);
         PhFree(regions);
-        *Count = 0;
         return NULL;
     }
 
-    *Count = min(*Count, capacity);
+    *Count = min(count, capacity);
     return regions;
 }
 
