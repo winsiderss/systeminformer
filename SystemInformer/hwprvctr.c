@@ -40,8 +40,6 @@ C_ASSERT(FIELD_OFFSET(PHP_HW_THERMAL_INFORMATION_EX, ActiveTripPoint) + sizeof(U
 // Collector counters: the Windows performance counters (Perflib V2) of ACPI thermal zones, energy meters and processor
 // limits. Sampled on the provider thread once per update; the setting alone enables them, no driver.
 
-#define PHP_HW_COUNTER_MAX_ITEMS 256
-#define PHP_HW_COUNTER_MAX_SENSORS (PHP_HW_COUNTER_MAX_ITEMS * 2)
 #define PHP_HW_COUNTER_VALUES 4
 #define PHP_HW_COUNTER_ZONE_MINIMUM 2732 // tenths of a kelvin; at or below 0 C is a placeholder (0, 2330 = -40 C)
 #define PHP_HW_COUNTER_ZONE_MAXIMUM 4500 // tenths of a kelvin; above 177 C is not a temperature
@@ -138,7 +136,8 @@ static HANDLE PhpHwCounterQuery = NULL;
 static ULONG PhpHwCounterAdded[RTL_NUMBER_OF(PhpHwCounters)]; // PhpHwCounters index of each sample block; ULONG_MAX when unknown
 static ULONG PhpHwCounterAddedCount = 0;
 static ULONG PhpHwCounterItemCount = 0;
-static PHP_HW_COUNTER_ITEM PhpHwCounterItems[PHP_HW_COUNTER_MAX_ITEMS];
+static ULONG PhpHwCounterItemCapacity = 0;
+static PPHP_HW_COUNTER_ITEM PhpHwCounterItems = NULL;
 static ULONG PhpHwCounterBlockCount = 0;
 static PHP_HW_COUNTER_BLOCK PhpHwCounterBlocks[RTL_NUMBER_OF(PhpHwCounters)];
 static ULONG PhpHwCounterZoneLimitIndex = ULONG_MAX; // the lowest zone passive limit sensor
@@ -150,7 +149,8 @@ static ULONG PhpHwCounterTripReport[5] = { 0 };
 
 // Under PhpHwNamedSensorLock.
 ULONG PhpHwCounterSensorCount = 0;
-PH_HW_NAMED_SENSOR PhpHwCounterSensors[PHP_HW_COUNTER_MAX_SENSORS];
+static ULONG PhpHwCounterSensorCapacity = 0;
+PPH_HW_NAMED_SENSOR PhpHwCounterSensors = NULL;
 static BOOLEAN PhpHwCounterZoneValid = FALSE; // a zone has a current temperature
 static BOOLEAN PhpHwCounterZoneSeen = FALSE; // a zone had a temperature since the query opened
 static FLOAT PhpHwCounterZoneMaximum = 0.0f; // the hottest current zone, degrees Celsius
@@ -163,7 +163,8 @@ static FLOAT PhpHwCounterSocWatts = 0.0f; // the PSOC power zone, watts
 static ULONG PhpHwCounterStatus = ERROR_NOT_READY; // the last open, add or query result, for the report
 static ULONG PhpHwCounterSetsAdded = 0; // bit per PHP_HW_COUNTER_SET with an added counter
 static ULONG PhpHwCounterReportCount = 0;
-static PHP_HW_COUNTER_ITEM PhpHwCounterReport[PHP_HW_COUNTER_MAX_ITEMS];
+static ULONG PhpHwCounterReportCapacity = 0;
+static PPHP_HW_COUNTER_ITEM PhpHwCounterReport = NULL;
 static ULONG PhpHwCounterReportBlockCount = 0;
 static PHP_HW_COUNTER_BLOCK PhpHwCounterReportBlocks[RTL_NUMBER_OF(PhpHwCounters)];
 
@@ -186,9 +187,36 @@ static VOID PhpHwCounterClearSensorsLocked(
 }
 
 /**
+ * Grows a table to hold at least a number of entries.
+ *
+ * \param Table The table; NULL before its first entry.
+ * \param Capacity The entries the table holds.
+ * \param Needed The entries it must hold.
+ * \param EntrySize The size of an entry.
+ */
+static VOID PhpHwCounterGrow(
+    _Inout_ PVOID* Table,
+    _Inout_ PULONG Capacity,
+    _In_ ULONG Needed,
+    _In_ SIZE_T EntrySize
+    )
+{
+    if (Needed <= *Capacity)
+        return;
+
+    while (*Capacity < Needed)
+        *Capacity = max(*Capacity * 2, 16);
+
+    if (*Table)
+        *Table = PhReAllocate(*Table, *Capacity * EntrySize);
+    else
+        *Table = PhAllocate(*Capacity * EntrySize);
+}
+
+/**
  * Adds a counter sensor.
  *
- * \return The index of the sensor, or ULONG_MAX when the table is full.
+ * \return The index of the sensor.
  */
 static ULONG PhpHwCounterAddSensor(
     _In_ PH_HW_NAMED_SENSOR_KIND Kind,
@@ -197,20 +225,18 @@ static ULONG PhpHwCounterAddSensor(
     )
 {
     PPH_HW_NAMED_SENSOR sensor;
-    ULONG index = ULONG_MAX;
+    ULONG index;
 
     PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
 
-    if (PhpHwCounterSensorCount < PHP_HW_COUNTER_MAX_SENSORS)
-    {
-        index = PhpHwCounterSensorCount++;
-        sensor = &PhpHwCounterSensors[index];
-        memset(sensor, 0, sizeof(PH_HW_NAMED_SENSOR));
-        sensor->Kind = Kind;
-        sensor->Id = Id;
-        sensor->Active = TRUE;
-        PhCopyStringZ(Name, SIZE_MAX, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
-    }
+    PhpHwCounterGrow((PVOID*)&PhpHwCounterSensors, &PhpHwCounterSensorCapacity, PhpHwCounterSensorCount + 1, sizeof(PH_HW_NAMED_SENSOR));
+    index = PhpHwCounterSensorCount++;
+    sensor = &PhpHwCounterSensors[index];
+    memset(sensor, 0, sizeof(PH_HW_NAMED_SENSOR));
+    sensor->Kind = Kind;
+    sensor->Id = Id;
+    sensor->Active = TRUE;
+    PhCopyStringZ(Name, SIZE_MAX, sensor->Name, RTL_NUMBER_OF(sensor->Name), NULL);
 
     PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
 
@@ -232,12 +258,36 @@ static VOID PhpHwCounterClose(
 
     PhpHwCounterAddedCount = 0;
     PhpHwCounterItemCount = 0;
+    PhpHwCounterItemCapacity = 0;
+
+    if (PhpHwCounterItems)
+    {
+        PhFree(PhpHwCounterItems);
+        PhpHwCounterItems = NULL;
+    }
+
     PhpHwCounterZoneLimitIndex = ULONG_MAX;
     PhpHwCounterTripCount = 0;
     PhpHwCounterTripsRead = FALSE;
 
     PhAcquireQueuedLockExclusive(&PhpHwNamedSensorLock);
     PhpHwCounterClearSensorsLocked();
+    PhpHwCounterSensorCapacity = 0;
+
+    if (PhpHwCounterSensors)
+    {
+        PhFree(PhpHwCounterSensors);
+        PhpHwCounterSensors = NULL;
+    }
+
+    PhpHwCounterReportCapacity = 0;
+
+    if (PhpHwCounterReport)
+    {
+        PhFree(PhpHwCounterReport);
+        PhpHwCounterReport = NULL;
+    }
+
     PhReleaseQueuedLockExclusive(&PhpHwNamedSensorLock);
 }
 
@@ -488,9 +538,10 @@ static PPHP_HW_COUNTER_ITEM PhpHwCounterFindItem(
             return item;
     }
 
-    if (PhpHwCounterItemCount >= PHP_HW_COUNTER_MAX_ITEMS || Name->Length / sizeof(WCHAR) >= PH_HW_NAMED_SENSOR_NAME_LENGTH)
+    if (Name->Length / sizeof(WCHAR) >= PH_HW_NAMED_SENSOR_NAME_LENGTH)
         return NULL;
 
+    PhpHwCounterGrow((PVOID*)&PhpHwCounterItems, &PhpHwCounterItemCapacity, PhpHwCounterItemCount + 1, sizeof(PHP_HW_COUNTER_ITEM));
     item = &PhpHwCounterItems[PhpHwCounterItemCount++];
     memset(item, 0, sizeof(PHP_HW_COUNTER_ITEM));
     item->Set = Set;
@@ -1114,8 +1165,12 @@ static VOID PhpHwCounterPublish(
     PhpHwCounterSocValid = socValid;
     PhpHwCounterSocWatts = socWatts;
     PhpHwCounterZoneSeen |= zoneValid;
+    PhpHwCounterGrow((PVOID*)&PhpHwCounterReport, &PhpHwCounterReportCapacity, PhpHwCounterItemCount, sizeof(PHP_HW_COUNTER_ITEM));
     PhpHwCounterReportCount = PhpHwCounterItemCount;
-    memcpy(PhpHwCounterReport, PhpHwCounterItems, sizeof(PHP_HW_COUNTER_ITEM) * PhpHwCounterItemCount);
+
+    if (PhpHwCounterItemCount)
+        memcpy(PhpHwCounterReport, PhpHwCounterItems, sizeof(PHP_HW_COUNTER_ITEM) * PhpHwCounterItemCount);
+
     PhpHwCounterReportBlockCount = PhpHwCounterBlockCount;
     memcpy(PhpHwCounterReportBlocks, PhpHwCounterBlocks, sizeof(PHP_HW_COUNTER_BLOCK) * PhpHwCounterBlockCount);
 

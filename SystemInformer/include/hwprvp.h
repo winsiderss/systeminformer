@@ -573,7 +573,7 @@ VOID PhpHwSetNamedSensor(
 // Collector counters (hwprvctr.c): runs on the setting alone, gate open or not. Its sensors are under PhpHwNamedSensorLock.
 
 extern ULONG PhpHwCounterSensorCount;
-extern PH_HW_NAMED_SENSOR PhpHwCounterSensors[];
+extern PPH_HW_NAMED_SENSOR PhpHwCounterSensors;
 
 VOID PhpHwUpdateCounters(
     _In_ BOOLEAN Enabled
