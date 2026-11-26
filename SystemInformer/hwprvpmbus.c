@@ -436,6 +436,7 @@ NTSTATUS PhpHwVrmPass(
     ULONG count = 0;
     ULONG capabilities = 0;
     BOOLEAN read;
+    BOOLEAN answered = FALSE;
 
     if (PhpHwVrmProbing)
     {
@@ -470,7 +471,14 @@ NTSTATUS PhpHwVrmPass(
 
     read = NT_SUCCESS(PhpHwVrmStatus);
 
-    if (read)
+    // a read that ran fails when no item succeeded; contention at an item is not a failure
+    for (ULONG i = 0; read && i < count; i++)
+    {
+        if (NT_SUCCESS(values[i].Status) || values[i].Status == STATUS_RETRY || values[i].Status == STATUS_DEVICE_BUSY)
+            answered = TRUE;
+    }
+
+    if (read && answered)
         PhpHwVrmStrikes = 0;
     else if (++PhpHwVrmStrikes >= 3)
         PhpHwVrmEnded = TRUE;
@@ -706,6 +714,7 @@ NTSTATUS PhpHwSch5027Pass(
     KPH_HW_VALUE32 values[PHP_HW_SCH5027_ITEMS];
     ULONG capabilities = 0;
     BOOLEAN read;
+    BOOLEAN contended = FALSE;
 
     if (PhpHwSch5027Probing)
     {
@@ -733,16 +742,19 @@ NTSTATUS PhpHwSch5027Pass(
 
     read = NT_SUCCESS(PhpHwSch5027Status);
 
-    if (read)
-        PhpHwSch5027Strikes = 0;
-    else if (++PhpHwSch5027Strikes >= 3)
-        PhpHwSch5027Ended = TRUE;
-
     for (ULONG i = 0; i < PHP_HW_SCH5027_ITEMS; i++)
     {
         if (read && !NT_SUCCESS(values[i].Status))
+        {
             read = FALSE;
+            contended = values[i].Status == STATUS_RETRY || values[i].Status == STATUS_DEVICE_BUSY;
+        }
     }
+
+    if (read)
+        PhpHwSch5027Strikes = 0;
+    else if (!contended && ++PhpHwSch5027Strikes >= 3)
+        PhpHwSch5027Ended = TRUE;
 
     for (ULONG i = 0; i < 7; i++)
     {
