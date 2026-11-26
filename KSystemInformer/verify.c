@@ -52,6 +52,7 @@ typedef struct _KPH_VERIFY_KEY
     BCRYPT_KEY_HANDLE Rsa;
     PSYMCRYPT_MLDSAKEY MlDsa;
 } KPH_VERIFY_KEY, *PKPH_VERIFY_KEY;
+typedef const KPH_VERIFY_KEY* PCKPH_VERIFY_KEY;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const KPH_KEY KphpPublicKeys[] =
@@ -652,7 +653,7 @@ NTSTATUS KphpSymCryptErrorToStatus(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS KphpVerifyHashWithKey(
-    _In_ const KPH_VERIFY_KEY* Key,
+    _In_ PCKPH_VERIFY_KEY Key,
     _In_ PKPH_HASH_INFORMATION HashInformation,
     _In_reads_bytes_(KPH_SIGNATURE_LENGTH) PBYTE Signature
     )
