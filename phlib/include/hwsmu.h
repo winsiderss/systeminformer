@@ -181,6 +181,8 @@ typedef struct _PH_HW_SMU_CORE_SLOTS
     ULONG Mask; // the populated slots, locked when their count first equals the core count
     BOOLEAN Locked;
     BOOLEAN Ended; // no per-core values for the rest of the session
+    ULONG LayoutVersion; // the table version Layout was found for
+    PCVOID Layout; // the layout of LayoutVersion; NULL until a decode finds one
 } PH_HW_SMU_CORE_SLOTS, *PPH_HW_SMU_CORE_SLOTS;
 
 PHLIBAPI

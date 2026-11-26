@@ -891,8 +891,18 @@ BOOLEAN NTAPI PhHwSmuDecodePmTable(
     PCPHP_HW_SMU_LAYOUT layout;
     FLOAT value;
 
-    if (!(layout = PhpHwSmuFindLayout(Version)))
-        return FALSE;
+    if (CoreSlots->Layout && CoreSlots->LayoutVersion == Version)
+    {
+        layout = CoreSlots->Layout;
+    }
+    else
+    {
+        if (!(layout = PhpHwSmuFindLayout(Version)))
+            return FALSE;
+
+        CoreSlots->LayoutVersion = Version;
+        CoreSlots->Layout = layout;
+    }
 
     for (ULONG i = 0; i < layout->FieldCount; i++)
     {
