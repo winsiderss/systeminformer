@@ -32,7 +32,6 @@
 #define PHP_HW_ACPI_TYPE_BATTERY 0xC // DPTF PTYP of a battery
 #define PHP_HW_ACPI_ATK_FIELDS 5 // id, name, limit1, limit2, enable
 #define PHP_HW_ACPI_THINKPAD_SENSORS 8 // TMP0-TMP7
-#define PHP_HW_ACPI_LENOVO_FIELDS 4 // FANS, FAN0, FA1S, FA2S, after TMP0-TMP7
 #define PHP_HW_ACPI_LENOVO_RPM_MAX 30000 // a Lenovo EC fan reading above this is not a speed
 #define PHP_HW_ACPI_DYTC_FC_MMC 27 // DYTC function capabilities: MMC
 #define PHP_HW_ACPI_SYSTEM76_CHANNELS 8 // NFAN and NTMP names, each
@@ -719,7 +718,35 @@ BOOLEAN PhpHwAcpiLenovoFans(
 }
 
 /**
- * Adds a Lenovo consumer laptop's EC fans: the fields its SMBIOS row names whose static record answered an integer.
+ * Chooses this system's Lenovo EC fan fields and their scale by its SMBIOS strings.
+ *
+ * \return TRUE when a row matches.
+ */
+_Success_(return)
+static BOOLEAN PhpHwAcpiLenovoSystemFans(
+    _Out_writes_(2) PCSTR* Fields,
+    _Out_ PULONG Multiplier
+    )
+{
+    PPH_STRING manufacturer;
+    PPH_STRING product;
+    PPH_STRING family;
+    BOOLEAN matched;
+
+    if (!PhpHwQuerySystem(&manufacturer, &product, &family))
+        return FALSE;
+
+    matched = PhpHwAcpiLenovoFans(manufacturer->Buffer, PhGetString(product), PhGetString(family), Fields, Multiplier);
+    PhDereferenceObject(manufacturer);
+    PhClearReference(&product);
+    PhClearReference(&family);
+
+    return matched;
+}
+
+/**
+ * Adds a Lenovo consumer laptop's EC fans: the fields its SMBIOS row names, after TMP0-TMP7 in the static call, whose
+ * record answered an integer.
  */
 static VOID PhpHwAcpiLenovoFanStatic(
     _Inout_ PPHP_HW_ACPI_DEVICE Device,
@@ -727,42 +754,26 @@ static VOID PhpHwAcpiLenovoFanStatic(
     _In_ ULONG Length
     )
 {
-    static CONST PCSTR names[PHP_HW_ACPI_LENOVO_FIELDS] = { "FANS", "FAN0", "FA1S", "FA2S" };
-    PPH_STRING manufacturer;
-    PPH_STRING product;
-    PPH_STRING family;
     PCSTR fields[2];
     ULONG multiplier;
-    BOOLEAN matched;
 
-    if (!PhpHwQuerySystem(&manufacturer, &product, &family))
+    if (!PhpHwAcpiLenovoSystemFans(fields, &multiplier))
         return;
 
-    matched = PhpHwAcpiLenovoFans(manufacturer->Buffer, PhGetString(product), PhGetString(family), fields, &multiplier);
-    PhDereferenceObject(manufacturer);
-    PhClearReference(&product);
-    PhClearReference(&family);
-
-    for (ULONG f = 0; matched && f < RTL_NUMBER_OF(fields) && fields[f]; f++)
+    for (ULONG f = 0; f < RTL_NUMBER_OF(fields) && fields[f]; f++)
     {
-        for (ULONG n = 0; n < PHP_HW_ACPI_LENOVO_FIELDS; n++)
-        {
-            ULONG64 value;
-            NTSTATUS status;
-            PPH_STRING label;
-            PPHP_HW_ACPI_VALUE fan;
+        ULONG64 value;
+        NTSTATUS status;
+        PPH_STRING label;
+        PPHP_HW_ACPI_VALUE fan;
 
-            if (strcmp(names[n], fields[f]) != 0)
-                continue;
-            if (!PhpHwAcpiRecordInteger(Output, Length, PHP_HW_ACPI_THINKPAD_SENSORS + n, &value, &status))
-                break;
+        if (!PhpHwAcpiRecordInteger(Output, Length, PHP_HW_ACPI_THINKPAD_SENSORS + f, &value, &status))
+            continue;
 
-            label = PhFormatString(L"%hs fan %lu", PhpHwAcpiLastSegment(Device->Path), f + 1);
-            fan = PhpHwAcpiAddValue(Device, names[n], (UCHAR)(PHP_HW_ACPI_THINKPAD_SENSORS + f), PhHwNamedSensorFanSpeed, label->Buffer);
-            fan->Multiplier = multiplier;
-            PhDereferenceObject(label);
-            break;
-        }
+        label = PhFormatString(L"%hs fan %lu", PhpHwAcpiLastSegment(Device->Path), f + 1);
+        fan = PhpHwAcpiAddValue(Device, fields[f], (UCHAR)(PHP_HW_ACPI_THINKPAD_SENSORS + f), PhHwNamedSensorFanSpeed, label->Buffer);
+        fan->Multiplier = multiplier;
+        PhDereferenceObject(label);
     }
 }
 
@@ -988,7 +999,7 @@ static VOID PhpHwAcpiReadStatic(
     static CONST PCSTR atk[] = { "TSIF", "VSIF", "FSIF" };
     static CONST PCSTR dytc[] = { "DYTC", "DYTC", "DYTC", "DYTC" };
     static CONST ULONG dytcCommands[PH_HW_DYTC_COMMANDS] = { 0x0, 0x2, 0x3, 0x8 }; // query, get, capabilities, MMC get
-    static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7", "FANS", "FAN0", "FA1S", "FA2S" };
+    static CONST PCSTR thinkPad[] = { "TMP0", "TMP1", "TMP2", "TMP3", "TMP4", "TMP5", "TMP6", "TMP7" };
     static CONST PCSTR system76[] = { "NFAN", "NTMP" };
     const PCSTR* methods;
     ULONG count;
@@ -1037,6 +1048,21 @@ static VOID PhpHwAcpiReadStatic(
 
     for (ULONG i = 0; i < count; i++)
         PhpHwAcpiAppendArgument(&evals, Device, methods[i], Device->Kind == PhHwAcpiDytc, Device->Kind == PhHwAcpiDytc ? dytcCommands[i] : 0);
+
+    if (Device->Kind == PhHwAcpiHotkeyTemperature)
+    {
+        PCSTR fields[2];
+        ULONG multiplier;
+
+        if (PhpHwAcpiLenovoSystemFans(fields, &multiplier))
+        {
+            for (ULONG f = 0; f < RTL_NUMBER_OF(fields) && fields[f]; f++)
+            {
+                PhpHwAcpiAppendArgument(&evals, Device, fields[f], FALSE, 0);
+                count++;
+            }
+        }
+    }
 
     output = PhAllocate(PHP_HW_ACPI_STATIC_LENGTH);
     status = KphHwAcpiEval(PhpHwAcpiMilliseconds(count), evals.Bytes->Buffer, (ULONG)evals.Bytes->Length, output, PHP_HW_ACPI_STATIC_LENGTH, &returnLength);
