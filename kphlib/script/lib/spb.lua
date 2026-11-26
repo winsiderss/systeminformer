@@ -16,7 +16,6 @@
 
 return function(nt)
   local M = {}
-  local concat = table.concat
 
   M.IOCTL_SPB_LOCK_CONTROLLER = 0x00041800
   M.IOCTL_SPB_UNLOCK_CONTROLLER = 0x00041804
@@ -53,7 +52,7 @@ return function(nt)
     local output, second = ksi.hw.device_control(
       device,
       code or M.IOCTL_SPB_EXECUTE_SEQUENCE,
-      concat(parts),
+      table.concat(parts),
       0,
       milliseconds,
       { buffers = buffers }

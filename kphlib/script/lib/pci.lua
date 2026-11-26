@@ -15,7 +15,6 @@
 
 return function(nt)
   local M = {}
-  local remove = table.remove
 
   -- the location text the driver read: 128 characters and the terminator
   local LOCATION_MAX = 256
@@ -86,7 +85,7 @@ return function(nt)
     end
     local s = 0
     if #n == 4 then
-      s = remove(n, 1)
+      s = table.remove(n, 1)
     elseif #n ~= 3 then
       return false
     end

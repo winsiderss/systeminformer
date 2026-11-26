@@ -16,8 +16,6 @@
 
 local M = {}
 
-local concat = table.concat
-
 -- A status as Windows writes it, as the signed 32-bit value the driver gives.
 local function status(value)
   return (value ~ 0x80000000) - 0x80000000
@@ -438,7 +436,7 @@ local function nfit_ranges()
     end
     at = at + size
   end
-  nfit = concat(found)
+  nfit = table.concat(found)
   return nfit
 end
 
