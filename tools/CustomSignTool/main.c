@@ -361,6 +361,7 @@ static VOID CstCryptFile(
     ULONG outputSize;
     SIZE_T outputCapacity;
     SIZE_T resultSize;
+    PWSTR operation;
     BYTE keyMaterial[CST_CRYPT_DERIVED_BYTES];
 
     input = CstReadFile(InputFileName, MAXULONG - CST_CRYPT_AES_IV_BYTES, &inputSize);
@@ -368,6 +369,7 @@ static VOID CstCryptFile(
 
     if (Encrypt)
     {
+        operation = L"encrypt";
         outputCapacity = inputSize + CST_CRYPT_AES_IV_BYTES;
         output = PhAllocate(outputCapacity);
 
@@ -384,6 +386,7 @@ static VOID CstCryptFile(
     }
     else
     {
+        operation = L"decrypt";
         outputCapacity = inputSize ? inputSize : 1;
         output = PhAllocate(outputCapacity);
 
@@ -406,7 +409,7 @@ static VOID CstCryptFile(
     {
         RtlSecureZeroMemory(output, outputCapacity);
         PhFree(output);
-        CstFailWithStatus(status, L"failed to %ls \"%ls\"", Encrypt ? L"encrypt" : L"decrypt", InputFileName);
+        CstFailWithStatus(status, L"failed to %ls \"%ls\"", operation, InputFileName);
     }
 
     if (resultSize > MAXULONG)
@@ -479,6 +482,10 @@ static PVOID CstHashFile(
         }
 
         PhFreePage(buffer);
+    }
+    else
+    {
+        CstFailWith(L"failed to allocate the read buffer for \"%ls\"", FileName);
     }
 
     NtClose(fileHandle);
@@ -649,15 +656,18 @@ static VOID CstSplitKeyContainer(
     ULONG expectedLength;
     ULONG rsaLength;
     ULONG mlDsaLength;
+    PWSTR kind;
 
     if (Private)
     {
+        kind = L"private";
         expectedLength = CST_KEY_PRIVATE_LENGTH;
         rsaLength = CST_KEY_RSA_PRIVATE_LENGTH;
         mlDsaLength = CST_KEY_MLDSA_PRIVATE_LENGTH;
     }
     else
     {
+        kind = L"public";
         expectedLength = CST_KEY_PUBLIC_LENGTH;
         rsaLength = CST_KEY_RSA_PUBLIC_LENGTH;
         mlDsaLength = CST_KEY_MLDSA_PUBLIC_LENGTH;
@@ -667,7 +677,7 @@ static VOID CstSplitKeyContainer(
     {
         CstFailWith(
             L"invalid %ls key container length: expected %lu bytes, actual %lu bytes",
-            Private ? L"private" : L"public",
+            kind,
             expectedLength,
             Length
             );
@@ -677,7 +687,7 @@ static VOID CstSplitKeyContainer(
     {
         CstFailWith(
             L"invalid RSA header in the %ls key container (expected RSA-%lu, %lu byte blob)",
-            Private ? L"private" : L"public",
+            kind,
             (ULONG)CST_SIGN_ALGORITHM_BITS,
             rsaLength
             );
@@ -1307,6 +1317,10 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         PhFree(symPubBlob); PhFree(symPrivBlob);
         PhFree(bcPubBlob); PhFree(bcPrivBlob);
         PhFree(symSignature); PhFree(bcSignature);
+    }
+    else
+    {
+        CstFailWith(L"%ls", CstHelpMessage);
     }
 
     return 0;
