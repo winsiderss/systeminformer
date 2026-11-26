@@ -1386,8 +1386,21 @@ function read(input)
         end
       end,
     })
+    local order = {}
+    for i = 1, count do
+      order[i] = i
+    end
+    if row.bank_register then
+      table.sort(order, function(a, b)
+        if items[a].bank ~= items[b].bank then
+          return items[a].bank < items[b].bank
+        end
+        return a < b
+      end)
+    end
     local stopped = false
-    for i, item in ipairs(items) do
+    for _, i in ipairs(order) do
+      local item = items[i]
       local status, value = nt.STATUS_ACCESS_DENIED, 0
       if item.allowed and stopped then
         status = nt.STATUS_CANCELLED
