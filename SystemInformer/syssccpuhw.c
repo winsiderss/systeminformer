@@ -290,16 +290,22 @@ PPH_STRING PhSipCpuFormatSensorGraphTooltipText(
     SIZE_T returnLength;
     ULONG packageCount;
     PPH_HW_PACKAGE_SENSOR package;
+    FLOAT value;
 
     history = Capability == PH_HW_CAP_PACKAGE_TEMP ? &PhHwCpuTemperatureHistory : &PhHwCpuPowerHistory;
     PhInitializeStringBuilder(&stringBuilder, 64);
 
-    // %.1f%s\n
-    PhpSipCpuInitSensorFormat(Capability, PhGetItemCircularBuffer_FLOAT(history, Index), 1, format);
-    PhInitFormatC(&format[PH_HW_TEMPERATURE_FORMAT_COUNT], L'\n');
+    // %.1f%s\n; a sample of 0 had no reading.
+    value = PhGetItemCircularBuffer_FLOAT(history, Index);
 
-    if (PhFormatToBuffer(format, PH_HW_TEMPERATURE_FORMAT_COUNT + 1, formatBuffer, sizeof(formatBuffer), &returnLength))
-        PhAppendStringBuilderEx(&stringBuilder, formatBuffer, returnLength - sizeof(UNICODE_NULL));
+    if (value != 0.0f)
+    {
+        PhpSipCpuInitSensorFormat(Capability, value, 1, format);
+        PhInitFormatC(&format[PH_HW_TEMPERATURE_FORMAT_COUNT], L'\n');
+
+        if (PhFormatToBuffer(format, PH_HW_TEMPERATURE_FORMAT_COUNT + 1, formatBuffer, sizeof(formatBuffer), &returnLength))
+            PhAppendStringBuilderEx(&stringBuilder, formatBuffer, returnLength - sizeof(UNICODE_NULL));
+    }
 
     packageCount = PhHwGetPackageCount();
 
@@ -317,11 +323,16 @@ PPH_STRING PhSipCpuFormatSensorGraphTooltipText(
             if (Index >= packageHistory->Count)
                 continue;
 
+            value = PhGetItemCircularBuffer_FLOAT(packageHistory, Index);
+
+            if (value == 0.0f)
+                continue;
+
             // Package %u: %.1f%s\n
             PhInitFormatS(&format[0], L"Package ");
             PhInitFormatU(&format[1], i);
             PhInitFormatS(&format[2], L": ");
-            PhpSipCpuInitSensorFormat(Capability, PhGetItemCircularBuffer_FLOAT(packageHistory, Index), 1, &format[3]);
+            PhpSipCpuInitSensorFormat(Capability, value, 1, &format[3]);
             PhInitFormatC(&format[3 + PH_HW_TEMPERATURE_FORMAT_COUNT], L'\n');
 
             if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), &returnLength))
