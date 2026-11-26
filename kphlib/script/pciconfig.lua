@@ -302,7 +302,7 @@ function read(input)
         value = got
       else
         ksi.trace('0x%x of %d bytes not read: 0x%x', offset, width, failed)
-        status = nt.STATUS_DEVICE_NOT_READY
+        status = nt.pci.refused(s.device, failed)
       end
     end
     output[i] = string.pack('<i4I4', status, value)
@@ -334,7 +334,7 @@ function read_block(input)
   local bytes, failed = ksi.hw.pci_read_block(s.device, offset, length)
   if not bytes then
     ksi.trace('0x%x of %d bytes not read: 0x%x', offset, length, failed)
-    return nt.STATUS_DEVICE_NOT_READY
+    return nt.pci.refused(s.device, failed)
   end
   return nt.STATUS_SUCCESS, bytes
 end
