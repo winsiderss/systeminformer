@@ -63,6 +63,7 @@ static VOID AsusWmiPoll(
         if (NT_SUCCESS(status))
         {
             Context->Identified = TRUE;
+            Context->Strikes = 0;
 
             for (ULONG i = 0; i < Context->Identity.Count; i++)
             {

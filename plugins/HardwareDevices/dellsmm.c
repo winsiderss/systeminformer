@@ -151,6 +151,7 @@ static VOID DellSmmPoll(
         if (NT_SUCCESS(status))
         {
             Context->Identified = TRUE;
+            Context->Strikes = 0;
             Context->Identity = identity;
 
             for (ULONG i = 0; i < KPH_HW_DELL_FANS; i++)
