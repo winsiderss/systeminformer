@@ -654,7 +654,7 @@ static BOOLEAN PhpHwPciConfigValue(
     _Out_ PULONG Value
     )
 {
-    *Value = 0;
+    ULONG value = 0;
 
     if (Offset > PHP_HW_PCI_CONFIG_LENGTH || Size > PHP_HW_PCI_CONFIG_LENGTH - Offset)
         return FALSE;
@@ -665,7 +665,8 @@ static BOOLEAN PhpHwPciConfigValue(
             return FALSE;
     }
 
-    memcpy(Value, &Config->Bytes[Offset], Size);
+    memcpy(&value, &Config->Bytes[Offset], Size);
+    *Value = value;
     return TRUE;
 }
 
