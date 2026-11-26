@@ -332,18 +332,23 @@ local function collected(device, id, flags, queries)
     local result = queries()
     return result
   end
+  local asked = false
+  local release <close> = setmetatable({}, {
+    __close = function()
+      if asked then
+        nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(0))
+      end
+    end,
+  })
+  asked = true
   local output, failed = nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(1))
   if not output then
+    asked = false
     if failed == nt.STATUS_TIMEOUT then
       failed = nt.STATUS_IO_TIMEOUT
     end
     return nil, failed
   end
-  local release <close> = setmetatable({}, {
-    __close = function()
-      nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(0))
-    end,
-  })
   local result = queries()
   return result
 end
