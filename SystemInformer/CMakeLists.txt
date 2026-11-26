@@ -122,6 +122,7 @@ set(SOURCES
     "hwprvsmu.c"
     "hwprvhsmp.c"
     "hwprvsmbus.c"
+    "hwprvpmbus.c"
     "hwprvacpi.c"
     "hwprvvsec.c"
     "hwprvec.c"

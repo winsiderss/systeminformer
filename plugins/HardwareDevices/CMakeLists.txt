@@ -26,6 +26,7 @@ source_group("Source Files" FILES ${SOURCES})
 set(SOURCES_DEVICES
     "deviceprops.c"
     "devicetree.c"
+    "hiddevices.c"
 )
 source_group("Source Files\\Devices" FILES ${SOURCES_DEVICES})
 
@@ -37,6 +38,7 @@ set(SOURCES_DISK
     "diskoptions.c"
     "fmifs.h"
     "storage.c"
+    "usbdisk.c"
 )
 source_group("Source Files\\Disk" FILES ${SOURCES_DISK})
 
