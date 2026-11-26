@@ -1084,7 +1084,7 @@ BOOLEAN KsiCommsCallback(
  * \param[out] Length Receives buffer length in bytes.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiReadFile(
+static NTSTATUS KsipReadFile(
     _In_ PCPH_STRINGREF FileName,
     _Out_ PBYTE* Data,
     _Out_ PULONG Length
@@ -1141,7 +1141,7 @@ NTSTATUS KsiReadConfiguration(
 
     if (fileName = PhGetApplicationDirectoryFileName(FileName, TRUE))
     {
-        status = KsiReadFile(&fileName->sr, Data, Length);
+        status = KsipReadFile(&fileName->sr, Data, Length);
         PhDereferenceObject(fileName);
     }
     else
@@ -1292,7 +1292,7 @@ PPH_STRING PhGetKsiDynDataCacheFileName(
  *
  * \return Referenced native directory name with a trailing separator.
  */
-static PPH_STRING KsiGetDynDataCacheDirectory(
+static PPH_STRING KsipGetDynDataCacheDirectory(
     VOID
     )
 {
@@ -1310,7 +1310,7 @@ static PPH_STRING KsiGetDynDataCacheDirectory(
  * \param[out] SignatureLength Receives the length of the signature buffer.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiReadCachedDynData(
+static NTSTATUS KsipReadCachedDynData(
     _Out_ PBYTE* DynData,
     _Out_ PULONG DynDataLength,
     _Out_ PBYTE* Signature,
@@ -1330,11 +1330,11 @@ static NTSTATUS KsiReadCachedDynData(
     *Signature = NULL;
     *SignatureLength = 0;
 
-    if (!(directory = KsiGetDynDataCacheDirectory()))
+    if (!(directory = KsipGetDynDataCacheDirectory()))
         return STATUS_NO_SUCH_FILE;
 
     fileName = PhConcatStringRef2(&directory->sr, &KsiDynDataFileName);
-    status = KsiReadFile(&fileName->sr, &data, &dataLength);
+    status = KsipReadFile(&fileName->sr, &data, &dataLength);
     PhDereferenceObject(fileName);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -1344,7 +1344,7 @@ static NTSTATUS KsiReadCachedDynData(
         goto CleanupExit;
 
     fileName = PhConcatStringRef2(&directory->sr, &KsiDynSigFileName);
-    status = KsiReadFile(&fileName->sr, &sig, &sigLength);
+    status = KsipReadFile(&fileName->sr, &sig, &sigLength);
     PhDereferenceObject(fileName);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -1382,7 +1382,7 @@ CleanupExit:
  * \param[in] Length Length of the file contents in bytes.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiReplaceFile(
+static NTSTATUS KsipReplaceFile(
     _In_ PCPH_STRINGREF FileName,
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
@@ -1431,7 +1431,7 @@ static NTSTATUS KsiReplaceFile(
  * \param[in] SignatureLength Length of the signature buffer.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiWriteCachedDynData(
+static NTSTATUS KsipWriteCachedDynData(
     _In_reads_bytes_(DynDataLength) PBYTE DynData,
     _In_ ULONG DynDataLength,
     _In_reads_bytes_(SignatureLength) PBYTE Signature,
@@ -1442,19 +1442,19 @@ static NTSTATUS KsiWriteCachedDynData(
     PPH_STRING directory;
     PPH_STRING fileName;
 
-    if (!(directory = KsiGetDynDataCacheDirectory()))
+    if (!(directory = KsipGetDynDataCacheDirectory()))
         return STATUS_NO_SUCH_FILE;
 
     fileName = PhConcatStringRef2(&directory->sr, &KsiDynSigFileName);
     status = PhCreateDirectoryFullPath(&fileName->sr);
     if (NT_SUCCESS(status))
-        status = KsiReplaceFile(&fileName->sr, Signature, SignatureLength);
+        status = KsipReplaceFile(&fileName->sr, Signature, SignatureLength);
     PhDereferenceObject(fileName);
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     fileName = PhConcatStringRef2(&directory->sr, &KsiDynDataFileName);
-    status = KsiReplaceFile(&fileName->sr, DynData, DynDataLength);
+    status = KsipReplaceFile(&fileName->sr, DynData, DynDataLength);
     PhDereferenceObject(fileName);
 
 CleanupExit:
@@ -1466,14 +1466,14 @@ CleanupExit:
 /**
  * Delete the downloaded dynamic configuration.
  */
-static VOID KsiDeleteCachedDynData(
+static VOID KsipDeleteCachedDynData(
     VOID
     )
 {
     PPH_STRING directory;
     PPH_STRING fileName;
 
-    if (!(directory = KsiGetDynDataCacheDirectory()))
+    if (!(directory = KsipGetDynDataCacheDirectory()))
         return;
 
     fileName = PhConcatStringRef2(&directory->sr, &KsiDynDataFileName);
@@ -1800,7 +1800,7 @@ PPH_STRING KsiCreateUpdateWindowsString(
  * \param[out] Length Receives the length of the entry contents.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiExtractZipEntry(
+static NTSTATUS KsipExtractZipEntry(
     _In_ mz_zip_archive* Zip,
     _In_ PCSTR EntryName,
     _Out_ PBYTE* Buffer,
@@ -1845,7 +1845,7 @@ static NTSTATUS KsiExtractZipEntry(
  * \param[out] BufferLength Receives the length of the archive.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiDownloadDynDataArchive(
+static NTSTATUS KsipDownloadDynDataArchive(
     _In_ PCWSTR ServerName,
     _Out_ PVOID* Buffer,
     _Out_ PULONG BufferLength
@@ -1919,7 +1919,7 @@ CleanupExit:
  * \param[out] SignatureLength Receives the length of the signature buffer.
  * \return NTSTATUS Successful or errant status.
  */
-static NTSTATUS KsiDownloadDynData(
+static NTSTATUS KsipDownloadDynData(
     _Out_ PBYTE* DynData,
     _Out_ PULONG DynDataLength,
     _Out_ PBYTE* Signature,
@@ -1948,7 +1948,7 @@ static NTSTATUS KsiDownloadDynData(
 
     for (ULONG i = 0; i < RTL_NUMBER_OF(servers); i++)
     {
-        if (NT_SUCCESS(status = KsiDownloadDynDataArchive(servers[i], &buffer, &bufferLength)))
+        if (NT_SUCCESS(status = KsipDownloadDynDataArchive(servers[i], &buffer, &bufferLength)))
             break;
     }
 
@@ -1967,9 +1967,9 @@ static NTSTATUS KsiDownloadDynData(
 
     zipInitialized = TRUE;
 
-    if (!NT_SUCCESS(status = KsiExtractZipEntry(&zip, "ksidyn.bin", &data, &dataLength)))
+    if (!NT_SUCCESS(status = KsipExtractZipEntry(&zip, "ksidyn.bin", &data, &dataLength)))
         goto CleanupExit;
-    if (!NT_SUCCESS(status = KsiExtractZipEntry(&zip, "ksidyn.sig", &sig, &sigLength)))
+    if (!NT_SUCCESS(status = KsipExtractZipEntry(&zip, "ksidyn.sig", &sig, &sigLength)))
         goto CleanupExit;
     if (!NT_SUCCESS(status = KsiValidateDynamicConfiguration(data, dataLength)))
         goto CleanupExit;
@@ -2002,7 +2002,7 @@ CleanupExit:
  * \return NTSTATUS Successful or errant status.
  */
 _Function_class_(USER_THREAD_START_ROUTINE)
-static NTSTATUS NTAPI KsiDownloadDynDataThread(
+static NTSTATUS NTAPI KsipDownloadDynDataThread(
     _In_ PVOID Parameter
     )
 {
@@ -2031,14 +2031,14 @@ static NTSTATUS NTAPI KsiDownloadDynDataThread(
 
         PhSetIntegerSetting(SETTING_KSI_DYN_DATA_DOWNLOAD_TIME, currentSeconds);
 
-        if (NT_SUCCESS(KsiDownloadDynData(&dynData, &dynDataLength, &signature, &signatureLength)))
+        if (NT_SUCCESS(KsipDownloadDynData(&dynData, &dynDataLength, &signature, &signatureLength)))
         {
             NTSTATUS status;
 
             status = KphActivateDynData(dynData, dynDataLength, signature, signatureLength);
 
             if (NT_SUCCESS(status))
-                KsiWriteCachedDynData(dynData, dynDataLength, signature, signatureLength);
+                KsipWriteCachedDynData(dynData, dynDataLength, signature, signatureLength);
 
             PhFree(signature);
             PhFree(dynData);
@@ -2088,7 +2088,7 @@ BOOLEAN KsiActivateDynData(
         PBYTE cacheSignature;
         ULONG cacheSignatureLength;
 
-        if (NT_SUCCESS(KsiReadCachedDynData(
+        if (NT_SUCCESS(KsipReadCachedDynData(
             &cacheData,
             &cacheDataLength,
             &cacheSignature,
@@ -2107,7 +2107,7 @@ BOOLEAN KsiActivateDynData(
             }
             else
             {
-                KsiDeleteCachedDynData();
+                KsipDeleteCachedDynData();
             }
 
             PhFree(cacheSignature);
@@ -2593,7 +2593,7 @@ NTSTATUS KsiConnect(
     }
 
     if (downloadDynData)
-        PhCreateThread2(KsiDownloadDynDataThread, NULL);
+        PhCreateThread2(KsipDownloadDynDataThread, NULL);
 
     if (level == KphLevelMax)
     {
