@@ -58,6 +58,11 @@ NTSTATUS KphCaptureUnicodeString(
 
     if (inputString.Length & 1)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Unicode string length %lu is odd",
+                      (ULONG)inputString.Length);
+
         status = STATUS_OBJECT_NAME_INVALID;
         goto Exit;
     }
@@ -66,6 +71,10 @@ NTSTATUS KphCaptureUnicodeString(
                                     KPH_TAG_CAPTURED_UNICODE_STRING);
     if (!outputString)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to allocate the captured string");
+
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
