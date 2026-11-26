@@ -183,6 +183,7 @@ static ULONG PhpHwMmioWindowCount = 0;
 static PPHP_HW_MMIO_WINDOW PhpHwMmioWindows = NULL; // PHP_HW_MMIO_MAX_WINDOWS
 static ULONG PhpHwMmioOwned = 0; // the capabilities the active registers own
 static BOOLEAN PhpHwMmioOwnedStale = TRUE; // a register or window was disabled since PhpHwMmioOwned
+static BOOLEAN PhpHwMmioChipset = FALSE; // the PCH thermal function gave the chipset temperature
 static FLOAT PhpHwMmioUnitWatts = 0.0f; // watts a power limit increment
 static FLOAT PhpHwMmioLimit1 = 0.0f; // watts, 0 when unavailable or disabled
 static FLOAT PhpHwMmioLimit2 = 0.0f;
@@ -1488,6 +1489,8 @@ NTSTATUS NTAPI PhpHwMmioPass(
     // The chipset temperature's first source; without it, platform's PWRM.
     if (PhpHwMmioActive(PhpHwMmioPchTemp))
     {
+        PhpHwMmioChipset = TRUE;
+
         if (PhpHwMmioValue(PhpHwMmioPchTemp, &value) && PhIntelPchTemperatureToCelsius((USHORT)value, &celsius))
         {
             PhpHwChipsetTemperature = celsius;
@@ -1497,6 +1500,12 @@ NTSTATUS NTAPI PhpHwMmioPass(
         {
             PhpHwChipsetTemperatureValid = FALSE;
         }
+    }
+    else if (PhpHwMmioChipset)
+    {
+        // The register left the plan: what it last gave is not current.
+        PhpHwChipsetTemperatureValid = FALSE;
+        PhpHwMmioChipset = FALSE;
     }
 
     // cpu publishes the active limits, the lower of these and the MSR's.
@@ -1574,6 +1583,7 @@ VOID NTAPI PhpHwMmioEnd(
     PhpHwMmioWindowCount = 0;
     PhpHwMmioOwned = 0;
     PhpHwMmioOwnedStale = TRUE;
+    PhpHwMmioChipset = FALSE;
     PhpHwMmioUnitWatts = 0.0f;
     PhpHwMmioLimit1 = 0.0f;
     PhpHwMmioLimit2 = 0.0f;

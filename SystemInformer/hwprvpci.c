@@ -1084,7 +1084,9 @@ NTSTATUS NTAPI PhpHwProm21Pass(
 
         if (i == 0)
         {
-            PhpHwChipsetTemperature = celsius;
+            if (valid)
+                PhpHwChipsetTemperature = celsius;
+
             PhpHwChipsetTemperatureValid = valid;
 
             if (valid)
