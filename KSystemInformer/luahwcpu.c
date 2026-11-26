@@ -449,6 +449,10 @@ NTSTATUS KphpLuaHwBatchSelect(
 
     if (!KphpLuaHwIsSysregListed(Selector) || !KphpLuaHwIsSysregListed(Data))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HARDWARE,
+                      "System register not listed");
+
         return STATUS_NOT_IMPLEMENTED;
     }
 

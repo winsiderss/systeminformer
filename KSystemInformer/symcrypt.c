@@ -43,12 +43,20 @@ PVOID SYMCRYPT_CALL SymCryptCallbackAlloc(
                                 SYMCRYPT_ASYM_ALIGN_VALUE + sizeof(PVOID),
                                 &size)))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "SymCrypt allocation size overflows");
+
         return NULL;
     }
 
     buffer = KphAllocatePaged(size, KPH_TAG_SYMCRYPT);
     if (!buffer)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to allocate SymCrypt memory");
+
         return NULL;
     }
 
@@ -99,6 +107,11 @@ SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptCallbackRandom(
     status = RtlSizeTToULong(BufferLength, &length);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "RtlSizeTToULong failed: %!STATUS!",
+                      status);
+
         return SYMCRYPT_EXTERNAL_FAILURE;
     }
 
@@ -108,6 +121,11 @@ SYMCRYPT_ERROR SYMCRYPT_CALL SymCryptCallbackRandom(
                              BCRYPT_USE_SYSTEM_PREFERRED_RNG);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "BCryptGenRandom failed: %!STATUS!",
+                      status);
+
         return SYMCRYPT_EXTERNAL_FAILURE;
     }
 

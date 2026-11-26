@@ -1017,6 +1017,11 @@ int KphpLuaLock(
     lock = KphpLuaFindLock(&name);
     if (!lock)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      SCRIPT,
+                      "Failed to allocate lock %Z",
+                      &name);
+
         results = KphLuaNilErrorStatus(State, STATUS_INSUFFICIENT_RESOURCES);
         goto Exit;
     }

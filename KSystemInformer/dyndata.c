@@ -159,6 +159,10 @@ NTSTATUS KphpCreateDynDataKey(
 
     if (endOffset > DynConfigLength)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Key not within configuration extents");
+
         status = STATUS_SI_DYNDATA_INVALID_LENGTH;
         goto Exit;
     }

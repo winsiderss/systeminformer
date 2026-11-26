@@ -175,6 +175,10 @@ NTSTATUS KSIAPI KphpInitializeSessionToken(
 
         if (duration <= 0)
         {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Session token expiry has passed");
+
             return STATUS_INVALID_PARAMETER;
         }
 

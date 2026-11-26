@@ -429,12 +429,20 @@ NTSTATUS KphpHandleCloseIndex(
     entry = KphpHandleLookupEntry(Table, Index);
     if (!entry)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Handle index has no entry");
+
         return STATUS_INVALID_HANDLE;
     }
 
     object = KphAtomicMoveObjectReference(&entry->ObjectRef, NULL);
     if (!object)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "Handle entry is not in use");
+
         return STATUS_INVALID_HANDLE;
     }
 

@@ -48,6 +48,11 @@ NTSTATUS KphCaptureUnicodeString(
                              AccessMode);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphCopyFromMode failed: %!STATUS!",
+                      status);
+
         goto Exit;
     }
 
@@ -75,6 +80,11 @@ NTSTATUS KphCaptureUnicodeString(
                              AccessMode);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphCopyFromMode failed: %!STATUS!",
+                      status);
+
         goto Exit;
     }
 
@@ -143,6 +153,11 @@ NTSTATUS KphCaptureAnsiString(
                              AccessMode);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphCopyFromMode failed: %!STATUS!",
+                      status);
+
         goto Exit;
     }
 
@@ -150,6 +165,10 @@ NTSTATUS KphCaptureAnsiString(
                                     KPH_TAG_CAPTURED_ANSI_STRING);
     if (!outputString)
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "Failed to allocate the captured string");
+
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
@@ -164,6 +183,11 @@ NTSTATUS KphCaptureAnsiString(
                              AccessMode);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "KphCopyFromMode failed: %!STATUS!",
+                      status);
+
         goto Exit;
     }
 

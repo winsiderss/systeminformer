@@ -64,6 +64,10 @@ NTSTATUS KphOpenDevice(
 
         if (IsKernelHandle(capturedAttributes.RootDirectory))
         {
+            KphTracePrint(TRACE_LEVEL_VERBOSE,
+                          GENERAL,
+                          "Root directory is a kernel handle");
+
             status = STATUS_INVALID_HANDLE;
             goto Exit;
         }
