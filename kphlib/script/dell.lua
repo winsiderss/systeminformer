@@ -14,9 +14,9 @@
 -- and product name of the SMBIOS system structure. The rows carry their
 -- quirks: no fan command on the machines where one stalls
 -- the system for about 500 ms, no fan type command where it upsets the fans,
--- and never a fan control command. A command that takes longer than SLOW_MS
--- ends the routine and every later one: firmware this slow stalls every
--- processor while it runs.
+-- and never a fan control command. Two commands in a row that take longer
+-- than SLOW_MS end the routine and every later one: firmware this slow stalls
+-- every processor while it runs.
 --
 
 local nt = require('nt')
@@ -176,14 +176,17 @@ local function machine()
 end
 
 -- One SMM command on processor 0: eax and edx of the answer, nil when the
--- firmware refused it. A slow command marks the firmware slow.
+-- firmware refused it. Two slow commands in a row mark the firmware slow.
 local function smm(eax, ebx)
   local item = string.pack('<I2I2I4I8I8I8I8I8I8', 0, 0, SMI_PORT, eax, ebx, 0, 0, 0, 0)
   local started = ksi.time()
   local results, failed = ksi.hw.smi(item)
   if ksi.time() - started > SLOW_MS * 10000 then
     ksi.trace('command 0x%04x took more than %d ms', eax, SLOW_MS)
-    kept.slow = true
+    kept.slow = kept.late
+    kept.late = true
+  else
+    kept.late = nil
   end
   if not results then
     ksi.trace('command 0x%04x was not sent: 0x%08x', eax, failed)
