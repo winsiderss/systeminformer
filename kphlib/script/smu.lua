@@ -1969,7 +1969,7 @@ end
 
 -- Returns the power-management table of the mailbox behind the root complex
 -- the input names: its version, its length and its bytes.
-function table(input)
+function metrics(input)
   if #input ~= 4 then
     ksi.trace('input of %d bytes', #input)
     return nt.STATUS_INVALID_PARAMETER

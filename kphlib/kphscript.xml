@@ -35,7 +35,7 @@ This file is part of System Informer.
     <script name="smu" file="script/smu.lua" arch="amd64" desc="AMD firmware mailbox">
         <routine name="identify" level="maximum"/>
         <routine name="command" level="maximum"/>
-        <routine name="table" level="maximum"/>
+        <routine name="metrics" level="maximum"/>
     </script>
     <script name="smbus" file="script/smbus.lua" arch="amd64" desc="SMBus host">
         <routine name="identify" level="maximum"/>

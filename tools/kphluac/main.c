@@ -3259,6 +3259,15 @@ int __cdecl main(
                    context.Routines[i]);
         }
 
+        if (IsDriverGlobal(context.Routines[i]))
+        {
+            Report(&context,
+                   0,
+                   "routine name '%s' is a global the driver gives every "
+                   "script",
+                   context.Routines[i]);
+        }
+
         for (int j = 0; j < i; j++)
         {
             if (strcmp(context.Routines[i], context.Routines[j]) == 0)

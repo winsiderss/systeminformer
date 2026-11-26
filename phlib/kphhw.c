@@ -837,7 +837,7 @@ NTSTATUS KphHwSmuReadTable(
     _Out_ PULONG ReturnLength
     )
 {
-    static const ANSI_STRING routine = RTL_CONSTANT_STRING("table");
+    static const ANSI_STRING routine = RTL_CONSTANT_STRING("metrics");
     NTSTATUS status;
     ULONG outputLength;
     ULONG returnLength;
