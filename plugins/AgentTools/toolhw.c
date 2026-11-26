@@ -337,10 +337,11 @@ static VOID AtpHwAddCollector(
     )
 {
     PVOID collector;
+    BOOLEAN kernelAvailable = PhHwSensorsEnabled() && PhHwSensorsAvailable();
 
     collector = PhCreateJsonObject();
     PhAddJsonObjectBoolean(collector, "sensors_enabled", !!PhGetIntegerSetting(L"EnableHardwareSensors"));
-    PhAddJsonObjectBoolean(collector, "kernel_sensors_available", PhHwSensorsAvailable());
+    PhAddJsonObjectBoolean(collector, "kernel_sensors_available", kernelAvailable);
     PhAddJsonObjectBoolean(collector, "windows_counters_present", PhHwCounterSensorsPresent());
     PhAddJsonObjectBoolean(collector, "source_sensors_present", PhHwSourceSensorsPresent());
     AtJsonAddStringRef(collector, "unavailable_reason", PhHwGetSensorsUnavailableReason());
