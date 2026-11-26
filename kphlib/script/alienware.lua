@@ -217,6 +217,10 @@ local function information(device, method, operation, argument)
     .. string.pack('<I2I2BBBB', ARGUMENT_BUFFER, 4, operation, argument, 0, 0)
   local output, failed = nt.acpi.eval(device, method, MILLISECONDS, args)
   if not output then
+    -- STATUS_TIMEOUT is a success code; the answer is an error
+    if failed == nt.STATUS_TIMEOUT then
+      failed = nt.STATUS_IO_TIMEOUT
+    end
     return nil, failed
   end
   local kind, data = first_record(output)

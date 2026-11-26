@@ -307,6 +307,10 @@ end
 local function query(device, id, instance)
   local output, failed = nt.acpi.eval(device, 'WQ' .. id, MILLISECONDS, integer_argument(instance))
   if not output then
+    -- STATUS_TIMEOUT is a success code; the answer is an error
+    if failed == nt.STATUS_TIMEOUT then
+      failed = nt.STATUS_IO_TIMEOUT
+    end
     return nil, failed
   end
   local kind, data = first_record(output)
@@ -330,6 +334,9 @@ local function collected(device, id, flags, queries)
   end
   local output, failed = nt.acpi.eval(device, 'WC' .. id, MILLISECONDS, integer_argument(1))
   if not output then
+    if failed == nt.STATUS_TIMEOUT then
+      failed = nt.STATUS_IO_TIMEOUT
+    end
     return nil, failed
   end
   local release <close> = setmetatable({}, {

@@ -211,7 +211,12 @@ local function evaluate(device, method, id, value)
   local args = string.pack('<I2I2I4', ARGUMENT_INTEGER, 4, 0)
     .. string.pack('<I2I2I4', ARGUMENT_INTEGER, 4, id)
     .. string.pack('<I2I2I4', ARGUMENT_BUFFER, 4, value)
-  return nt.acpi.eval(device, method, MILLISECONDS, args)
+  local output, failed = nt.acpi.eval(device, method, MILLISECONDS, args)
+  -- STATUS_TIMEOUT is a success code; the answer is an error
+  if failed == nt.STATUS_TIMEOUT then
+    failed = nt.STATUS_IO_TIMEOUT
+  end
+  return output, failed
 end
 
 -- One read method with its 4-byte argument: the record's type and data, or nil
