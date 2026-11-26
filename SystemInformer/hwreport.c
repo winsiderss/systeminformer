@@ -56,7 +56,7 @@ static VOID PhpHwReportArmIdLine(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ ULONG First,
     _In_ ULONG Last,
-    _In_reads_(3) CONST ULONG64* Values
+    _In_reads_(3) PCULONG64 Values
     )
 {
     ULONG64 midr = Values[0];
