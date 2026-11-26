@@ -205,12 +205,16 @@ NTSTATUS PhpHwSmuProbe(
         if (i == 0)
             firstStatus = status;
 
-        // A version or length of 0: the row has no table, or the version could not be read.
-        if (!NT_SUCCESS(status) || !identity.TableVersion || !identity.TableLength)
+        if (!NT_SUCCESS(status))
             continue;
 
         package->FirmwareVersion = identity.FirmwareVersion;
         package->Version = identity.TableVersion;
+
+        // A version or length of 0: the row has no table, or does not list the version.
+        if (!identity.TableVersion || !identity.TableLength)
+            continue;
+
         package->Capacity = identity.TableLength;
         package->Table = PhAllocate(package->Capacity);
         package->HasTable = TRUE;

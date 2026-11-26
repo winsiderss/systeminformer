@@ -1629,10 +1629,11 @@ function identify(input)
       ksi.trace('the table version was not read: 0x%x', st)
       return st
     end
-    if t.versions[results[1]] then
-      version, length = results[1], t.versions[results[1]]
+    version = results[1]
+    if t.versions[version] then
+      length = t.versions[version]
     else
-      ksi.trace('table version 0x%x is not in the row', results[1])
+      ksi.trace('table version 0x%x is not in the row', version)
     end
   end
 

@@ -773,8 +773,8 @@ NTSTATUS KphHwSmnRead(
  * \param Locator The location: (segment << 16) | (bus << 8) | (device << 3) |
  * function.
  * \param Identity Receives the firmware version, and the version and length of
- * the power-management table (0 when the row has none or does not list the
- * version).
+ * the power-management table (0 when the row has none; the length 0 when the
+ * row does not list the version).
  * \return Successful or errant status; STATUS_RETRY when another tool holds
  * the bus.
  */
