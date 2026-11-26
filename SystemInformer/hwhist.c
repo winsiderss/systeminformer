@@ -189,6 +189,9 @@ VOID PhpHwHistoryAppend(
     ULONG enumerationKey;
     BOOLEAN added = FALSE;
 
+    if (!PhpHwHistoryTable && !PhCsEnableHardwareSensors)
+        return;
+
     PhInitializeArray(&samples, sizeof(PHP_HW_HISTORY_SAMPLE), 64);
     PhpHwEnumerateSensorsEx(PhpHwHistoryCollect, &samples, PHP_HW_ENUM_NO_NAMES);
 
