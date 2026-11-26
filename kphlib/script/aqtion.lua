@@ -288,6 +288,17 @@ local function block_temperature(m)
   return nil, nt.STATUS_DEVICE_BUSY
 end
 
+-- Runs a step to its end even when the call reaches a limit meanwhile.
+local function uninterrupted(step)
+  local run <close> = setmetatable({}, {
+    __close = function(_, failed)
+      if failed == nil then
+        step()
+      end
+    end,
+  })
+end
+
 -- Polls Done up to POLLS times, Stall microseconds apart; whether it held.
 local function poll(done, stall)
   for _ = 1, POLLS do
@@ -342,17 +353,26 @@ local function mailbox_temperature(m)
     return nil, nt.STATUS_IO_TIMEOUT
   end
   local mailbox = ksi.hw.map_read(m, MAILBOX, 4)
-  if not poll(function()
-    return ksi.hw.map_read(m, SEMAPHORE, 4) == 1
-  end, ANSWER_STALL) then
+  local taken = false
+  local held <close> = setmetatable({}, {
+    __close = function()
+      if taken then
+        ksi.hw.map_write(m, SEMAPHORE, 4, 1)
+      end
+    end,
+  })
+  -- The read that answers 1 takes the semaphore.
+  if
+    not poll(function()
+      uninterrupted(function()
+        taken = ksi.hw.map_read(m, SEMAPHORE, 4) == 1
+      end)
+      return taken
+    end, ANSWER_STALL)
+  then
     ksi.trace('the RAM semaphore is held')
     return nil, nt.STATUS_DEVICE_BUSY
   end
-  local held <close> = setmetatable({}, {
-    __close = function()
-      ksi.hw.map_write(m, SEMAPHORE, 4, 1)
-    end,
-  })
   local value, failed = ram_read(m, mailbox + MAILBOX_TEMPERATURE)
   if not value then
     return nil, failed
