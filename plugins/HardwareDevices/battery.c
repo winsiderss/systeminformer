@@ -125,6 +125,7 @@ static VOID BatteryEnumerate(
         BT_BATTERY battery;
         ULONG timeout = 0;
         BATTERY_INFORMATION information;
+        NTSTATUS tagStatus;
         WCHAR deviceName[64];
         PH_FORMAT format[4];
 
@@ -153,9 +154,18 @@ static VOID BatteryEnumerate(
 
         memset(&information, 0, sizeof(BATTERY_INFORMATION));
 
-        // A tag of 0 is no battery in the slot yet; the slot is kept and polled.
+        // No battery in the slot yet is a tag of 0, or the query failing with STATUS_NO_SUCH_DEVICE; the slot is
+        // kept and polled.
+        tagStatus = PhDeviceIoControlFile(battery.Handle, IOCTL_BATTERY_QUERY_TAG, &timeout, sizeof(timeout), &battery.Tag, sizeof(battery.Tag), NULL);
+
+        if (tagStatus == STATUS_NO_SUCH_DEVICE)
+        {
+            battery.Tag = 0;
+            tagStatus = STATUS_SUCCESS;
+        }
+
         if (
-            !NT_SUCCESS(PhDeviceIoControlFile(battery.Handle, IOCTL_BATTERY_QUERY_TAG, &timeout, sizeof(timeout), &battery.Tag, sizeof(battery.Tag), NULL)) ||
+            !NT_SUCCESS(tagStatus) ||
             (battery.Tag && (
             !NT_SUCCESS(BatteryQueryInformation(&battery, BatteryInformation, &information, sizeof(information))) ||
             (information.Capabilities & BATTERY_CAPACITY_RELATIVE) ||
