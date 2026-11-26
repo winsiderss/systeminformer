@@ -94,6 +94,11 @@ typedef CONST VOID *PCVOID;
  */
 typedef CONST ULONG *PCULONG;
 
+/**
+ * The PCUCHAR type is a pointer to a constant unsigned char.
+ */
+typedef CONST UCHAR *PCUCHAR;
+
 //
 // Specific
 //

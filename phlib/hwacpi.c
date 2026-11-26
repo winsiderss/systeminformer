@@ -20,7 +20,7 @@
  */
 _Success_(return)
 BOOLEAN NTAPI PhHwAcpiReadArgument(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _In_ ULONG Offset,
     _Out_ PUSHORT Type,
@@ -55,7 +55,7 @@ BOOLEAN NTAPI PhHwAcpiReadArgument(
  * \return The number of integers read, at most Count.
  */
 ULONG NTAPI PhHwAcpiReadIntegersAt(
-    _In_reads_bytes_(End) const UCHAR* Buffer,
+    _In_reads_bytes_(End) PCUCHAR Buffer,
     _In_ ULONG Offset,
     _In_ ULONG End,
     _Out_writes_to_(Count, return) PULONG64 Values,
@@ -93,7 +93,7 @@ ULONG NTAPI PhHwAcpiReadIntegersAt(
  */
 _Success_(return)
 BOOLEAN NTAPI PhHwAcpiGetElements(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PULONG Offset,
     _Out_ PULONG End,
@@ -140,7 +140,7 @@ BOOLEAN NTAPI PhHwAcpiGetElements(
  * \return The number of integers read, at most Count.
  */
 ULONG NTAPI PhHwAcpiReadIntegers(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_writes_to_(Count, return) PULONG64 Values,
     _In_ ULONG Count
@@ -164,7 +164,7 @@ ULONG NTAPI PhHwAcpiReadIntegers(
  */
 _Success_(return == PhHwFanDecodeOk)
 PH_HW_FAN_DECODE NTAPI PhHwDecodeFanStatus(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PULONG Rpm,
     _Out_ PULONG64 Control
@@ -192,7 +192,7 @@ PH_HW_FAN_DECODE NTAPI PhHwDecodeFanStatus(
  * \return The number of states decoded, at most Count; a malformed state ends the table.
  */
 ULONG NTAPI PhHwDecodeFanStates(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_writes_to_(Count, return) PPH_HW_FAN_STATE States,
     _In_ ULONG Count
@@ -251,7 +251,7 @@ ULONG NTAPI PhHwDecodeFanStates(
  */
 _Success_(return)
 BOOLEAN NTAPI PhHwAcpiFirstArgument(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PUSHORT Type,
     _Out_ PUSHORT DataLength,
@@ -284,7 +284,7 @@ BOOLEAN NTAPI PhHwAcpiFirstArgument(
  */
 _Success_(return)
 BOOLEAN NTAPI PhHwAcpiReadInteger(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PULONG64 Value
     )
@@ -311,7 +311,7 @@ BOOLEAN NTAPI PhHwAcpiReadInteger(
  */
 _Ret_maybenull_
 PPH_STRING NTAPI PhHwAcpiReadString(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length
     )
 {
@@ -361,7 +361,7 @@ PPH_STRING NTAPI PhHwAcpiReadString(
  */
 _Success_(return == PhHwFanDecodeOk)
 PH_HW_FAN_DECODE NTAPI PhHwDecodeDptfTemperature(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PFLOAT Celsius
     )
@@ -387,7 +387,7 @@ PH_HW_FAN_DECODE NTAPI PhHwDecodeDptfTemperature(
 _Success_(return == PhHwFanDecodeOk)
 PH_HW_FAN_DECODE NTAPI PhHwDecodeAtkReading(
     _In_ UCHAR Op,
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PFLOAT Value
     )
@@ -429,7 +429,7 @@ PH_HW_FAN_DECODE NTAPI PhHwDecodeAtkReading(
  * \return The number of leading integers.
  */
 ULONG NTAPI PhHwDecodePowerMeterCapabilities(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Inout_ PPH_HW_ACPI_REPORT Report
     )
@@ -493,7 +493,7 @@ ULONG NTAPI PhHwDecodePowerMeterCapabilities(
  */
 _Success_(return == PhHwFanDecodeOk)
 PH_HW_FAN_DECODE NTAPI PhHwDecodePowerMeterReading(
-    _In_reads_bytes_(Length) const UCHAR* Buffer,
+    _In_reads_bytes_(Length) PCUCHAR Buffer,
     _In_ ULONG Length,
     _Out_ PFLOAT Watts
     )

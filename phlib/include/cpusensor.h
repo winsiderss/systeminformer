@@ -528,11 +528,11 @@ BOOLEAN
 NTAPI
 PhIntelMchbarToMemoryClock(
     _In_ PCPH_CPU_IDENTITY Identity,
-    _In_opt_ const ULONG* McBiosReq,
-    _In_opt_ const ULONG* McBiosData,
-    _In_opt_ const ULONG* SaPerfStatus,
-    _In_opt_ const ULONG* BclkFreq,
-    _In_opt_ const ULONG* MemssBiosData,
+    _In_opt_ PCULONG McBiosReq,
+    _In_opt_ PCULONG McBiosData,
+    _In_opt_ PCULONG SaPerfStatus,
+    _In_opt_ PCULONG BclkFreq,
+    _In_opt_ PCULONG MemssBiosData,
     _Out_ PFLOAT MemoryClockMhz,
     _Out_ PFLOAT DataRate,
     _Out_ PULONG Gear

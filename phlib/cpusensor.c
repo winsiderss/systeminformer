@@ -24,7 +24,7 @@ static BOOLEAN PhpCpuIdentityIsVendor(
 static BOOLEAN PhpCpuIdentityIsModel(
     _In_ PCPH_CPU_IDENTITY Identity,
     _In_ USHORT Family,
-    _In_reads_(Count) const UCHAR* Models,
+    _In_reads_(Count) PCUCHAR Models,
     _In_ ULONG Count
     )
 {
@@ -1497,7 +1497,7 @@ static PHP_INTEL_MEMORY_CLOCK_FORMAT PhpIntelMemoryClockFormat(
  * \return The BCLK in MHz, or 100 when the register is unavailable or outside 50 to 300 MHz.
  */
 static FLOAT PhpIntelBclkMhz(
-    _In_opt_ const ULONG* BclkFreq
+    _In_opt_ PCULONG BclkFreq
     )
 {
     if (BclkFreq && *BclkFreq >= 50000 && *BclkFreq <= 300000)
@@ -1523,11 +1523,11 @@ static FLOAT PhpIntelBclkMhz(
 _Success_(return)
 BOOLEAN NTAPI PhIntelMchbarToMemoryClock(
     _In_ PCPH_CPU_IDENTITY Identity,
-    _In_opt_ const ULONG* McBiosReq,
-    _In_opt_ const ULONG* McBiosData,
-    _In_opt_ const ULONG* SaPerfStatus,
-    _In_opt_ const ULONG* BclkFreq,
-    _In_opt_ const ULONG* MemssBiosData,
+    _In_opt_ PCULONG McBiosReq,
+    _In_opt_ PCULONG McBiosData,
+    _In_opt_ PCULONG SaPerfStatus,
+    _In_opt_ PCULONG BclkFreq,
+    _In_opt_ PCULONG MemssBiosData,
     _Out_ PFLOAT MemoryClockMhz,
     _Out_ PFLOAT DataRate,
     _Out_ PULONG Gear

@@ -733,7 +733,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphHwProm21Read(
-    _In_reads_(Count) const ULONG* Locators,
+    _In_reads_(Count) PCULONG Locators,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
@@ -824,7 +824,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphHwAqtionRead(
-    _In_reads_(Count) const ULONG* Locators,
+    _In_reads_(Count) PCULONG Locators,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );
@@ -918,7 +918,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphHwAsusWmiRead(
-    _In_reads_(Count) const UCHAR* Sources,
+    _In_reads_(Count) PCUCHAR Sources,
     _In_ ULONG Count,
     _Out_writes_(Count) PKPH_HW_VALUE32 Values
     );

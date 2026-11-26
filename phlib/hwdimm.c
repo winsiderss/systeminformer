@@ -53,7 +53,7 @@ FLOAT NTAPI PhHwSpd5118ToCelsius(
 }
 
 static UCHAR PhpHwPmicRegister(
-    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers,
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) PCUCHAR Registers,
     _In_ UCHAR Command
     )
 {
@@ -72,7 +72,7 @@ static UCHAR PhpHwPmicRegister(
  * 27h) clear, or claimed by a vendor rule.
  */
 BOOLEAN NTAPI PhHwPmicDefaultRange(
-    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers,
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) PCUCHAR Registers,
     _In_ UCHAR SetPoint
     )
 {
@@ -106,7 +106,7 @@ BOOLEAN NTAPI PhHwPmicDefaultRange(
  * mode) instead of the JEDEC [7:1].
  */
 BOOLEAN NTAPI PhHwPmicHighVoltage(
-    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) const UCHAR* Registers
+    _In_reads_(PH_HW_PMIC_REPORT_REGISTERS) PCUCHAR Registers
     )
 {
     UCHAR select = PhpHwPmicRegister(Registers, 0x30);
