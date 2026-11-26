@@ -300,7 +300,7 @@ NTSTATUS PhpHwTsensPass(
             package->Temperature = packageMaximum;
             WriteULongRelease(&package->Valid, ReadULongAcquire(&package->Valid) | PH_HW_CAP_PACKAGE_TEMP);
         }
-        else if (PhpHwTsensEnded && PhpHwTsensCoreSensors)
+        else if (PhpHwTsensCoreSensors)
         {
             // The cpu collector sets the zone again on its next pass, when it runs.
             WriteULongRelease(&package->Valid, ReadULongAcquire(&package->Valid) & ~PH_HW_CAP_PACKAGE_TEMP);
