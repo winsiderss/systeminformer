@@ -87,6 +87,7 @@ typedef struct _LW_CONTEXT
     UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     ULONG Model;
     ULONG64 LastPollTime;
+    HD_WAKE Wake;
     NTSTATUS LastStatus;
     LONG Temps[LW_MAX_TEMPS];
     ULONG Fans[LW_MAX_FANS];
@@ -159,10 +160,22 @@ static VOID NTAPI LenovoWsSourceCallback(
     const LW_MODEL* model;
     ULONG64 now;
 
-    if (!context || context->Unsupported || KsiLevel() != KphLevelMax)
+    if (!context)
         return;
 
     now = NtGetTickCount64();
+
+    if (HardwareDeviceWoke(&context->Wake, now))
+    {
+        PhAcquireQueuedLockExclusive(&context->Lock);
+        context->Unsupported = FALSE;
+        context->Strikes = 0;
+        context->Backoff = 0;
+        PhReleaseQueuedLockExclusive(&context->Lock);
+    }
+
+    if (context->Unsupported || KsiLevel() != KphLevelMax)
+        return;
 
     if (!context->LastPollTime || now - context->LastPollTime >= LW_INTERVAL_MS)
     {

@@ -62,6 +62,7 @@ typedef struct _MB_CONTEXT
     PH_QUEUED_LOCK Lock;
     BOOLEAN SmbiosRead;
     ULONG64 LastPollTime;
+    HD_WAKE Wake;
     PPH_STRING Manufacturer;
     PPH_STRING Product;
     MB_SLOT Slots[MB_SLOTS];
@@ -458,6 +459,9 @@ static VOID NTAPI MotherboardSensorSourceCallback(
 
     if (!context)
         return;
+
+    if (HardwareDeviceWoke(&context->Wake, MotherboardQueryTime()))
+        WriteRelease(&MotherboardSessionEnded, TRUE);
 
     // The Super I/O is read through the driver; without it there is nothing to report, and its return starts a
     // new session.

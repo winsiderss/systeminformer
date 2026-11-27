@@ -32,6 +32,7 @@ typedef struct _DS_CONTEXT
     UCHAR Strikes;
     UCHAR Backoff; // polls left before the next try after STATUS_NOINTERFACE
     ULONG64 LastPollTime;
+    HD_WAKE Wake;
     NTSTATUS LastStatus;
     KPH_HW_DELL_IDENTITY Identity;
     ULONG FanMask;
@@ -219,10 +220,22 @@ static VOID NTAPI DellSmmSourceCallback(
     PH_HW_SENSOR_REPORT report;
     ULONG64 now;
 
-    if (!context || context->Stopped || KsiLevel() != KphLevelMax)
+    if (!context)
         return;
 
     now = NtGetTickCount64();
+
+    if (HardwareDeviceWoke(&context->Wake, now))
+    {
+        PhAcquireQueuedLockExclusive(&context->Lock);
+        context->Stopped = FALSE;
+        context->Strikes = 0;
+        context->Backoff = 0;
+        PhReleaseQueuedLockExclusive(&context->Lock);
+    }
+
+    if (context->Stopped || KsiLevel() != KphLevelMax)
+        return;
 
     if (!context->LastPollTime || now - context->LastPollTime >= DS_INTERVAL_MS)
     {

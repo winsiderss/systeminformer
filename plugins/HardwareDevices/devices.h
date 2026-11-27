@@ -1417,6 +1417,56 @@ INT_PTR CALLBACK RaplDeviceOptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+// main.c
+
+ULONG64 HardwareDeviceSleepBias(
+    VOID
+    );
+
+#define HD_WAKE_GAP_MS 15000 // a callback this long after the last is taken for a wake
+#define HD_WAKE_SETTLE_MS 5000 // from a wake to starting over, for the hardware to come back
+
+typedef struct _HD_WAKE
+{
+    ULONG64 Bias; // of the last callback
+    ULONG64 LastTime;
+    ULONG64 WakeTime;
+    BOOLEAN Woke; // a wake waits for HD_WAKE_SETTLE_MS
+} HD_WAKE, *PHD_WAKE;
+
+/**
+ * Notes a callback of a sensor source that stops for good after failures.
+ *
+ * \param Wake The source's state, zeroed before the first callback.
+ * \param Now The tick count of the callback, in milliseconds.
+ * \return TRUE once after each wake of the machine, when the source should start over.
+ */
+FORCEINLINE
+BOOLEAN HardwareDeviceWoke(
+    _Inout_ PHD_WAKE Wake,
+    _In_ ULONG64 Now
+    )
+{
+    ULONG64 bias = HardwareDeviceSleepBias();
+
+    if (Wake->LastTime && (bias != Wake->Bias || Now - Wake->LastTime > HD_WAKE_GAP_MS))
+    {
+        Wake->Woke = TRUE;
+        Wake->WakeTime = Now;
+    }
+
+    Wake->Bias = bias;
+    Wake->LastTime = Now;
+
+    if (Wake->Woke && Now - Wake->WakeTime >= HD_WAKE_SETTLE_MS)
+    {
+        Wake->Woke = FALSE;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 // battery.c
 
 VOID BatteryInitialize(

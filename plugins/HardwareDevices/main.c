@@ -46,6 +46,18 @@ PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION SystemInformationInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 
+/**
+ * Retrieves the time the machine has spent asleep, which moves only when it wakes.
+ *
+ * \return The time in 100 ns units.
+ */
+ULONG64 HardwareDeviceSleepBias(
+    VOID
+    )
+{
+    return ReadULong64Acquire(&USER_SHARED_DATA->InterruptTimeBias);
+}
+
 VOID NTAPI LoadSettings(
     VOID
     )
