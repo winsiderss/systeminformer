@@ -720,6 +720,10 @@ NTSTATUS PhGetHypervisorVendorId(
         )))
         return status;
 
+    // The query succeeds with a zero vendor when no hypervisor is running.
+    if (!info.HvVendorAndMaxFunction.Data[1])
+        return STATUS_NOT_FOUND;
+
     *VendorId = info.HvVendorAndMaxFunction.Data[1];
 
     return STATUS_SUCCESS;
@@ -762,6 +766,12 @@ PH_VIRTUAL_STATUS PhGetVirtualStatus(
 
             return PhVirtualStatusVirtualMachine;
         }
+    }
+
+    // Matches the Windows 10 Task Manager, which never consults VirtualizationFlags.
+    if (WindowsVersion < WINDOWS_11)
+    {
+        return PhVirtualStatusNotCapable;
     }
 
     if (USER_SHARED_DATA->ArchStartedInEl2 || USER_SHARED_DATA->QcSlIsSupported)
