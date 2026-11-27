@@ -301,6 +301,8 @@ static VOID NTAPI DellSmmSourceDiagnostics(
 
         if (context->LastStatus == STATUS_IO_TIMEOUT)
             stopped = L" (slow firmware: stopped)";
+        else if (context->Stopped && context->LastStatus == STATUS_NOT_SUPPORTED)
+            stopped = L" (not a listed machine)";
         else if (context->Stopped)
             stopped = L" (stopped)";
 

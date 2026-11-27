@@ -228,7 +228,12 @@ static VOID NTAPI AsusWmiSourceDiagnostics(
         PCWSTR stopped = L"";
 
         if (context->Stopped)
+        {
             stopped = L" (stopped)";
+
+            if (context->LastStatus == STATUS_NOT_SUPPORTED)
+                stopped = L" (not a listed board)";
+        }
 
         PhAppendFormatStringBuilder(
             Builder,

@@ -227,7 +227,12 @@ static VOID NTAPI AmdNpuSourceDiagnostics(
         PCWSTR stopped = L"";
 
         if (context->Stopped)
+        {
             stopped = L" (stopped)";
+
+            if (context->LastStatus == STATUS_NOT_SUPPORTED)
+                stopped = L" (not a listed processor)";
+        }
 
         PhAppendFormatStringBuilder(
             Builder,
