@@ -18,7 +18,6 @@
 // KphHwSmuReadTable a package a second (the family's interval), decoded by phlib into named sensors.
 
 #define PHP_HW_SMU_STRIKE_LIMIT 2 // consecutive busy or timed-out requests that end the table for the session
-#define PHP_HW_SMU_REJECT_LIMIT 10 // consecutive rejected requests that end it; the firmware rejects after a resume
 
 typedef struct _PHP_HW_SMU_PACKAGE
 {
@@ -136,8 +135,8 @@ VOID PhpHwSmuPublish(
 }
 
 /**
- * Applies the session failure policy to a package's table: contention is no value; a busy, timed-out or rejecting
- * mailbox strikes; anything else ends the table for the session.
+ * Applies the session failure policy to a package's table: contention is no value; a busy or timed-out mailbox
+ * strikes; anything else ends the table for the session.
  *
  * \return TRUE when the table was read.
  */
@@ -147,8 +146,6 @@ static BOOLEAN PhpHwSmuApplyStatus(
     _In_ NTSTATUS Status
     )
 {
-    ULONG limit = 0;
-
     Package->Status = Status;
 
     if (NT_SUCCESS(Status))
@@ -162,21 +159,17 @@ static BOOLEAN PhpHwSmuApplyStatus(
     case STATUS_RETRY:
     case STATUS_INSUFFICIENT_RESOURCES:
     case STATUS_NO_MEMORY:
-        return FALSE;
+        break;
     case STATUS_DEVICE_BUSY:
     case STATUS_IO_TIMEOUT:
-        limit = PHP_HW_SMU_STRIKE_LIMIT;
-        break;
-    case STATUS_INTERNAL_ERROR:
-        limit = PHP_HW_SMU_REJECT_LIMIT;
+        if (++Package->Strikes < PHP_HW_SMU_STRIKE_LIMIT)
+            break;
+        __fallthrough;
+    default:
+        Package->HasTable = FALSE;
+        PhTraceInfo("Hardware sensors: PM table of package %lu unavailable: 0x%lx", PackageIndex, Status);
         break;
     }
-
-    if (++Package->Strikes < limit)
-        return FALSE;
-
-    Package->HasTable = FALSE;
-    PhTraceInfo("Hardware sensors: PM table of package %lu unavailable: 0x%lx", PackageIndex, Status);
 
     return FALSE;
 }
