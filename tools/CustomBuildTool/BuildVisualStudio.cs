@@ -44,6 +44,8 @@ namespace CustomBuildTool
                     IntPtr SetupInstancePtr;
                     IntPtr SetupInstance2Ptr;
                     uint instancesFetched;
+                    Guid iidSetupConfiguration2 = IID_ISetupConfiguration2;
+                    Guid iidSetupInstance2 = IID_ISetupInstance2;
 
                     if (GetSetupConfiguration_I(
                         &SetupConfigurationInterfacePtr,
@@ -54,7 +56,7 @@ namespace CustomBuildTool
 
                         if (setupInterface->QueryInterface(
                             SetupConfigurationInterfacePtr,
-                            IID_ISetupConfiguration2,
+                            &iidSetupConfiguration2,
                             &SetupConfiguration2InterfacePtr
                             ).Succeeded)
                         {
@@ -78,7 +80,7 @@ namespace CustomBuildTool
 
                                     if (setupInstance->QueryInterface(
                                         SetupInstancePtr,
-                                        IID_ISetupInstance2,
+                                        &iidSetupInstance2,
                                         &SetupInstance2Ptr
                                         ).Succeeded)
                                     {
@@ -216,9 +218,16 @@ namespace CustomBuildTool
 
             if (Win32.GetEnvironmentVariable("ProgramData", out string programData))
             {
-                string directory = Environment.Is64BitProcess ? "x64" : "x86";
+                // ARM64 hosts ship only arm64ec and x86 builds; arm64ec loads into native ARM64 and emulated x64 processes.
+                string[] directories = Environment.Is64BitProcess ? ["x64", "arm64ec"] : ["x86"];
 
-                path = Path.Join([programData, @"\Microsoft\VisualStudio\Setup\", directory, @"\Microsoft.VisualStudio.Setup.Configuration.Native.dll"]);
+                foreach (string directory in directories)
+                {
+                    path = Path.Join([programData, @"\Microsoft\VisualStudio\Setup\", directory, @"\Microsoft.VisualStudio.Setup.Configuration.Native.dll"]);
+
+                    if (File.Exists(path))
+                        break;
+                }
             }
 
             //if (!File.Exists(path))
@@ -1086,7 +1095,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISetupHelperVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // ISetupHelper
@@ -1097,7 +1106,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISetupConfigurationVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // STDMETHOD(EnumInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
@@ -1111,7 +1120,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISetupConfiguration2VTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // STDMETHOD(EnumAllInstances)(_Out_ IEnumSetupInstances **ppEnumInstances) = 0;
@@ -1121,7 +1130,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct IEnumSetupInstancesVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // STDMETHOD(Next)(_In_ ULONG celt, _Out_writes_to_(celt, *pceltFetched) ISetupInstance** rgelt, _Out_opt_ _Deref_out_range_(0, celt) ULONG* pceltFetched) = 0;
@@ -1137,7 +1146,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISetupInstanceVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // ISetupInstance
@@ -1162,7 +1171,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISetupInstance2VTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // ISetupInstance
@@ -1206,7 +1215,7 @@ namespace CustomBuildTool
     [StructLayout(LayoutKind.Sequential)]
     internal readonly unsafe struct ISetupPackageReferenceVTable
     {
-        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid, IntPtr*, HRESULT> QueryInterface;
+        public readonly delegate* unmanaged[Stdcall]<IntPtr, Guid*, IntPtr*, HRESULT> QueryInterface;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> AddRef;
         public readonly delegate* unmanaged[Stdcall]<IntPtr, uint> Release;
         // ISetupPackageReference
