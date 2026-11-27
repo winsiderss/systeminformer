@@ -43,6 +43,8 @@ extern ULONG PhCsTemperatureUnitFahrenheit;
 
 #define PHP_HW_SECOND 10000000ULL // in PhpHwQueryTime units
 #define PHP_HW_RETRY_BACKOFF 10 // updates between tries after two STATUS_RETRY in a row
+#define PHP_HW_WAKE_GAP (15 * PHP_HW_SECOND) // an update this long after the last is taken for a wake
+#define PHP_HW_WAKE_SETTLE (5 * PHP_HW_SECOND) // from a wake to the new session, for the hardware to come back
 
 // The driver families in update order.
 typedef enum _PHP_HW_FAMILY_ID
@@ -795,6 +797,10 @@ BOOLEAN PhpHwQueryComputeUnits(
     );
 
 ULONG64 PhpHwQueryTime(
+    VOID
+    );
+
+ULONG64 PhpHwQuerySleepBias(
     VOID
     );
 

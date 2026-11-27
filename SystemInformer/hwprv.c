@@ -122,6 +122,10 @@ static PH_QUEUED_LOCK PhpHwReportLock = PH_QUEUED_LOCK_INIT;
 static LIST_ENTRY PhpHwReportRequests = { &PhpHwReportRequests, &PhpHwReportRequests };
 static LONG PhpHwRefreshRequested = FALSE; // the next update runs every family regardless of its interval
 static BOOLEAN PhpHwOffUpdated = FALSE; // an update ran with the setting off since it was last on
+static ULONG64 PhpHwSleepBias = 0; // of the last update
+static ULONG64 PhpHwLastUpdate = 0;
+static ULONG64 PhpHwWakeTime = 0;
+static BOOLEAN PhpHwWoke = FALSE; // a wake waits for PHP_HW_WAKE_SETTLE
 
 /**
  * Determines whether a status says the family's script is not shipped with this build.
@@ -224,6 +228,7 @@ static VOID PhpHwBeginSession(
 {
     PhpHwInitializeTopology();
     PhpHwGateOpen = TRUE;
+    PhpHwWoke = FALSE;
 
     // Without the driver only the processor values were published.
     PhpHwAvailable = FALSE;
@@ -834,6 +839,7 @@ VOID PhHwProviderUpdate(
 {
     PH_PROVIDER_UPDATED_EVENT updatedEvent;
     ULONG64 now;
+    ULONG64 bias;
     BOOLEAN open;
     BOOLEAN refresh;
 
@@ -846,9 +852,28 @@ VOID PhHwProviderUpdate(
     PhpHwOffUpdated = !PhCsEnableHardwareSensors;
 
     now = PhpHwQueryTime();
+    bias = PhpHwQuerySleepBias();
     open = PhCsEnableHardwareSensors && PhpHwDriverReady();
 
     PhAcquireQueuedLockExclusive(&PhpHwFamilyLock);
+
+    // A wake may have reset what the session learned from the hardware, and ended what did not answer at once.
+    if (PhpHwGateOpen && (bias != PhpHwSleepBias || (now > PhpHwLastUpdate && now - PhpHwLastUpdate > PHP_HW_WAKE_GAP)))
+    {
+        PhpHwWoke = TRUE;
+        PhpHwWakeTime = now;
+    }
+
+    PhpHwSleepBias = bias;
+    PhpHwLastUpdate = now;
+
+    if (PhpHwWoke && now - PhpHwWakeTime >= PHP_HW_WAKE_SETTLE)
+    {
+        PhpHwWoke = FALSE;
+
+        if (PhpHwGateOpen)
+            PhpHwEndSession();
+    }
 
     if (open && !PhpHwGateOpen)
         PhpHwBeginSession();

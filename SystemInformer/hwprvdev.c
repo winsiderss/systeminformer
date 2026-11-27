@@ -365,6 +365,18 @@ ULONG64 PhpHwQueryTime(
 }
 
 /**
+ * Retrieves the time the machine has spent asleep, which moves only when it wakes.
+ *
+ * \return The time in 100 ns units.
+ */
+ULONG64 PhpHwQuerySleepBias(
+    VOID
+    )
+{
+    return ReadULong64Acquire(&USER_SHARED_DATA->InterruptTimeBias);
+}
+
+/**
  * Parses the digit groups of a PCI location string as the bus driver writes it.
  *
  * \return The number of groups (3, or 4 with a segment), or 0 when malformed.
